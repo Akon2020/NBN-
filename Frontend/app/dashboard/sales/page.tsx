@@ -4,24 +4,43 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Edit, Trash2, MapPin, Bed, Bath, HomeIcon, Building } from "lucide-react"
+import { Plus, Edit, Trash2, MapPin, Bed, Bath, HomeIcon, Building, Eye } from "lucide-react"
 import type { SaleProperty } from "@/lib/types"
 import { mockSales } from "@/lib/mock-data"
 import { AddSaleModal } from "@/components/property-modals/add-sale-modal"
+import { EditSaleModal } from "@/components/property-modals/edit-sale-modal"
+import { DeleteSaleModal } from "@/components/property-modals/delete-sale-modal"
 import Image from "next/image"
+import Link from "next/link"
 
 export default function SalesPage() {
   const [properties, setProperties] = useState<SaleProperty[]>(mockSales)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedProperty, setSelectedProperty] = useState<SaleProperty | null>(null)
 
   const handleAdd = (property: SaleProperty) => {
     setProperties([property, ...properties])
   }
 
+  const handleEdit = (updatedProperty: SaleProperty) => {
+    setProperties(properties.map((p) => (p.id === updatedProperty.id ? updatedProperty : p)))
+  }
+
   const handleDelete = (id: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer ce bien ?")) {
-      setProperties(properties.filter((p) => p.id !== id))
-    }
+    setProperties(properties.filter((p) => p.id !== id))
+    setShowDeleteModal(false)
+  }
+
+  const openEditModal = (property: SaleProperty) => {
+    setSelectedProperty(property)
+    setShowEditModal(true)
+  }
+
+  const openDeleteModal = (property: SaleProperty) => {
+    setSelectedProperty(property)
+    setShowDeleteModal(true)
   }
 
   const getTypeLabel = (type: string) => {
@@ -104,14 +123,19 @@ export default function SalesPage() {
                   <div className="text-xs text-muted-foreground">Marge: ${property.margin.toLocaleString()}</div>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Link href={`/dashboard/sales/${property.id}`}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(property)}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(property.id)}
+                    onClick={() => openDeleteModal(property)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -123,6 +147,18 @@ export default function SalesPage() {
       </div>
 
       <AddSaleModal open={showAddModal} onOpenChange={setShowAddModal} onAdd={handleAdd} />
+      <EditSaleModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        property={selectedProperty}
+        onEdit={handleEdit}
+      />
+      <DeleteSaleModal
+        open={showDeleteModal}
+        onOpenChange={setShowDeleteModal}
+        property={selectedProperty}
+        onDelete={handleDelete}
+      />
     </div>
   )
 }

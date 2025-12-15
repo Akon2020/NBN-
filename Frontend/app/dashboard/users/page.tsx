@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Plus, Edit, Trash2, UsersIcon } from "lucide-react"
+import { AddUserModal } from "@/components/user-modals/add-user-modal"
+import { EditUserModal } from "@/components/user-modals/edit-user-modal"
+import { DeleteUserModal } from "@/components/user-modals/delete-user-modal"
 
 interface User {
   id: string
@@ -19,32 +22,32 @@ interface User {
 const mockUsers: User[] = [
   {
     id: "1",
-    name: "Jean Mukendi",
-    email: "jean.mukendi@nyumbani.cd",
+    name: "Isaac Akonkwa",
+    email: "akonkwaushindi@gmail.com",
     role: "admin",
     status: "active",
     createdAt: new Date("2025-01-01"),
   },
   {
     id: "2",
-    name: "Marie Zawadi",
-    email: "marie.zawadi@nyumbani.cd",
+    name: "Amani Ntanama",
+    email: "elientanama@gmail.cd",
     role: "agent",
     status: "active",
     createdAt: new Date("2025-01-05"),
   },
   {
     id: "3",
-    name: "Paul Mwamba",
-    email: "paul.mwamba@nyumbani.cd",
+    name: "Wani Totoro",
+    email: "wanitotoro@gmail.com",
     role: "consultant",
     status: "active",
     createdAt: new Date("2025-01-10"),
   },
   {
     id: "4",
-    name: "Grace Kabuo",
-    email: "grace.kabuo@nyumbani.cd",
+    name: "Benjamin Maroy",
+    email: "jibumaroy@gmail.com",
     role: "agent",
     status: "inactive",
     createdAt: new Date("2024-12-15"),
@@ -53,11 +56,31 @@ const mockUsers: User[] = [
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>(mockUsers)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+
+  const handleAdd = (user: User) => {
+    setUsers([user, ...users])
+  }
+
+  const handleEdit = (updatedUser: User) => {
+    setUsers(users.map((u) => (u.id === updatedUser.id ? updatedUser : u)))
+  }
 
   const handleDelete = (id: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
-      setUsers(users.filter((u) => u.id !== id))
-    }
+    setUsers(users.filter((u) => u.id !== id))
+  }
+
+  const openEditModal = (user: User) => {
+    setSelectedUser(user)
+    setShowEditModal(true)
+  }
+
+  const openDeleteModal = (user: User) => {
+    setSelectedUser(user)
+    setShowDeleteModal(true)
   }
 
   const getRoleBadgeColor = (role: string) => {
@@ -89,7 +112,7 @@ export default function UsersPage() {
           <h1 className="text-3xl font-bold tracking-tight text-balance">Utilisateurs</h1>
           <p className="text-muted-foreground mt-2">Gérez les accès et les rôles des membres de l'équipe</p>
         </div>
-        <Button className="bg-primary text-primary-foreground">
+        <Button onClick={() => setShowAddModal(true)} className="bg-primary text-primary-foreground">
           <Plus className="mr-2 h-4 w-4" />
           Ajouter un utilisateur
         </Button>
@@ -125,7 +148,7 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => openEditModal(user)}>
                     <Edit className="h-4 w-4 mr-2" />
                     Modifier
                   </Button>
@@ -133,7 +156,7 @@ export default function UsersPage() {
                     variant="outline"
                     size="sm"
                     className="text-destructive bg-transparent"
-                    onClick={() => handleDelete(user.id)}
+                    onClick={() => openDeleteModal(user)}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Supprimer
@@ -152,6 +175,15 @@ export default function UsersPage() {
           <p className="text-sm text-muted-foreground mt-1">Commencez par ajouter des membres à votre équipe</p>
         </div>
       )}
+
+      <AddUserModal open={showAddModal} onOpenChange={setShowAddModal} onAdd={handleAdd} />
+      <EditUserModal open={showEditModal} onOpenChange={setShowEditModal} user={selectedUser} onEdit={handleEdit} />
+      <DeleteUserModal
+        open={showDeleteModal}
+        onOpenChange={setShowDeleteModal}
+        user={selectedUser}
+        onDelete={handleDelete}
+      />
     </div>
   )
 }

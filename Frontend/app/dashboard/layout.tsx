@@ -79,8 +79,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
-            <Link href="/dashboard" className="flex items-center">
-              <Image src="/nyumbani-logo.png" alt="Nyumbani Express" width={120} height={40} className="h-8 w-auto" />
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Image src="/nyumbani-logo.png" alt="Nyumbani Express" width={40} height={40} className="h-8 w-8" />
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-foreground leading-tight">Nyumbani Express</span>
+                <span className="text-xs text-muted-foreground leading-tight">Administration</span>
+              </div>
             </Link>
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
               <X className="h-5 w-5" />

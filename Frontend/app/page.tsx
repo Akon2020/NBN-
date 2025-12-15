@@ -247,12 +247,12 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>Avenue de la Paix, Bukavu</li>
                 <li>Sud-Kivu, RDC</li>
-                <li>contact@nyumbani.cd</li>
+                <li>contact@nyumbani-express.com</li>
               </ul>
             </div>
           </div>
           <div className="mt-12 border-t border-border pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; 2025 Nyumbani Express. Tous droits réservés.</p>
+            <p>&copy; {new Date().getFullYear()} Nyumbani Express. Tous droits réservés.</p>
           </div>
         </div>
       </footer>

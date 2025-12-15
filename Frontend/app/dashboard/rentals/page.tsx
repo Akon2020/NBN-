@@ -4,24 +4,43 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Edit, Trash2, MapPin, Bed, Bath, HomeIcon } from "lucide-react"
+import { Plus, Edit, Trash2, MapPin, Bed, Bath, HomeIcon, Eye } from "lucide-react"
 import type { RentalProperty } from "@/lib/types"
 import { mockRentals } from "@/lib/mock-data"
 import { AddRentalModal } from "@/components/property-modals/add-rental-modal"
+import { EditRentalModal } from "@/components/property-modals/edit-rental-modal"
+import { DeleteRentalModal } from "@/components/property-modals/delete-rental-modal"
 import Image from "next/image"
+import Link from "next/link"
 
 export default function RentalsPage() {
   const [properties, setProperties] = useState<RentalProperty[]>(mockRentals)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedProperty, setSelectedProperty] = useState<RentalProperty | null>(null)
 
   const handleAdd = (property: RentalProperty) => {
     setProperties([property, ...properties])
   }
 
+  const handleEdit = (updatedProperty: RentalProperty) => {
+    setProperties(properties.map((p) => (p.id === updatedProperty.id ? updatedProperty : p)))
+  }
+
   const handleDelete = (id: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer ce bien ?")) {
-      setProperties(properties.filter((p) => p.id !== id))
-    }
+    setProperties(properties.filter((p) => p.id !== id))
+    setShowDeleteModal(false)
+  }
+
+  const openEditModal = (property: RentalProperty) => {
+    setSelectedProperty(property)
+    setShowEditModal(true)
+  }
+
+  const openDeleteModal = (property: RentalProperty) => {
+    setSelectedProperty(property)
+    setShowDeleteModal(true)
   }
 
   return (
@@ -93,14 +112,19 @@ export default function RentalsPage() {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Link href={`/dashboard/rentals/${property.id}`}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(property)}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(property.id)}
+                    onClick={() => openDeleteModal(property)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -112,6 +136,18 @@ export default function RentalsPage() {
       </div>
 
       <AddRentalModal open={showAddModal} onOpenChange={setShowAddModal} onAdd={handleAdd} />
+      <EditRentalModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        property={selectedProperty}
+        onEdit={handleEdit}
+      />
+      <DeleteRentalModal
+        open={showDeleteModal}
+        onOpenChange={setShowDeleteModal}
+        property={selectedProperty}
+        onDelete={handleDelete}
+      />
     </div>
   )
 }
