@@ -34,7 +34,7 @@ setupSwagger(app);
 
 app.get("/", (req, res) => {
   return res.status(200).json({
-    message: `Checking Logistra API\n=> Passed successfully at ${new Date()}`,
+    message: `Checking NBN API\n=> Passed successfully at ${new Date()}`,
   });
 });
 
