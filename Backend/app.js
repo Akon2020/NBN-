@@ -8,7 +8,8 @@ import db from "./database/db.js";
 import { syncModels } from "./models/index.model.js";
 import errorMiddleware, { errorLogs } from "./middlewares/error.middleware.js";
 import { setupSwagger } from "./swagger.js";
-// import userRouter from "./routes/user.route.js";
+import userRouter from "./routes/user.route.js";
+import authRouter from "./routes/auth.route.js";
 
 const app = express();
 
@@ -38,7 +39,8 @@ app.get("/", (req, res) => {
   });
 });
 
-// app.use("/api/users", userRouter);
+app.use("/api/users", userRouter);
+app.use("/api/auth", authRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

@@ -32,7 +32,18 @@ const User = db.define("users", {
     type: DataTypes.ENUM("ACTIVE", "INACTIVE"),
     defaultValue: "ACTIVE",
   },
-  lastLoginAt: DataTypes.DATE,
+  lastLoginAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
 });
 
 export default User;

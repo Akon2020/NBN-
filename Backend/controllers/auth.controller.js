@@ -13,11 +13,11 @@ import {
   resetPasswordEmailTemplate,
   welcomeEmailTemplate,
 } from "../utils/email.template.js";
-import { valideEmail } from "../middlewares/email.middleware.js";
 import {
   generateToken,
   getUserWithoutPassword,
   strongPasswd,
+  valideEmail,
 } from "../utils/user.utils.js";
 
 export const register = async (req, res, next) => {
@@ -57,15 +57,16 @@ export const register = async (req, res, next) => {
       fullName,
       email,
       password: hashedPassword,
+      role: role || "agent",
       avatar,
-      role,
+      status: "ACTIVE",
     });
     const token = generateToken({ id: newUser, email });
 
     const mailOptions = {
-      from: `"BurningHeart IHS" <${EMAIL}>`,
+      from: `"Nyumbani Express" <${EMAIL}>`,
       to: email,
-      subject: "Bienvenue dans BuringHeart IHS",
+      subject: "Bienvenue dans Nyumbani Express",
       html: welcomeEmailTemplate(fullName, email, FRONT_URL),
     };
 
@@ -79,11 +80,10 @@ export const register = async (req, res, next) => {
     });
 
     res.status(201).json({
-      message: "User créé avec succès",
+      message: "Utilisateur créé avec succès",
       data: { token, user: userWithoutPassword },
     });
   } catch (error) {
-    console.error("Erreur lors de l'inscription :", error);
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }
@@ -112,7 +112,7 @@ export const login = async (req, res, next) => {
       });
     }
 
-    user.derniereConnexion = new Date();
+    user.lastLoginAt = new Date();
     await user.save();
 
     const loginToken = generateToken(user);
@@ -124,11 +124,10 @@ export const login = async (req, res, next) => {
     const userWithoutPassword = getUserWithoutPassword(user);
 
     res.status(200).json({
-      message: `Bienvenu ${userWithoutPassword.fullName} 👋`,
+      message: `Bienvenu ${userWithoutPassword.fullName}`,
       data: { token: loginToken, userInfo: userWithoutPassword },
     });
   } catch (error) {
-    console.error("Erreur lors de la connexion :", error);
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }
@@ -152,7 +151,7 @@ export const resetPassword = async (req, res, next) => {
     }
     const resetToken = generateToken(user);
     const mailOptions = {
-      from: `"BurningHeart IHS" <${EMAIL}>`,
+      from: `"Nyumbani Express" <${EMAIL}>`,
       to: email,
       subject: "Réinitialisation du mot de passe",
       html: resetPasswordEmailTemplate(
@@ -172,10 +171,7 @@ export const resetPassword = async (req, res, next) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
-      message:
-        "Erreur lors de l'envoi de l'email de réinitialisation! Réessayez plus tard",
-    });
+    res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }
 };
@@ -214,13 +210,7 @@ export const updatePassword = async (req, res, next) => {
         "Mot de passe réinitialisé avec succès! Connectez-vous maintenant",
     });
   } catch (error) {
-    console.error(
-      "Erreur lors de la réinitialisation du mot de passe :",
-      error
-    );
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la réinitialisation du mot de passe" });
+    res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }
 };
@@ -238,10 +228,7 @@ export const logout = (req, res) => {
       message: "Déconnexion réussie",
     });
   } catch (error) {
-    console.error("Erreur lors de la déconnexion:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Erreur lors de la déconnexion",
-    });
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
   }
 };
