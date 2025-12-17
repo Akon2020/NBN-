@@ -16,11 +16,18 @@ const User = db.define("users", {
     unique: true,
     allowNull: false,
   },
+  password: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+  },
   role: {
     type: DataTypes.ENUM("admin", "agent", "consultant"),
     defaultValue: "agent",
   },
-  avatar: DataTypes.STRING,
+  avatar: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   status: {
     type: DataTypes.ENUM("ACTIVE", "INACTIVE"),
     defaultValue: "ACTIVE",
