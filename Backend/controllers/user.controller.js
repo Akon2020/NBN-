@@ -75,11 +75,7 @@ export const createUser = async (req, res, next) => {
         .json({ message: "Entrez une adresse mail valide" });
     }
 
-    const userExist = await User.findOne({
-      where: {
-        [Op.or]: [{ fullName }, { email }],
-      },
-    });
+    const userExist = await User.findOne({ where: { email } });
 
     if (userExist) {
       return res.status(400).json({
@@ -211,10 +207,7 @@ export const updateUserPassword = async (req, res, next) => {
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    await User.update(
-      { password: hashedPassword },
-      { where: { idUtilisateur: id } }
-    );
+    await User.update({ password: hashedPassword }, { where: { idUser: id } });
 
     return res
       .status(200)

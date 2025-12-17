@@ -12,7 +12,7 @@ export const welcomeEmailTemplate = (nom, email, url) => `
 <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 24px;">
   <div style="max-width:600px;margin:auto;background:#ffffff;padding:24px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)">
     
-    <h2 style="color:${SECONDARY};margin-bottom:12px;">Bienvenue ${nom} 👋</h2>
+    <h2 style="color:${SECONDARY};margin-bottom:12px;">Bienvenue ${nom} </h2>
 
     <p style="color:${MUTED};">
       Votre compte Nyumbani Express a été créé avec succès pour l’adresse :
