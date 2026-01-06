@@ -119,7 +119,7 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
           <div className="space-y-2">
             <Label htmlFor="type">Type</Label>
             <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })} required>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Sélectionnez le type" />
               </SelectTrigger>
               <SelectContent>
@@ -136,7 +136,7 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
               <Label htmlFor="neighborhood">Quartier</Label>
               <Input
                 id="neighborhood"
-                placeholder="Ex: Kadutu, Ibanda"
+                placeholder="Ex: Nyalukemba, Ndendere"
                 value={formData.neighborhood}
                 onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
                 required

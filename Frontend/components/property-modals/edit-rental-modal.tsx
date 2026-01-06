@@ -1,61 +1,80 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, X } from "lucide-react"
-import type { RentalProperty } from "@/lib/types"
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, X } from "lucide-react";
+import type { RentalProperty } from "@/lib/types";
 
 interface EditRentalModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  property: RentalProperty | null
-  onEdit: (property: RentalProperty) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  property: RentalProperty | null;
+  onEdit: (property: RentalProperty) => void;
 }
 
-export function EditRentalModal({ open, onOpenChange, property, onEdit }: EditRentalModalProps) {
-  const [type, setType] = useState<"apartment" | "house">("apartment")
-  const [neighborhood, setNeighborhood] = useState("")
-  const [avenue, setAvenue] = useState("")
-  const [floor, setFloor] = useState("0")
-  const [bedrooms, setBedrooms] = useState("0")
-  const [livingRooms, setLivingRooms] = useState("0")
-  const [bathrooms, setBathrooms] = useState("0")
-  const [kitchens, setKitchens] = useState("0")
-  const [price, setPrice] = useState("")
-  const [guaranteeValue, setGuaranteeValue] = useState("")
-  const [guaranteeUnit, setGuaranteeUnit] = useState<"months" | "years" | "days">("months")
-  const [phones, setPhones] = useState<string[]>([""])
-  const [images, setImages] = useState<string[]>([""])
-  const [details, setDetails] = useState("")
+export function EditRentalModal({
+  open,
+  onOpenChange,
+  property,
+  onEdit,
+}: EditRentalModalProps) {
+  const [type, setType] = useState<"apartment" | "house">("apartment");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [avenue, setAvenue] = useState("");
+  const [floor, setFloor] = useState("0");
+  const [bedrooms, setBedrooms] = useState("0");
+  const [livingRooms, setLivingRooms] = useState("0");
+  const [bathrooms, setBathrooms] = useState("0");
+  const [kitchens, setKitchens] = useState("0");
+  const [price, setPrice] = useState("");
+  const [guaranteeValue, setGuaranteeValue] = useState("");
+  const [guaranteeUnit, setGuaranteeUnit] = useState<
+    "months" | "years" | "days"
+  >("months");
+  const [phones, setPhones] = useState<string[]>([""]);
+  const [images, setImages] = useState<string[]>([""]);
+  const [details, setDetails] = useState("");
 
   useEffect(() => {
     if (property) {
-      setType(property.type)
-      setNeighborhood(property.address.neighborhood)
-      setAvenue(property.address.avenue)
-      setFloor(property.floor.toString())
-      setBedrooms(property.bedrooms.toString())
-      setLivingRooms(property.livingRooms.toString())
-      setBathrooms(property.bathrooms.toString())
-      setKitchens(property.kitchens.toString())
-      setPrice(property.price.toString())
-      setGuaranteeValue(property.guarantee.value.toString())
-      setGuaranteeUnit(property.guarantee.unit)
-      setPhones(property.phones.length > 0 ? property.phones : [""])
-      setImages(property.images.length > 0 ? property.images : [""])
-      setDetails(property.details)
+      setType(property.type);
+      setNeighborhood(property.address.neighborhood);
+      setAvenue(property.address.avenue);
+      setFloor(property.floor.toString());
+      setBedrooms(property.bedrooms.toString());
+      setLivingRooms(property.livingRooms.toString());
+      setBathrooms(property.bathrooms.toString());
+      setKitchens(property.kitchens.toString());
+      setPrice(property.price.toString());
+      setGuaranteeValue(property.guarantee.value.toString());
+      setGuaranteeUnit(property.guarantee.unit);
+      setPhones(property.phones.length > 0 ? property.phones : [""]);
+      setImages(property.images.length > 0 ? property.images : [""]);
+      setDetails(property.details);
     }
-  }, [property])
+  }, [property]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (property) {
       const updatedProperty: RentalProperty = {
@@ -76,45 +95,52 @@ export function EditRentalModal({ open, onOpenChange, property, onEdit }: EditRe
         images: images.filter((img) => img.trim() !== ""),
         details,
         updatedAt: new Date(),
-      }
+      };
 
-      onEdit(updatedProperty)
-      onOpenChange(false)
+      onEdit(updatedProperty);
+      onOpenChange(false);
     }
-  }
+  };
 
-  const addPhone = () => setPhones([...phones, ""])
-  const removePhone = (index: number) => setPhones(phones.filter((_, i) => i !== index))
+  const addPhone = () => setPhones([...phones, ""]);
+  const removePhone = (index: number) =>
+    setPhones(phones.filter((_, i) => i !== index));
   const updatePhone = (index: number, value: string) => {
-    const newPhones = [...phones]
-    newPhones[index] = value
-    setPhones(newPhones)
-  }
+    const newPhones = [...phones];
+    newPhones[index] = value;
+    setPhones(newPhones);
+  };
 
-  const addImage = () => setImages([...images, ""])
-  const removeImage = (index: number) => setImages(images.filter((_, i) => i !== index))
+  const addImage = () => setImages([...images, ""]);
+  const removeImage = (index: number) =>
+    setImages(images.filter((_, i) => i !== index));
   const updateImage = (index: number, value: string) => {
-    const newImages = [...images]
-    newImages[index] = value
-    setImages(newImages)
-  }
+    const newImages = [...images];
+    newImages[index] = value;
+    setImages(newImages);
+  };
 
-  if (!property) return null
+  if (!property) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier le bien à louer</DialogTitle>
-          <DialogDescription>Mettez à jour les informations de ce bien</DialogDescription>
+          <DialogDescription>
+            Mettez à jour les informations de ce bien
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-type">Type de bien *</Label>
-              <Select value={type} onValueChange={(value: any) => setType(value)}>
-                <SelectTrigger>
+              <Select
+                value={type}
+                onValueChange={(value: any) => setType(value)}
+              >
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -126,18 +152,13 @@ export function EditRentalModal({ open, onOpenChange, property, onEdit }: EditRe
 
             <div className="space-y-2">
               <Label htmlFor="edit-neighborhood">Quartier *</Label>
-              <Select value={neighborhood} onValueChange={setNeighborhood}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ibanda">Ibanda</SelectItem>
-                  <SelectItem value="Kadutu">Kadutu</SelectItem>
-                  <SelectItem value="Bagira">Bagira</SelectItem>
-                  <SelectItem value="Nyalukemba">Nyalukemba</SelectItem>
-                  <SelectItem value="Panzi">Panzi</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="edit-neighborhood"
+                placeholder="Nyalukemba"
+                value={neighborhood}
+                onChange={(e) => setNeighborhood(e.target.value)}
+                required
+              />
             </div>
           </div>
 
@@ -242,7 +263,10 @@ export function EditRentalModal({ open, onOpenChange, property, onEdit }: EditRe
                   onChange={(e) => setGuaranteeValue(e.target.value)}
                   required
                 />
-                <Select value={guaranteeUnit} onValueChange={(value: any) => setGuaranteeUnit(value)}>
+                <Select
+                  value={guaranteeUnit}
+                  onValueChange={(value: any) => setGuaranteeUnit(value)}
+                >
                   <SelectTrigger className="w-[120px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -267,13 +291,24 @@ export function EditRentalModal({ open, onOpenChange, property, onEdit }: EditRe
                   required
                 />
                 {phones.length > 1 && (
-                  <Button type="button" variant="outline" size="icon" onClick={() => removePhone(index)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removePhone(index)}
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={addPhone} className="w-full bg-transparent">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addPhone}
+              className="w-full bg-transparent"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un numéro
             </Button>
@@ -289,13 +324,24 @@ export function EditRentalModal({ open, onOpenChange, property, onEdit }: EditRe
                   onChange={(e) => updateImage(index, e.target.value)}
                 />
                 {images.length > 1 && (
-                  <Button type="button" variant="outline" size="icon" onClick={() => removeImage(index)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeImage(index)}
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={addImage} className="w-full bg-transparent">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addImage}
+              className="w-full bg-transparent"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Ajouter une image
             </Button>
@@ -313,15 +359,22 @@ export function EditRentalModal({ open, onOpenChange, property, onEdit }: EditRe
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Annuler
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground">
+            <Button
+              type="submit"
+              className="bg-primary text-primary-foreground"
+            >
               Enregistrer les modifications
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

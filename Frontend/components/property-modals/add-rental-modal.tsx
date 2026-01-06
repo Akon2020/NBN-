@@ -120,7 +120,7 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
                 onValueChange={(value) => setFormData({ ...formData, type: value })}
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sélectionnez le type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -147,7 +147,7 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
               <Label htmlFor="neighborhood">Quartier</Label>
               <Input
                 id="neighborhood"
-                placeholder="Ex: Kadutu, Ibanda"
+                placeholder="Ex: Nyalukemba, Ndendere"
                 value={formData.neighborhood}
                 onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
                 required
@@ -244,7 +244,7 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
                 onValueChange={(value) => setFormData({ ...formData, guaranteeUnit: value })}
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Unité" />
                 </SelectTrigger>
                 <SelectContent>

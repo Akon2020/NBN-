@@ -1,61 +1,80 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, X } from "lucide-react"
-import type { SaleProperty } from "@/lib/types"
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, X } from "lucide-react";
+import type { SaleProperty } from "@/lib/types";
 
 interface EditSaleModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  property: SaleProperty | null
-  onEdit: (property: SaleProperty) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  property: SaleProperty | null;
+  onEdit: (property: SaleProperty) => void;
 }
 
-export function EditSaleModal({ open, onOpenChange, property, onEdit }: EditSaleModalProps) {
-  const [type, setType] = useState<"durable" | "semi-durable" | "flat-land" | "slope-land">("durable")
-  const [neighborhood, setNeighborhood] = useState("")
-  const [avenue, setAvenue] = useState("")
-  const [fullAddress, setFullAddress] = useState("")
-  const [floors, setFloors] = useState("0")
-  const [bedrooms, setBedrooms] = useState("0")
-  const [livingRooms, setLivingRooms] = useState("0")
-  const [bathrooms, setBathrooms] = useState("0")
-  const [kitchens, setKitchens] = useState("0")
-  const [price, setPrice] = useState("")
-  const [margin, setMargin] = useState("")
-  const [phones, setPhones] = useState<string[]>([""])
-  const [images, setImages] = useState<string[]>([""])
-  const [details, setDetails] = useState("")
+export function EditSaleModal({
+  open,
+  onOpenChange,
+  property,
+  onEdit,
+}: EditSaleModalProps) {
+  const [type, setType] = useState<
+    "durable" | "semi-durable" | "flat-land" | "slope-land"
+  >("durable");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [avenue, setAvenue] = useState("");
+  const [fullAddress, setFullAddress] = useState("");
+  const [floors, setFloors] = useState("0");
+  const [bedrooms, setBedrooms] = useState("0");
+  const [livingRooms, setLivingRooms] = useState("0");
+  const [bathrooms, setBathrooms] = useState("0");
+  const [kitchens, setKitchens] = useState("0");
+  const [price, setPrice] = useState("");
+  const [margin, setMargin] = useState("");
+  const [phones, setPhones] = useState<string[]>([""]);
+  const [images, setImages] = useState<string[]>([""]);
+  const [details, setDetails] = useState("");
 
   useEffect(() => {
     if (property) {
-      setType(property.type)
-      setNeighborhood(property.address.neighborhood)
-      setAvenue(property.address.avenue)
-      setFullAddress(property.address.fullAddress)
-      setFloors(property.floors.toString())
-      setBedrooms(property.bedrooms.toString())
-      setLivingRooms(property.livingRooms.toString())
-      setBathrooms(property.bathrooms.toString())
-      setKitchens(property.kitchens.toString())
-      setPrice(property.price.toString())
-      setMargin(property.margin.toString())
-      setPhones(property.phones.length > 0 ? property.phones : [""])
-      setImages(property.images.length > 0 ? property.images : [""])
-      setDetails(property.details)
+      setType(property.type);
+      setNeighborhood(property.address.neighborhood);
+      setAvenue(property.address.avenue);
+      setFullAddress(property.address.fullAddress);
+      setFloors(property.floors.toString());
+      setBedrooms(property.bedrooms.toString());
+      setLivingRooms(property.livingRooms.toString());
+      setBathrooms(property.bathrooms.toString());
+      setKitchens(property.kitchens.toString());
+      setPrice(property.price.toString());
+      setMargin(property.margin.toString());
+      setPhones(property.phones.length > 0 ? property.phones : [""]);
+      setImages(property.images.length > 0 ? property.images : [""]);
+      setDetails(property.details);
     }
-  }, [property])
+  }, [property]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (property) {
       const updatedProperty: SaleProperty = {
@@ -73,51 +92,57 @@ export function EditSaleModal({ open, onOpenChange, property, onEdit }: EditSale
         images: images.filter((img) => img.trim() !== ""),
         details,
         updatedAt: new Date(),
-      }
+      };
 
-      onEdit(updatedProperty)
-      onOpenChange(false)
+      onEdit(updatedProperty);
+      onOpenChange(false);
     }
-  }
+  };
 
-  const addPhone = () => setPhones([...phones, ""])
-  const removePhone = (index: number) => setPhones(phones.filter((_, i) => i !== index))
+  const addPhone = () => setPhones([...phones, ""]);
+  const removePhone = (index: number) =>
+    setPhones(phones.filter((_, i) => i !== index));
   const updatePhone = (index: number, value: string) => {
-    const newPhones = [...phones]
-    newPhones[index] = value
-    setPhones(newPhones)
-  }
+    const newPhones = [...phones];
+    newPhones[index] = value;
+    setPhones(newPhones);
+  };
 
-  const addImage = () => setImages([...images, ""])
-  const removeImage = (index: number) => setImages(images.filter((_, i) => i !== index))
+  const addImage = () => setImages([...images, ""]);
+  const removeImage = (index: number) =>
+    setImages(images.filter((_, i) => i !== index));
   const updateImage = (index: number, value: string) => {
-    const newImages = [...images]
-    newImages[index] = value
-    setImages(newImages)
-  }
+    const newImages = [...images];
+    newImages[index] = value;
+    setImages(newImages);
+  };
 
-  const isLand = type === "flat-land" || type === "slope-land"
+  const isLand = type === "flat-land" || type === "slope-land";
 
-  if (!property) return null
+  if (!property) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier le bien à vendre</DialogTitle>
-          <DialogDescription>Mettez à jour les informations de ce bien</DialogDescription>
+          <DialogDescription>
+            Mettez à jour les informations de ce bien
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
             <Label htmlFor="edit-sale-type">Type de bien *</Label>
             <Select value={type} onValueChange={(value: any) => setType(value)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="durable">Construction durable</SelectItem>
-                <SelectItem value="semi-durable">Construction semi-durable</SelectItem>
+                <SelectItem value="semi-durable">
+                  Construction semi-durable
+                </SelectItem>
                 <SelectItem value="flat-land">Terrain plat</SelectItem>
                 <SelectItem value="slope-land">Terrain en pente</SelectItem>
               </SelectContent>
@@ -126,19 +151,14 @@ export function EditSaleModal({ open, onOpenChange, property, onEdit }: EditSale
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="edit-sale-neighborhood">Quartier *</Label>
-              <Select value={neighborhood} onValueChange={setNeighborhood}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ibanda">Ibanda</SelectItem>
-                  <SelectItem value="Kadutu">Kadutu</SelectItem>
-                  <SelectItem value="Bagira">Bagira</SelectItem>
-                  <SelectItem value="Nyalukemba">Nyalukemba</SelectItem>
-                  <SelectItem value="Panzi">Panzi</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="edit-neighborhood">Quartier *</Label>
+              <Input
+                id="edit-neighborhood"
+                placeholder="Nyalukemba"
+                value={neighborhood}
+                onChange={(e) => setNeighborhood(e.target.value)}
+                required
+              />
             </div>
 
             <div className="space-y-2">
@@ -271,13 +291,24 @@ export function EditSaleModal({ open, onOpenChange, property, onEdit }: EditSale
                   required
                 />
                 {phones.length > 1 && (
-                  <Button type="button" variant="outline" size="icon" onClick={() => removePhone(index)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removePhone(index)}
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={addPhone} className="w-full bg-transparent">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addPhone}
+              className="w-full bg-transparent"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un numéro
             </Button>
@@ -293,13 +324,24 @@ export function EditSaleModal({ open, onOpenChange, property, onEdit }: EditSale
                   onChange={(e) => updateImage(index, e.target.value)}
                 />
                 {images.length > 1 && (
-                  <Button type="button" variant="outline" size="icon" onClick={() => removeImage(index)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeImage(index)}
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={addImage} className="w-full bg-transparent">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addImage}
+              className="w-full bg-transparent"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Ajouter une image
             </Button>
@@ -317,15 +359,22 @@ export function EditSaleModal({ open, onOpenChange, property, onEdit }: EditSale
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Annuler
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground">
+            <Button
+              type="submit"
+              className="bg-primary text-primary-foreground"
+            >
               Enregistrer les modifications
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
