@@ -9,6 +9,7 @@ import {
   Users,
   Star,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
@@ -27,6 +28,7 @@ export default function DashboardPage() {
       change: "+12%",
       color: "text-primary",
       bgColor: "bg-primary/10",
+      link: "/dashboard/rentals",
     },
     {
       title: "Biens à vendre",
@@ -35,6 +37,7 @@ export default function DashboardPage() {
       change: "+8%",
       color: "text-secondary",
       bgColor: "bg-secondary/10",
+      link: "/dashboard/sales",
     },
     {
       title: "Total d'images",
@@ -43,6 +46,7 @@ export default function DashboardPage() {
       change: "+24%",
       color: "text-accent",
       bgColor: "bg-accent/10",
+      link: "/dashboard/gallery",
     },
     {
       title: "Propositions envoyées",
@@ -51,6 +55,7 @@ export default function DashboardPage() {
       change: "+18%",
       color: "text-primary",
       bgColor: "bg-primary/10",
+      link: "/dashboard/favorites",
     },
     {
       title: "Favoris",
@@ -59,6 +64,7 @@ export default function DashboardPage() {
       change: "+5%",
       color: "text-secondary",
       bgColor: "bg-secondary/10",
+      link: "/dashboard/favorites",
     },
     {
       title: "Utilisateurs actifs",
@@ -67,6 +73,7 @@ export default function DashboardPage() {
       change: "+2",
       color: "text-accent",
       bgColor: "bg-accent/10",
+      link: "/dashboard/users",
     },
   ];
 
@@ -85,27 +92,29 @@ export default function DashboardPage() {
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
-          <Card key={stat.title} className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bgColor}`}
-              >
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                <span className="text-secondary font-medium">
-                  {stat.change}
-                </span>{" "}
-                depuis le mois dernier
-              </p>
-            </CardContent>
-          </Card>
+          <Link href={stat.link}>
+            <Card key={stat.title} className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bgColor}`}
+                >
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stat.value}</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  <span className="text-secondary font-medium">
+                    {stat.change}
+                  </span>{" "}
+                  depuis le mois dernier
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
