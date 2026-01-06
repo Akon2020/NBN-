@@ -1,15 +1,23 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, Home, ImageIcon, TrendingUp, Users, Star } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Building2,
+  Home,
+  ImageIcon,
+  TrendingUp,
+  Users,
+  Star,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  const [userName, setUserName] = useState("")
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    setUserName(localStorage.getItem("user_name") || "Utilisateur")
-  }, [])
+    const user = JSON.parse(localStorage.getItem("user"));
+    setUserName(user.fullName || "Utilisateur");
+  }, []);
 
   const stats = [
     {
@@ -60,14 +68,18 @@ export default function DashboardPage() {
       color: "text-accent",
       bgColor: "bg-accent/10",
     },
-  ]
+  ];
 
   return (
     <div className="space-y-6">
       {/* Welcome message */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-balance">Bienvenue, {userName}</h1>
-        <p className="text-muted-foreground mt-2">Voici un aperçu de votre activité sur Nyumbani Express</p>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">
+          Bienvenue, {userName}
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Voici un aperçu de votre activité sur Nyumbani Express
+        </p>
       </div>
 
       {/* Stats grid */}
@@ -75,15 +87,22 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <Card key={stat.title} className="border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bgColor}`}>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bgColor}`}
+              >
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{stat.value}</div>
               <p className="mt-1 text-xs text-muted-foreground">
-                <span className="text-secondary font-medium">{stat.change}</span> depuis le mois dernier
+                <span className="text-secondary font-medium">
+                  {stat.change}
+                </span>{" "}
+                depuis le mois dernier
               </p>
             </CardContent>
           </Card>
@@ -102,8 +121,12 @@ export default function DashboardPage() {
                 <Home className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">Nouveau bien à louer ajouté</p>
-                <p className="text-xs text-muted-foreground">Appartement 3 chambres, Kadutu - Il y a 2 heures</p>
+                <p className="text-sm font-medium">
+                  Nouveau bien à louer ajouté
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Appartement 3 chambres, Kadutu - Il y a 2 heures
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-4 border-b border-border pb-4 last:border-0 last:pb-0">
@@ -112,7 +135,9 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium">Bien vendu marqué</p>
-                <p className="text-xs text-muted-foreground">Maison 5 chambres, Ibanda - Il y a 5 heures</p>
+                <p className="text-xs text-muted-foreground">
+                  Maison 5 chambres, Ibanda - Il y a 5 heures
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-4 border-b border-border pb-4 last:border-0 last:pb-0">
@@ -120,13 +145,17 @@ export default function DashboardPage() {
                 <TrendingUp className="h-5 w-5 text-accent" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">Proposition envoyée via WhatsApp</p>
-                <p className="text-xs text-muted-foreground">6 biens proposés à Jean Mukendi - Il y a 1 jour</p>
+                <p className="text-sm font-medium">
+                  Proposition envoyée via WhatsApp
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  6 biens proposés à Jean Mukendi - Il y a 1 jour
+                </p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

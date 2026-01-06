@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Building2,
   Home,
@@ -20,36 +20,41 @@ import {
   Star,
   Users,
   X,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Cookie from "js-cookie";
+import { logout } from "@/lib/auth";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [userName, setUserName] = useState("")
-  const [userRole, setUserRole] = useState("")
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
     // Check authentication
-    const token = localStorage.getItem("auth_token")
+    const token = Cookie.get("token");
     if (!token) {
-      router.push("/auth/login")
-      return
+      router.push("/auth/login");
+      return;
     }
 
     // Load user data
-    setUserName(localStorage.getItem("user_name") || "Utilisateur")
-    setUserRole(localStorage.getItem("user_role") || "admin")
-  }, [router])
+    const user = JSON.parse(localStorage.getItem("user"));
+    setUserName(user.fullName || "Utilisateur");
+    setUserRole(user.role || "admin");
+  }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("auth_token")
-    localStorage.removeItem("user_email")
-    localStorage.removeItem("user_name")
-    localStorage.removeItem("user_role")
-    router.push("/auth/login")
-  }
+    logout();
+    router.push("/auth/login");
+  };
 
   const navigation = [
     { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
@@ -60,33 +65,52 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: "Recherche", href: "/dashboard/search", icon: Search },
     { name: "Utilisateurs", href: "/dashboard/users", icon: Users },
     { name: "Paramètres", href: "/dashboard/settings", icon: Settings },
-  ]
+  ];
 
   return (
+    // <ProtectedRoute allowedRoles={["admin", "agent"]}>
     <div className="min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
       {/* Sidebar */}
       <aside
         className={cn(
           "fixed left-0 top-0 z-50 h-screen w-64 transform border-r border-border bg-card transition-transform duration-300 ease-in-out lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <Image src="/nyumbani-logo.png" alt="Nyumbani Express" width={40} height={40} className="h-8 w-8" />
+              <Image
+                src="/nyumbani-logo.png"
+                alt="Nyumbani Express"
+                width={40}
+                height={40}
+                className="h-8 w-8"
+              />
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-foreground leading-tight">Nyumbani Express</span>
-                <span className="text-xs text-muted-foreground leading-tight">Administration</span>
+                <span className="text-sm font-bold text-foreground leading-tight">
+                  Nyumbani Express
+                </span>
+                <span className="text-xs text-muted-foreground leading-tight">
+                  Administration
+                </span>
               </div>
             </Link>
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -98,8 +122,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {userName.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">{userName}</p>
-                <p className="truncate text-xs text-muted-foreground capitalize">{userRole}</p>
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {userName}
+                </p>
+                <p className="truncate text-xs text-muted-foreground capitalize">
+                  {userRole}
+                </p>
               </div>
             </div>
           </div>
@@ -107,7 +135,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Navigation */}
           <nav className="flex-1 space-y-1 overflow-y-auto p-4">
             {navigation.map((item) => {
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.name}
@@ -116,14 +144,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     isActive
                       ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
                   <span className="truncate">{item.name}</span>
                 </Link>
-              )
+              );
             })}
           </nav>
 
@@ -145,7 +173,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="lg:pl-64">
         {/* Top bar */}
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex-1" />
@@ -156,5 +189,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
-  )
+    // </ProtectedRoute>
+  );
 }

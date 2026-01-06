@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { Loader2 } from "lucide-react";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -25,12 +26,16 @@ export default function ProtectedRoute({
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        const response = await api.get("/api/auth/profile/");
+        const response = await api.get("/api/auth/profile/", {
+          headers: getAuthHeaders(),
+        });
+
+        console.log("Response: ", response);
 
         const userData = response.data.user;
         setUser(userData);
 
-        // 🔐 Vérification des rôles si nécessaire
+        // Vérification des rôles si nécessaire
         if (allowedRoles && allowedRoles.length > 0) {
           if (!allowedRoles.includes(userData.role)) {
             console.warn("Accès refusé : rôle non autorisé", userData.role);

@@ -6,7 +6,7 @@ import { getAuthHeaders } from "@/lib/auth";
 
 export const login = async (data: AuthPayload): Promise<Auth> => {
   try {
-    const res = await api.post<Auth>("/api/auth/login", data, {
+    const res = await api.post<Auth>("/api/auth/login/", data, {
       headers: { "Content-Type": "application/json" },
       withCredentials: true,
     });
@@ -14,6 +14,7 @@ export const login = async (data: AuthPayload): Promise<Auth> => {
       expires: 7,
       secure: true,
     });
+    localStorage.setItem("user", JSON.stringify(res.data.data.userInfo));
     return res.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -22,5 +23,32 @@ export const login = async (data: AuthPayload): Promise<Auth> => {
       throw new Error(message);
     }
     throw new Error("Erreur inconnue lors de la connexion");
+  }
+};
+
+export const logout = async (): Promise<{ message: string }> => {
+  try {
+    localStorage.removeItem("user");
+    Cookies.remove("token");
+
+    const res = await api.post<{ message: string }>(
+      "/api/auth/logout/",
+      {},
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        withCredentials: true,
+      }
+    );
+
+    return res.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Erreur lors de la déconnexion"
+      );
+    }
+    throw new Error("Erreur inconnue lors de la déconnexion");
   }
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import { User } from "@/types/type";
 import Cookies from "js-cookie";
 
 export const getAuthHeaders = (): { Authorization: string } => {
@@ -19,7 +20,14 @@ export function isAuthenticated(): boolean {
   return Cookies.get("token") === "true";
 }
 
+export function getAuthUser(): User | null {
+  if (typeof window === "undefined") return null;
+  const data = localStorage.getItem("user");
+  return data ? JSON.parse(data) : null;
+}
+
 export function logout() {
   Cookies.remove("token");
+  localStorage.removeItem("user");
   window.location.href = "/auth/login";
 }
