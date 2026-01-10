@@ -20,12 +20,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: "1024mb" }));
 app.use(bodyParser.json({ limit: "1024mb" }));
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "http://127.0.0.1:5500",
-      "https://nbn-plus.vercel.app",
-    ],
+    origin: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })
@@ -45,16 +40,17 @@ app.use("/api/auth", authRouter);
 app.get("/error", errorLogs);
 app.use(errorMiddleware);
 
-app.listen(PORT, async (err) => {
+const port = PORT || 3000;
+app.listen(port, "0.0.0.0", async (err) => {
   if (err) {
-    console.log(`Une erreur s'est produite: ${err}`);
+    console.log(`Error occurred: ${err}`);
   } else {
     try {
       await syncModels();
-      console.log(`Le serveur est lancé au http://localhost:${PORT}/`);
-      console.log(`Documentation Swagger sur ${HOST_URL}/api-docs/`);
+      console.log(`Server running at http://0.0.0.0:${port}/`);
+      console.log(`Swagger Documentation at ${HOST_URL || `http://localhost:${port}`}/api-docs/`);
     } catch (error) {
-      console.error("Erreur lors de la synchronisation des modèles:", error);
+      console.error("Error syncing models:", error);
     }
   }
 });

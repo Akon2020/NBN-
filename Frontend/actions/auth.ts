@@ -6,20 +6,29 @@ import { getAuthHeaders } from "@/lib/auth";
 
 export const login = async (data: AuthPayload): Promise<Auth> => {
   try {
-    const res = await api.post<Auth>("/api/auth/login/", data, {
+    const res = await api.post("/api/auth/login", data, {
       headers: { "Content-Type": "application/json" },
       withCredentials: true,
     });
-    Cookies.set("token", res.data.data.token, {
+    
+    const { user, token } = res.data;
+    
+    Cookies.set("token", token, {
       expires: 7,
       secure: true,
     });
-    localStorage.setItem("user", JSON.stringify(res.data.data.userInfo));
-    return res.data;
+    localStorage.setItem("user", JSON.stringify(user));
+    
+    return {
+      data: {
+        token,
+        userInfo: user,
+      },
+    } as Auth;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const message =
-        error.response?.data?.error || "Erreur lors de la connexion";
+        error.response?.data?.message || error.response?.data?.error || "Erreur lors de la connexion";
       throw new Error(message);
     }
     throw new Error("Erreur inconnue lors de la connexion");

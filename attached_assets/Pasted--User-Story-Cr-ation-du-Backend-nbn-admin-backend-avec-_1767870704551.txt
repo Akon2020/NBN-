@@ -1,0 +1,59 @@
+# User Story: Création du Backend `nbn-admin-backend` avec NestJS
+
+**As a** Project Owner,
+**I want to** build a new backend application named `nbn-admin-backend` using the NestJS framework,
+**So that** I can provide a robust, scalable, and maintainable API to support all the features of the `Frontend` application and ensure the long-term health of the project.
+
+---
+
+## Contexte
+
+L'analyse du projet existant a mis en évidence la nécessité de développer une API complète pour répondre aux besoins du client frontend. L'analyse a également recommandé une migration stratégique vers NestJS pour bénéficier d'une architecture structurée, de la robustesse de TypeScript et d'un écosystème outillé.
+
+Ce user story formalise la décision de suivre cette recommandation stratégique en créant un nouveau projet backend.
+
+## Critères d'Acceptation
+
+1.  **Initialisation du Projet NestJS :**
+    *   Un nouveau projet NestJS nommé `nbn-admin-backend` est créé.
+    *   Le projet est configuré pour utiliser TypeScript.
+
+2.  **Reprise des Fonctionnalités du Backend Actuel :**
+    *   Toutes les entités (modèles de données) existantes sont migrées et intégrées en tant qu'entités NestJS : `User`, `Property`, `RentalProperty`, `SaleProperty`, `PropertyImage`, `Favorite`, `Proposal`, etc.
+    *   La logique métier existante (contrôleurs, services) est ré-implémentée en suivant les conventions de NestJS (modules, services, contrôleurs).
+
+3.  **Implémentation des Endpoints API Requis :**
+    *   Le backend expose via une API RESTful toutes les fonctionnalités nécessaires pour le frontend, comme décrit dans `conseil_projet.md` :
+        *   **Gestion des Propriétés :**
+            *   `GET /api/properties` (avec filtres de recherche avancée)
+            *   `GET /api/properties/:id`
+            *   `POST /api/properties`
+            *   `PUT /api/properties/:id`
+            *   `DELETE /api/properties/:id`
+            *   `POST /api/properties/:id/images` (gestion de l'upload de fichiers)
+        *   **Gestion des Favoris :**
+            *   `GET /api/users/:userId/favorites`
+            *   `POST /api/users/:userId/favorites`
+            *   `DELETE /api/favorites/:favoriteId`
+        *   **Gestion des Propositions :**
+            *   `POST /api/properties/:propertyId/proposals`
+            *   `GET /api/users/:userId/proposals`
+            *   `GET /api/properties/:propertyId/proposals`
+        *   **Gestion des Utilisateurs :**
+            *   `GET /api/users/me` (pour l'utilisateur authentifié)
+            *   `PUT /api/users/me`
+            *   `GET /api/users` (rôle admin)
+            *   `PUT /api/users/:id` (rôle admin)
+        *   **Authentification :**
+            *   Endpoints pour le login (`/auth/login`), register (`/auth/register`), et la gestion du JWT.
+
+4.  **Qualité et Bonnes Pratiques :**
+    *   La validation des données entrantes (DTOs) est mise en place pour tous les endpoints qui acceptent un corps de requête (`POST`, `PUT`).
+    *   La gestion des erreurs est centralisée et cohérente.
+    *   La sécurité est assurée (protection des routes, validation des inputs).
+
+5.  **Documentation :**
+    *   Une documentation de l'API est générée automatiquement (par exemple, avec Swagger/OpenAPI) pour faciliter la collaboration avec l'équipe frontend.
+
+6.  **Integration :**
+    * archiver `Backend` et intégrer `nbn-admin-backend` au `Frontend`

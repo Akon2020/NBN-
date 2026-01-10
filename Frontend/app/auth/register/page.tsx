@@ -14,6 +14,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Cookies from "js-cookie"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -44,16 +45,42 @@ export default function RegisterPage() {
       return
     }
 
+    if (!formData.role) {
+      setError("Veuillez sélectionner un rôle")
+      return
+    }
+
     setIsLoading(true)
 
-    // Simulate registration (frontend only)
-    setTimeout(() => {
-      localStorage.setItem("auth_token", "mock_token_" + Date.now())
-      localStorage.setItem("user_email", formData.email)
-      localStorage.setItem("user_name", formData.name)
-      localStorage.setItem("user_role", formData.role)
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fullName: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erreur lors de la création du compte")
+      }
+
+      Cookies.set("token", data.token, { expires: 7, secure: true })
+      localStorage.setItem("user", JSON.stringify(data.user))
+      
       router.push("/dashboard")
-    }, 1500)
+    } catch (err: any) {
+      setError(err.message || "Une erreur est survenue lors de la création du compte")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleChange = (field: string, value: string) => {
