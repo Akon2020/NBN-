@@ -34,7 +34,7 @@ export class AuthService {
       fullName: registerDto.fullName,
       email: registerDto.email,
       password: hashedPassword,
-      role: registerDto.role || UserRole.AGENT,
+      role: UserRole.AGENT,
       status: UserStatus.ACTIVE,
     });
 

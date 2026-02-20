@@ -1,84 +1,76 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, Edit, Trash2, UsersIcon } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Plus, Edit, Trash2, UsersIcon, Loader2 } from "lucide-react"
 import { AddUserModal } from "@/components/user-modals/add-user-modal"
 import { EditUserModal } from "@/components/user-modals/edit-user-modal"
 import { DeleteUserModal } from "@/components/user-modals/delete-user-modal"
+import Cookies from "js-cookie"
 
-interface User {
-  id: string
-  name: string
+export interface UserData {
+  idUser: number
+  fullName: string
   email: string
   role: "admin" | "agent" | "consultant"
-  status: "active" | "inactive"
-  createdAt: Date
+  status: "ACTIVE" | "INACTIVE"
+  avatar: string | null
+  lastLoginAt: string | null
+  createdAt: string
 }
 
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "Isaac Akonkwa",
-    email: "akonkwaushindi@gmail.com",
-    role: "admin",
-    status: "active",
-    createdAt: new Date("2025-01-01"),
-  },
-  {
-    id: "2",
-    name: "Amani Ntanama",
-    email: "elientanama@gmail.cd",
-    role: "agent",
-    status: "active",
-    createdAt: new Date("2025-01-05"),
-  },
-  {
-    id: "3",
-    name: "Wani Totoro",
-    email: "wanitotoro@gmail.com",
-    role: "consultant",
-    status: "active",
-    createdAt: new Date("2025-01-10"),
-  },
-  {
-    id: "4",
-    name: "Benjamin Maroy",
-    email: "jibumaroy@gmail.com",
-    role: "agent",
-    status: "inactive",
-    createdAt: new Date("2024-12-15"),
-  },
-]
-
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(mockUsers)
+  const [users, setUsers] = useState<UserData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
 
-  const handleAdd = (user: User) => {
-    setUsers([user, ...users])
-  }
+  const fetchUsers = useCallback(async () => {
+    try {
+      const token = Cookies.get("token")
+      if (!token) {
+        setError("Vous devez être connecté")
+        setLoading(false)
+        return
+      }
 
-  const handleEdit = (updatedUser: User) => {
-    setUsers(users.map((u) => (u.id === updatedUser.id ? updatedUser : u)))
-  }
+      const response = await fetch("/api/users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
-  const handleDelete = (id: string) => {
-    setUsers(users.filter((u) => u.id !== id))
-  }
+      if (!response.ok) {
+        throw new Error("Impossible de charger les utilisateurs")
+      }
 
-  const openEditModal = (user: User) => {
+      const data = await response.json()
+      setUsers(data)
+      setError("")
+    } catch (err: any) {
+      setError(err.message || "Erreur lors du chargement des utilisateurs")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
+
+  const openEditModal = (user: UserData) => {
     setSelectedUser(user)
     setShowEditModal(true)
   }
 
-  const openDeleteModal = (user: User) => {
+  const openDeleteModal = (user: UserData) => {
     setSelectedUser(user)
     setShowDeleteModal(true)
   }
@@ -105,6 +97,14 @@ export default function UsersPage() {
     return labels[role] || role
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -118,15 +118,21 @@ export default function UsersPage() {
         </Button>
       </div>
 
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-4">
         {users.map((user) => (
-          <Card key={user.id} className="border-border">
+          <Card key={user.idUser} className="border-border">
             <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-12 w-12 bg-primary text-primary-foreground">
                     <AvatarFallback className="text-lg font-semibold">
-                      {user.name
+                      {user.fullName
                         .split(" ")
                         .map((n) => n[0])
                         .join("")
@@ -135,15 +141,15 @@ export default function UsersPage() {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-lg">{user.name}</h3>
+                      <h3 className="font-semibold text-lg">{user.fullName}</h3>
                       <Badge className={getRoleBadgeColor(user.role)}>{getRoleLabel(user.role)}</Badge>
-                      <Badge variant={user.status === "active" ? "default" : "secondary"} className="text-xs">
-                        {user.status === "active" ? "Actif" : "Inactif"}
+                      <Badge variant={user.status === "ACTIVE" ? "default" : "secondary"} className="text-xs">
+                        {user.status === "ACTIVE" ? "Actif" : "Inactif"}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Membre depuis le {user.createdAt.toLocaleDateString("fr-FR")}
+                      Membre depuis le {new Date(user.createdAt).toLocaleDateString("fr-FR")}
                     </p>
                   </div>
                 </div>
@@ -168,7 +174,7 @@ export default function UsersPage() {
         ))}
       </div>
 
-      {users.length === 0 && (
+      {users.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <UsersIcon className="h-16 w-16 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold">Aucun utilisateur</h3>
@@ -176,13 +182,13 @@ export default function UsersPage() {
         </div>
       )}
 
-      <AddUserModal open={showAddModal} onOpenChange={setShowAddModal} onAdd={handleAdd} />
-      <EditUserModal open={showEditModal} onOpenChange={setShowEditModal} user={selectedUser} onEdit={handleEdit} />
+      <AddUserModal open={showAddModal} onOpenChange={setShowAddModal} onSuccess={fetchUsers} />
+      <EditUserModal open={showEditModal} onOpenChange={setShowEditModal} user={selectedUser} onSuccess={fetchUsers} />
       <DeleteUserModal
         open={showDeleteModal}
         onOpenChange={setShowDeleteModal}
         user={selectedUser}
-        onDelete={handleDelete}
+        onSuccess={fetchUsers}
       />
     </div>
   )

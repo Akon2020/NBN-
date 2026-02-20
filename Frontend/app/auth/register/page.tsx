@@ -45,11 +45,6 @@ export default function RegisterPage() {
       return
     }
 
-    if (!formData.role) {
-      setError("Veuillez sélectionner un rôle")
-      return
-    }
-
     setIsLoading(true)
 
     try {
@@ -62,7 +57,6 @@ export default function RegisterPage() {
           fullName: formData.name,
           email: formData.email,
           password: formData.password,
-          role: formData.role,
         }),
       })
 
@@ -146,20 +140,6 @@ export default function RegisterPage() {
                 required
                 className="bg-background"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Rôle</Label>
-              <Select value={formData.role} onValueChange={(value) => handleChange("role", value)} required>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="Sélectionnez votre rôle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrateur</SelectItem>
-                  <SelectItem value="agent">Agent terrain</SelectItem>
-                  <SelectItem value="consultant">Consultant</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">

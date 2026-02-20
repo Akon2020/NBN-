@@ -7,54 +7,78 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: "admin" | "agent" | "consultant"
-  status: "active" | "inactive"
-  createdAt: Date
-}
+import { Loader2 } from "lucide-react"
+import Cookies from "js-cookie"
+import type { UserData } from "@/app/dashboard/users/page"
 
 interface EditUserModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: User | null
-  onEdit: (user: User) => void
+  user: UserData | null
+  onSuccess: () => void
 }
 
-export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModalProps) {
-  const [name, setName] = useState("")
+export function EditUserModal({ open, onOpenChange, user, onSuccess }: EditUserModalProps) {
+  const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<"admin" | "agent" | "consultant">("agent")
-  const [status, setStatus] = useState<"active" | "inactive">("active")
+  const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     if (user) {
-      setName(user.name)
+      setFullName(user.fullName)
       setEmail(user.email)
       setRole(user.role)
       setStatus(user.status)
+      setError("")
     }
   }, [user])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user) return
 
-    if (user) {
-      const updatedUser: User = {
-        ...user,
-        name,
-        email,
-        role,
-        status,
+    setError("")
+    setIsLoading(true)
+
+    try {
+      const token = Cookies.get("token")
+      if (!token) {
+        setError("Vous devez être connecté")
+        return
       }
 
-      onEdit(updatedUser)
+      const response = await fetch(`/api/users/${user.idUser}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullName,
+          email,
+          role,
+          status,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erreur lors de la modification")
+      }
+
       onOpenChange(false)
+      onSuccess()
+    } catch (err: any) {
+      setError(err.message || "Erreur lors de la modification de l'utilisateur")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -69,14 +93,21 @@ export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModa
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="edit-name">Nom complet *</Label>
             <Input
               id="edit-name"
               placeholder="Jean Mukendi"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
 
@@ -89,12 +120,13 @@ export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModa
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-role">Rôle *</Label>
-            <Select value={role} onValueChange={(value: any) => setRole(value)}>
+            <Select value={role} onValueChange={(value: any) => setRole(value)} disabled={isLoading}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -110,22 +142,30 @@ export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModa
             <div className="space-y-1">
               <Label htmlFor="edit-status">Statut du compte</Label>
               <p className="text-sm text-muted-foreground">
-                {status === "active" ? "L'utilisateur peut se connecter" : "L'accès est bloqué"}
+                {status === "ACTIVE" ? "L'utilisateur peut se connecter" : "L'accès est bloqué"}
               </p>
             </div>
             <Switch
               id="edit-status"
-              checked={status === "active"}
-              onCheckedChange={(checked) => setStatus(checked ? "active" : "inactive")}
+              checked={status === "ACTIVE"}
+              onCheckedChange={(checked) => setStatus(checked ? "ACTIVE" : "INACTIVE")}
+              disabled={isLoading}
             />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground">
-              Enregistrer les modifications
+            <Button type="submit" className="bg-primary text-primary-foreground" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                "Enregistrer les modifications"
+              )}
             </Button>
           </div>
         </form>
