@@ -34,6 +34,16 @@ module.exports = {
           100: "#F7F7F7",
         },
       },
+      // Typographie de marque (CLAUDE.md §10) : Manrope pour les titres,
+      // Inter pour le corps de texte. Poids limités à Regular/Medium/
+      // Semibold, cohérent avec la contrainte "application légère".
+      fontFamily: {
+        heading: ["Manrope_600SemiBold"],
+        "heading-medium": ["Manrope_500Medium"],
+        body: ["Inter_400Regular"],
+        "body-medium": ["Inter_500Medium"],
+        "body-semibold": ["Inter_600SemiBold"],
+      },
     },
   },
   plugins: [],

@@ -174,4 +174,27 @@ Objectif : poser le socle dont dépendent tous les domaines métier futurs (M2+)
 
 ---
 
+## Session 2 (suite) — 2026-07-14 — Onboarding Mobile
+
+Demande explicite hors plan.md : un onboarding attrayant et bien stylisé pour l'app Mobile, avant de démarrer M2.
+
+### ✅ Onboarding de marque
+- 4 slides swipeables (`app/onboarding.tsx`, données dans `constants/onboarding.ts`) : bienvenue, location & vente, accompagnement complet, CTA final — voix de marque alignée sur le flyer NBN Express ("Avec NBN Express, trouver devient simple").
+- Cercle en dégradé par slide (`expo-linear-gradient`, couleurs exactes des tokens CLAUDE.md §10 : navy, orange, vert), icône `MaterialIcons` centrée, indicateur à points animé (`react-native-reanimated` — largeur/opacité interpolées sur la position de scroll), bouton "Passer" et "Suivant"/"Commencer".
+- Typographie de marque installée : `@expo-google-fonts/manrope` (titres, SemiBold) et `@expo-google-fonts/inter` (corps, Regular/Medium/SemiBold) — chargées dans `app/_layout.tsx` via `expo-font`, écran natif conservé jusqu'au chargement (`expo-splash-screen`). Enregistrées comme familles Tailwind (`font-heading`, `font-body`, ...) dans `tailwind.config.js`.
+- Persistance "déjà vu" via `@react-native-async-storage/async-storage` (`lib/onboardingStorage.ts`) — non sensible, contrairement aux tokens (`expo-secure-store`).
+- Restructuration de la navigation : `app/index.tsx` devient un écran de décision pur (session active → arborescence du rôle ; sinon onboarding une seule fois, puis login) ; le formulaire de login déplacé et re-stylisé dans `app/login.tsx` (en-tête en dégradé, typographie de marque, bouton en `accent-600`).
+
+### Bugs réels trouvés et corrigés pendant la vérification visuelle
+- **`expo-secure-store` n'a pas d'implémentation web** : `getValueWithKeyAsync is not a function` faisait planter l'écran de décision au chargement dès qu'on prévisualise sur le web (le web ne sert qu'à la prévisualisation en développement, la cible réelle est iOS/Android). `lib/secureStore.ts` bascule désormais sur un repli en mémoire quand `Platform.OS === 'web'`, sans jamais toucher au comportement natif réel.
+- **Police d'icônes non chargée sur le web** : `MaterialCommunityIcons` affichait des glyphes de substitution (tofu) faute d'être enregistrée via `expo-font`. Remplacé par `MaterialIcons` (déjà éprouvé ailleurs dans le projet, `components/ui/icon-symbol.tsx`) et chargé explicitement dans `useFonts`. Vérifié programmatiquement : la police se charge (`document.fonts`) et le glyphe pointe vers le bon codepoint (`U+E88A` = home).
+
+### Vérification — méthode
+Le screenshot pixel du navigateur reste indisponible dans cet environnement (déjà rencontré en Session 1 avec le Frontend). Vérification faite par inspection JS directe des styles calculés dans la page rendue (`getComputedStyle`) : dégradés exacts (`linear-gradient(135deg, #14294A, #1E3A63)` etc.), police de titre (`Manrope_600SemiBold`), couleur de bouton (`#C13F0B` = accent-600, la variante conforme AA), dimensions du cercle (220×220, border-radius 110 = cercle parfait), support du mode sombre. Complété par `tsc --noEmit`, `expo lint`, `npm test` (3/3) et un export Metro de production réel (`npx expo export --platform web`, 17 routes bundlées avec succès, CSS généré).
+
+### Décision à documenter/valider par l'utilisateur
+Le contenu des 4 slides et le choix des icônes (Material Icons : home, vpn-key, groups, rocket-launch) sont une proposition éditoriale de cette session, pas une validation client — à ajuster si le ton ou les priorités de communication doivent changer.
+
+---
+
 *Prochaine session suggérée : Milestone 2 (Real Estate + CRM — cœur métier immobilier, remplacement des données mockées). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, et l'audit des autres composants d'overlay Radix pour le bug Dialog.*
