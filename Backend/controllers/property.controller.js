@@ -21,6 +21,46 @@ const PROPERTY_INCLUDES = [
   { model: PropertyScore, as: "scores" },
 ];
 
+// MOBILE-G03 — le "client final" du CDC n'a pas de compte User (une Person
+// devient Client/Bailleur, jamais un User, CLAUDE.md §4) : lecture publique
+// volontairement restreinte aux biens DISPONIBLE, avec le même filtrage
+// field-level qu'un appelant sans permission (`serializeProperty(..., null)`
+// masque toujours `margin`, jamais de contournement possible ici).
+export const getPublicProperties = async (req, res, next) => {
+  try {
+    const properties = await Property.findAll({
+      where: { statut: "DISPONIBLE" },
+      include: PROPERTY_INCLUDES,
+    });
+    const propertiesInfo = await serializeProperties(properties, null);
+    return res.status(200).json({
+      nombre: propertiesInfo.length,
+      propertiesInfo,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const getPublicProperty = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const property = await Property.findOne({
+      where: { idProperty: id, statut: "DISPONIBLE" },
+      include: PROPERTY_INCLUDES,
+    });
+    if (!property) {
+      return res.status(404).json({ message: "Propriété non trouvée" });
+    }
+    const serialized = await serializeProperty(property, null);
+    return res.status(200).json(serialized);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
 export const getAllProperties = async (req, res, next) => {
   try {
     const properties = await Property.findAll({ include: PROPERTY_INCLUDES });

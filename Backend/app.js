@@ -33,6 +33,10 @@ app.use(
       "http://localhost:3000",
       "http://127.0.0.1:3000",
       "http://127.0.0.1:5500",
+      // Prévisualisation web du Mobile (Expo) en développement uniquement —
+      // les builds natifs iOS/Android ne sont jamais soumis à CORS.
+      "http://localhost:8081",
+      "http://127.0.0.1:8081",
       "https://nbn-plus.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],

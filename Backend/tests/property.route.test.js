@@ -136,6 +136,38 @@ describe("BACK-G05/G07 - CRUD Property", () => {
   });
 });
 
+describe("MOBILE-G03 - Lecture publique des biens (client final sans compte)", () => {
+  it("liste les biens DISPONIBLE sans authentification, margin toujours masqué", async () => {
+    const res = await request(app).get("/api/properties/public");
+    expect(res.status).toBe(200);
+    expect(
+      res.body.propertiesInfo.some((p) => createdPropertyIds.includes(p.idProperty))
+    ).toBe(true);
+    expect(res.body.propertiesInfo.every((p) => p.margin === undefined)).toBe(true);
+  });
+
+  it("expose le détail d'un bien DISPONIBLE sans authentification", async () => {
+    const idProperty = createdPropertyIds[0];
+    const res = await request(app).get(`/api/properties/public/${idProperty}`);
+    expect(res.status).toBe(200);
+    expect(res.body.idProperty).toBe(idProperty);
+    expect(res.body.margin).toBeUndefined();
+  });
+
+  it("refuse un bien qui n'est pas DISPONIBLE", async () => {
+    const cookies = await loginAs(operationsEmail);
+    const created = await request(app)
+      .post("/api/properties")
+      .set("Cookie", cookies)
+      .send({ category: "SALE", propertyType: "TERRAIN_PLAT", price: 1000, statut: "RESERVE" });
+    expect(created.status).toBe(201);
+    createdPropertyIds.push(created.body.data.idProperty);
+
+    const res = await request(app).get(`/api/properties/public/${created.body.data.idProperty}`);
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("BACK-G07 - Favoris", () => {
   it("un utilisateur peut ajouter puis retirer un favori", async () => {
     const cookies = await loginAs(operationsEmail);

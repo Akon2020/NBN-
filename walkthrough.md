@@ -283,4 +283,31 @@ Vérifié en conditions réelles dans le navigateur avec deux comptes ad hoc (`o
 
 ---
 
-*Prochaine session suggérée : MOBILE-G03 + DESIGN-G02 (consultation biens/clients Mobile, composants de fiche bien). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, l'audit des autres composants d'overlay Radix pour le bug Dialog, l'UI d'upload d'images côté Frontend (Session 3), et l'absence de drag-and-drop réel sur le Kanban clients (Session 4, avancement par bouton uniquement).*
+## Session 4 (suite) — 2026-07-14 — MOBILE-G03 + DESIGN-G02 : Consultation biens Mobile
+
+### Décision de cadrage actée avec l'utilisateur avant implémentation
+Un `Client` n'est jamais un `User` dans ce système (CLAUDE.md §4 — une Person devient Client/Bailleur, jamais un compte de connexion), donc le profil "client final" du CDC n'a structurellement aucun moyen de s'authentifier aujourd'hui. Or `GET /api/properties*` exigeait `authMiddlware` sur toutes ses routes, ce qui aurait rendu l'écran "Explorer comme client (démo)" du Mobile (déjà présent depuis MOBILE-G02, navigue sans compte) incapable de charger la moindre donnée réelle. Trois options soumises à l'utilisateur ; **retenue : ouvrir une lecture publique**, cohérente avec la vision CDC d'un client qui navigue sans compte.
+
+### ✅ Backend — lecture publique des biens (nouveau, hors périmètre initial de BACK-G07)
+- `GET /api/properties/public` et `GET /api/properties/public/:id` : aucun `authMiddlware`, restreints aux biens `statut = DISPONIBLE` uniquement, `serializeProperty(property, null)` — `margin` reste **toujours** masqué (le field-level authorization ne fait aucune exception pour l'absence d'utilisateur, `hasPermission(null, ...)` retourne `false` en toute sécurité). Routes déclarées **avant** `/:id` dans `property.route.js` pour éviter qu'Express ne les avale dans le paramètre générique.
+- 3 tests ajoutés à `property.route.test.js` : liste publique sans cookie, détail public sans cookie, et un bien `RESERVE` correctement invisible (404) via la route publique.
+- CORS (`Backend/app.js`) : origine `http://localhost:8081`/`127.0.0.1:8081` ajoutée à la liste blanche — nécessaire uniquement pour prévisualiser le Mobile en web pendant le développement (un build natif iOS/Android n'est jamais soumis à CORS).
+
+### ✅ MOBILE-G03 — Écrans de consultation, deux parcours distincts
+- **"Client final" (`(client)/recherche.tsx`, `(client)/favoris.tsx`)** : lecture publique (`lib/properties.ts`, fonctions `getPublicProperties`/`getPublicProperty`), recherche/filtre catégorie en ligne uniquement (CLAUDE.md §8), favoris **locaux** via `lib/localFavorites.ts` (AsyncStorage — classification "offline-readable" explicite du CDC pour "favoris (lecture)", pas de compte serveur possible pour ce profil).
+- **"Interne limité" (`(interne)/biens.tsx`, nouvel onglet ajouté à `(interne)/_layout.tsx`)** : lecture authentifiée (`getAllProperties`/`getSingleProperty`), favoris **synchronisés côté serveur** (`lib/favorites.ts`, réutilise `/api/favorites` déjà construit en BACK-G07) — un vrai compte staff existe pour ce profil, contrairement au client final.
+- **Écran de détail partagé (`app/property/[id].tsx`)**, route racine (hors des deux groupes Tabs, déclarée dans `app/_layout.tsx`) : détecte la présence d'un token via `getAccessToken()` au montage et bascule silencieusement entre les deux sources de données/favoris — un seul écran pour les deux profils, pas de duplication. CTA sticky en bas de fiche (Appeler / WhatsApp), cohérent avec le pattern DESIGN-G02.
+
+### ✅ DESIGN-G02 — `components/property-card.tsx`
+Carte réutilisée par les trois listes (client/recherche, client/favoris, interne/biens) : rayons de bordure généreux (`rounded-3xl`), badge catégorie (À louer/À vendre) en `primary-900`, bouton favori en overlay, prix en `accent-600`. Mêmes tokens de marque que le Frontend (CLAUDE.md §10), cohérence garantie par construction.
+
+### Vérification — méthode
+Backend + Frontend + Mobile (web) démarrés en parallèle. Parcours "client final" vérifié sans aucun compte (lien démo direct) : liste publique avec les biens réels DISPONIBLE, ouverture de fiche détail, ajout aux favoris locaux confirmé persistant après navigation vers l'onglet Favoris. Parcours "interne" vérifié avec un compte `operations` ad hoc : onglet Biens authentifié, ajout d'un favori confirmé **en base** (`SELECT` direct sur la table `favorites`) après le clic, puis nettoyé. `npx tsc --noEmit`, `expo lint`, `npm test` (3/3) verts côté Mobile. Backend : 42/42 tests passent (3 nouveaux). Compte de test et favori supprimés après vérification.
+
+### Décisions à documenter/valider par l'utilisateur
+- La lecture publique des biens est un nouvel élément de surface d'attaque (bien que strictement lecture seule, limitée aux biens DISPONIBLE, sans jamais exposer `margin`) — à review explicitement si la politique de sécurité globale doit formaliser une distinction "endpoints publics" vs "endpoints authentifiés" dans la documentation Swagger.
+- Le profil "interne limité" n'a pour l'instant qu'une consultation en lecture (pas de création/édition de bien depuis le Mobile) — cohérent avec le mot "limité" du plan, mais à confirmer si un besoin de création terrain rapide émerge avant le Milestone 3 (Commissionnaire).
+
+---
+
+*Prochaine session suggérée : clôture du Milestone 2 (vérification globale + commit final), puis Milestone 3 (Commissionnaire, collecte terrain offline-first). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, l'audit des autres composants d'overlay Radix pour le bug Dialog, l'UI d'upload d'images côté Frontend (Session 3), l'absence de drag-and-drop réel sur le Kanban clients (Session 4), et le nouvel endpoint public à documenter formellement dans Swagger si ce n'est pas déjà suffisant (Session 4).*

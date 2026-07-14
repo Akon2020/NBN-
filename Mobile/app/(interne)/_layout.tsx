@@ -25,6 +25,13 @@ export default function InterneLayout() {
         }}
       />
       <Tabs.Screen
+        name="biens"
+        options={{
+          title: 'Biens',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="taches"
         options={{
           title: 'Tâches',

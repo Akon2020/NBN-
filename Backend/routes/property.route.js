@@ -5,6 +5,8 @@ import {
   deleteProperty,
   getAllProperties,
   getPropertiesByStatut,
+  getPublicProperties,
+  getPublicProperty,
   getSingleProperty,
   updateProperty,
 } from "../controllers/property.controller.js";
@@ -14,6 +16,38 @@ import upload from "../middlewares/upload.middleware.js";
 import { normalizeUploadPaths } from "../utils/normalizeUploadPaths.js";
 
 const propertyRouter = Router();
+
+/**
+ * @swagger
+ * /api/properties/public:
+ *   get:
+ *     summary: Liste publique des biens DISPONIBLE (sans authentification, MOBILE-G03)
+ *     tags: [Properties]
+ *     responses:
+ *       200:
+ *         description: Liste récupérée avec succès
+ */
+propertyRouter.get("/public", getPublicProperties);
+
+/**
+ * @swagger
+ * /api/properties/public/{id}:
+ *   get:
+ *     summary: Détail public d'un bien DISPONIBLE (sans authentification, MOBILE-G03)
+ *     tags: [Properties]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Bien trouvé
+ *       404:
+ *         description: Bien non trouvé ou non disponible
+ */
+propertyRouter.get("/public/:id", getPublicProperty);
 
 /**
  * @swagger
