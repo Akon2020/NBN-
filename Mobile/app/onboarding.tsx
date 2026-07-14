@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Dimensions, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -16,12 +16,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ONBOARDING_SLIDES, type OnboardingSlide } from '@/constants/onboarding';
 import { markOnboardingSeen } from '@/lib/onboardingStorage';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AnimatedFlatList = Animated.createAnimatedComponent(
   Animated.FlatList<OnboardingSlide>
 );
 
 function Slide({ item }: { item: OnboardingSlide }) {
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   return (
     <View style={{ width: SCREEN_WIDTH }} className="flex-1 items-center px-8 pt-6">
       <LinearGradient
@@ -63,6 +63,7 @@ function Slide({ item }: { item: OnboardingSlide }) {
 }
 
 function Dot({ index, scrollX }: { index: number; scrollX: SharedValue<number> }) {
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const style = useAnimatedStyle(() => {
     const inputRange = [
       (index - 1) * SCREEN_WIDTH,
@@ -96,6 +97,7 @@ function Dot({ index, scrollX }: { index: number; scrollX: SharedValue<number> }
 // introduit NBN Express avant le login réel (MOBILE-G02).
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const scrollX = useSharedValue(0);
   const listRef = useRef<Animated.FlatList<OnboardingSlide>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
