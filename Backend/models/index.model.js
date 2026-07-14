@@ -22,6 +22,9 @@ import EmployeeProfile from "./employeeProfile.model.js";
 import Client from "./client.model.js";
 import Bailleur from "./bailleur.model.js";
 import Matching from "./matching.model.js";
+import Commissionnaire from "./commissionnaire.model.js";
+import CommissionnaireIncident from "./commissionnaireIncident.model.js";
+import Mission from "./mission.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -164,6 +167,26 @@ Property.belongsToMany(Client, {
 Matching.belongsTo(Property, { foreignKey: "idProperty" });
 Matching.belongsTo(Client, { foreignKey: "idClient" });
 
+// BACK-G09 — Commissionnaire rattaché à Person (peut ou non avoir un User,
+// CLAUDE.md §4), fiche digitale (CDC §7).
+Person.hasOne(Commissionnaire, { foreignKey: "idPerson" });
+Commissionnaire.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
+Commissionnaire.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+Commissionnaire.hasMany(CommissionnaireIncident, {
+  foreignKey: "idCommissionnaire",
+  as: "incidents",
+});
+CommissionnaireIncident.belongsTo(Commissionnaire, { foreignKey: "idCommissionnaire" });
+CommissionnaireIncident.belongsTo(User, { foreignKey: "createdBy", as: "reporter" });
+
+// BACK-G10 — Missions terrain (collecte de bien, apport client, suivi).
+Commissionnaire.hasMany(Mission, { foreignKey: "idCommissionnaire", as: "missions" });
+Mission.belongsTo(Commissionnaire, { foreignKey: "idCommissionnaire", as: "commissionnaire" });
+Mission.belongsTo(Property, { foreignKey: "idProperty" });
+Mission.belongsTo(Client, { foreignKey: "idClient" });
+Mission.belongsTo(User, { foreignKey: "validatedBy", as: "validator" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -197,5 +220,8 @@ export {
   Client,
   Bailleur,
   Matching,
+  Commissionnaire,
+  CommissionnaireIncident,
+  Mission,
   syncModels,
 };

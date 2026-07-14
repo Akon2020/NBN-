@@ -17,6 +17,8 @@ import proposalRouter from "./routes/proposal.route.js";
 import clientRouter from "./routes/client.route.js";
 import bailleurRouter from "./routes/bailleur.route.js";
 import matchingRouter from "./routes/matching.route.js";
+import commissionnaireRouter from "./routes/commissionnaire.route.js";
+import missionRouter from "./routes/mission.route.js";
 
 const app = express();
 
@@ -62,6 +64,8 @@ app.use("/api/proposals", proposalRouter);
 app.use("/api/clients", clientRouter);
 app.use("/api/bailleurs", bailleurRouter);
 app.use("/api/matchings", matchingRouter);
+app.use("/api/commissionnaires", commissionnaireRouter);
+app.use("/api/missions", missionRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);
