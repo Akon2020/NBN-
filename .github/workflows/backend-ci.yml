@@ -1,0 +1,74 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "Backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "Backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: nbn
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    defaults:
+      run:
+        working-directory: Backend
+    env:
+      NODE_ENV: development
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: nbn
+      JWT_SECRET: ci-only-secret-not-used-in-prod
+      JWT_EXPIRES_IN: 1d
+      DEFAULT_PASSWD: Changemoi@NBN2026
+      EMAIL: ci@example.com
+      EMAIL_PASSWORD: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Backend/package-lock.json
+      - run: npm ci
+      - name: Écrire un .env.development.local minimal pour le CI
+        run: |
+          cat > .env.development.local <<EOF
+          NODE_ENV=development
+          PORT=5500
+          DB_HOST=$DB_HOST
+          DB_USER=$DB_USER
+          DB_PASSWORD=$DB_PASSWORD
+          DB_NAME=$DB_NAME
+          JWT_SECRET=$JWT_SECRET
+          JWT_EXPIRES_IN=$JWT_EXPIRES_IN
+          EMAIL=$EMAIL
+          EMAIL_PASSWORD=$EMAIL_PASSWORD
+          URL_ORIGIN="*"
+          HOST_URL="http://localhost:5500"
+          FRONT_URL="http://localhost:3000"
+          DEFAULT_PASSWD="$DEFAULT_PASSWD"
+          EOF
+      - name: Appliquer les migrations
+        run: npm run db:migrate
+      - name: Lancer les tests
+        run: npm test

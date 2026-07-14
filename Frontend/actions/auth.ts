@@ -1,18 +1,16 @@
 import api from "@/lib/axios";
 import axios from "axios";
-import Cookies from "js-cookie";
 import { Auth, AuthPayload, Data, User } from "@/types/type";
-import { getAuthHeaders } from "@/lib/auth";
 
+// Le jeton vit uniquement dans le cookie httpOnly posé par le backend
+// (ADMIN-G01 : source unique, plus de copie côté client via js-cookie).
+// localStorage.user ne sert qu'à l'affichage (nom/rôle dans la sidebar),
+// jamais de décision d'authentification.
 export const login = async (data: AuthPayload): Promise<Auth> => {
   try {
     const res = await api.post<Auth>("/api/auth/login/", data, {
       headers: { "Content-Type": "application/json" },
       withCredentials: true,
-    });
-    Cookies.set("token", res.data.data.token, {
-      expires: 7,
-      secure: true,
     });
     localStorage.setItem("user", JSON.stringify(res.data.data.userInfo));
     return res.data;
@@ -29,7 +27,6 @@ export const login = async (data: AuthPayload): Promise<Auth> => {
 export const logout = async (): Promise<{ message: string }> => {
   try {
     localStorage.removeItem("user");
-    Cookies.remove("token");
 
     const res = await api.post<{ message: string }>(
       "/api/auth/logout/",

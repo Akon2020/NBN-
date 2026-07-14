@@ -8,7 +8,7 @@ export const {
   URL_ORIGIN,
   DB_HOST,
   DB_USER,
-  DB_PASS,
+  DB_PASSWORD,
   DB_NAME,
   JWT_SECRET,
   JWT_EXPIRES_IN,

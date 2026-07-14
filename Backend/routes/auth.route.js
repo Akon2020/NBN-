@@ -12,6 +12,7 @@ import {
 } from "../middlewares/auth.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 import { normalizeUploadPaths } from "../utils/normalizeUploadPaths.js";
+import { authLimiter } from "../middlewares/rateLimit.middleware.js";
 
 const authRouter = Router();
 
@@ -79,7 +80,7 @@ authRouter.get("/profile", authMiddlware, (req, res) => {
  *       400:
  *         description: Données manquantes ou utilisateur déjà existant
  */
-authRouter.post("/register", upload.single("avatar"), normalizeUploadPaths, register);
+authRouter.post("/register", authLimiter, upload.single("avatar"), normalizeUploadPaths, register);
 
 /**
  * @swagger
@@ -107,7 +108,7 @@ authRouter.post("/register", upload.single("avatar"), normalizeUploadPaths, regi
  *       401:
  *         description: Email ou mot de passe incorrect
  */
-authRouter.post("/login", login);
+authRouter.post("/login", authLimiter, login);
 
 /**
  * @swagger

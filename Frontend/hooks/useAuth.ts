@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
-import { getAuthHeaders } from "@/lib/auth";
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -11,9 +10,7 @@ export const useAuth = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await api.get("/api/auth/profile/", {
-          headers: getAuthHeaders(),
-        });
+        const response = await api.get("/api/auth/profile/");
 
         setIsAuthenticated(true);
         setUser(response.data.user);

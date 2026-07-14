@@ -61,6 +61,16 @@ const errorMiddleware = (err, req, res, next) => {
     return handleDatabaseError(err, res);
   }
 
+  if (err.name === "MulterError") {
+    const messages = {
+      LIMIT_FILE_SIZE: "Le fichier dépasse la taille maximale autorisée (5 Mo).",
+      LIMIT_UNEXPECTED_FILE: err.message || "Type de fichier non autorisé.",
+    };
+    return res.status(400).json({
+      message: messages[err.code] || "Erreur lors de l'upload du fichier.",
+    });
+  }
+
   switch (err.name) {
     case "ValidationError":
       return res.status(400).json({ message: err.message });

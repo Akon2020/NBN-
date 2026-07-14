@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Cookie from "js-cookie";
-import { logout } from "@/lib/auth";
+import { logout } from "@/actions/auth";
+import { getAuthUser } from "@/lib/auth";
 
 export default function DashboardLayout({
   children,
@@ -38,22 +38,21 @@ export default function DashboardLayout({
   const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
-    // Check authentication
-    const token = Cookie.get("token");
-    if (!token) {
-      router.push("/auth/login");
-      return;
+    // Affichage uniquement (nom/rôle dans la sidebar) — l'accès réel est
+    // tranché par ProtectedRoute via un appel réseau, pas par ce cache local.
+    const user = getAuthUser();
+    if (user) {
+      setUserName(user.fullName || "Utilisateur");
+      setUserRole(user.role || "");
     }
+  }, []);
 
-    // Load user data
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUserName(user.fullName || "Utilisateur");
-    setUserRole(user.role || "admin");
-  }, [router]);
-
-  const handleLogout = () => {
-    logout();
-    router.push("/auth/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      router.push("/auth/login");
+    }
   };
 
   const navigation = [
@@ -68,7 +67,7 @@ export default function DashboardLayout({
   ];
 
   return (
-    // <ProtectedRoute allowedRoles={["admin", "agent"]}>
+    <ProtectedRoute allowedRoles={["admin", "agent"]}>
     <div className="min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
@@ -189,6 +188,6 @@ export default function DashboardLayout({
         <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
-    // </ProtectedRoute>
+    </ProtectedRoute>
   );
 }

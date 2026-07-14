@@ -3,9 +3,8 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import path from "path";
 import logger from "morgan";
-import { PORT, HOST_URL } from "./config/env.js";
-import db from "./database/db.js";
-import { syncModels } from "./models/index.model.js";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import errorMiddleware, { errorLogs } from "./middlewares/error.middleware.js";
 import { setupSwagger } from "./swagger.js";
 import userRouter from "./routes/user.route.js";
@@ -13,7 +12,9 @@ import authRouter from "./routes/auth.route.js";
 
 const app = express();
 
+app.use(helmet());
 app.use(logger("dev"));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "1024mb" }));
@@ -44,19 +45,5 @@ app.use("/api/auth", authRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);
-
-app.listen(PORT, async (err) => {
-  if (err) {
-    console.log(`Une erreur s'est produite: ${err}`);
-  } else {
-    try {
-      await syncModels();
-      console.log(`Le serveur est lancé au http://localhost:${PORT}/`);
-      console.log(`Documentation Swagger sur ${HOST_URL}/api-docs/`);
-    } catch (error) {
-      console.error("Erreur lors de la synchronisation des modèles:", error);
-    }
-  }
-});
 
 export default app;

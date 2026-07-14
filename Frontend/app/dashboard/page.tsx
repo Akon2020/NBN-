@@ -11,13 +11,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getAuthUser } from "@/lib/auth";
 
 export default function DashboardPage() {
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    setUserName(user.fullName || "Utilisateur");
+    const user = getAuthUser();
+    setUserName(user?.fullName || "Utilisateur");
   }, []);
 
   const stats = [

@@ -1,23 +1,15 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
-import Cookies from 'js-cookie';
+import axios, { AxiosInstance } from "axios";
 
+// ADMIN-G01 : le jeton vit dans un cookie httpOnly posé par le backend — il
+// n'est jamais lisible en JS. `withCredentials: true` suffit à l'envoyer
+// automatiquement à chaque requête, plus besoin de reconstruire un header
+// Authorization à partir d'un cookie côté client.
 const api: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
-});
-
-api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = Cookies.get("token");
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
-  return config;
 });
 
 // api.interceptors.response.use(

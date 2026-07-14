@@ -8,7 +8,7 @@ import {
   updateUserPassword,
   updateUser,
 } from "../controllers/user.controller.js";
-import { authMiddlware } from "../middlewares/auth.middleware.js";
+import { authMiddlware, requireRole } from "../middlewares/auth.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 import { normalizeUploadPaths } from "../utils/normalizeUploadPaths.js";
 
@@ -109,6 +109,7 @@ userRouter.get("/email/:email", authMiddlware, getUserByEmail);
 userRouter.post(
   "/add",
   authMiddlware,
+  requireRole("admin"),
   upload.single("avatar"),
   normalizeUploadPaths,
   createUser
@@ -154,6 +155,7 @@ userRouter.post(
 userRouter.patch(
   "/update/:id",
   authMiddlware,
+  requireRole("admin"),
   upload.single("avatar"),
   normalizeUploadPaths,
   updateUser
@@ -215,6 +217,6 @@ userRouter.patch("/update/:id/password", authMiddlware, updateUserPassword);
  *       500:
  *         description: Erreur serveur
  */
-userRouter.delete("/delete/:id", authMiddlware, deleteUser);
+userRouter.delete("/delete/:id", authMiddlware, requireRole("admin"), deleteUser);
 
 export default userRouter;
