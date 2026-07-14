@@ -3,7 +3,27 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Tokens de marque NBN Express (CLAUDE.md §10) — valeurs mesurées, pas une
+ * estimation. Coexistent avec les alias sémantiques shadcn ci-dessous
+ * (--primary, --secondary, --accent) qui pilotent déjà tout le dashboard
+ * existant ; ces tokens nommés (bg-primary-900, text-accent-600, ...) sont
+ * la base pour les futurs écrans qui doivent suivre l'identité de marque à
+ * la lettre. Mêmes noms de tokens côté Mobile (NativeWind).
+ */
 :root {
+  --nbn-primary-900: #14294a;
+  --nbn-primary-700: #1e3a63;
+  --nbn-accent-500: #f25414;
+  --nbn-accent-600: #c13f0b;
+  --nbn-secondary-600: #245640;
+  --nbn-success-500: #2f7350;
+  --nbn-warning-500: #f59e0b;
+  --nbn-error-500: #d92d20;
+  --nbn-neutral-900: #16181d;
+  --nbn-neutral-600: #5b6472;
+  --nbn-neutral-100: #f7f7f7;
+
   /* Custom Nyumbani Express brand colors for light theme */
   --background: #ffffff;
   --foreground: #141716;
@@ -79,6 +99,18 @@
 @theme inline {
   --font-sans: "Geist", "Geist Fallback";
   --font-mono: "Geist Mono", "Geist Mono Fallback";
+  /* Tokens de marque NBN Express (CLAUDE.md §10) */
+  --color-primary-900: var(--nbn-primary-900);
+  --color-primary-700: var(--nbn-primary-700);
+  --color-accent-500: var(--nbn-accent-500);
+  --color-accent-600: var(--nbn-accent-600);
+  --color-secondary-600: var(--nbn-secondary-600);
+  --color-success-500: var(--nbn-success-500);
+  --color-warning-500: var(--nbn-warning-500);
+  --color-error-500: var(--nbn-error-500);
+  --color-neutral-900: var(--nbn-neutral-900);
+  --color-neutral-600: var(--nbn-neutral-600);
+  --color-neutral-100: var(--nbn-neutral-100);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
