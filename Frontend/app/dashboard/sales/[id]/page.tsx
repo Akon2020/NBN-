@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, use } from "react"
+import { useState, useEffect, use } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,21 +19,53 @@ import {
   Heart,
   Share2,
   Building,
+  Loader2,
 } from "lucide-react"
-import { mockSales } from "@/lib/mock-data"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditSaleModal } from "@/components/property-modals/edit-sale-modal"
-import type { SaleProperty } from "@/lib/types"
+import { DeleteSaleModal } from "@/components/property-modals/delete-sale-modal"
+import { getSingleProperty } from "@/actions/properties"
+import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
+import { LAND_PROPERTY_TYPES, PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
+import { toast } from "sonner"
 
 export default function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
-  const [property, setProperty] = useState<SaleProperty | null>(mockSales.find((p) => p.id === id) || null)
+  const [property, setProperty] = useState<Property | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [propertyData, favorites] = await Promise.all([
+          getSingleProperty(Number(id)),
+          getMyFavorites().catch(() => []),
+        ])
+        setProperty(propertyData)
+        setIsFavorite(favorites.some((f) => f.idProperty === Number(id)))
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    load()
+  }, [id])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   if (!property) {
     return (
@@ -50,34 +82,39 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
     )
   }
 
-  const handleEdit = (updatedProperty: SaleProperty) => {
+  const handleEdit = (updatedProperty: Property) => {
     setProperty(updatedProperty)
   }
 
   const handleDelete = () => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer ce bien ?")) {
-      router.push("/dashboard/sales")
+    router.push("/dashboard/sales")
+  }
+
+  const toggleFavorite = async () => {
+    try {
+      if (isFavorite) {
+        await removeFavorite(property.idProperty)
+        setIsFavorite(false)
+      } else {
+        await addFavorite(property.idProperty)
+        setIsFavorite(true)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
     }
   }
 
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      durable: "Construction durable",
-      "semi-durable": "Construction semi-durable",
-      "flat-land": "Terrain plat",
-      "slope-land": "Terrain en pente",
-    }
-    return labels[type] || type
-  }
-
-  const isLand = property.type === "flat-land" || property.type === "slope-land"
+  const isLand = LAND_PROPERTY_TYPES.includes(property.propertyType)
 
   const handleWhatsAppProposal = () => {
-    const message = `Bonjour! Je vous propose ce bien à vendre:\n\n${getTypeLabel(property.type)}\nAdresse: ${property.address.fullAddress}\n${!isLand ? `${property.floors} étages, ${property.bedrooms} chambres, ${property.livingRooms} salons, ${property.bathrooms} douches, ${property.kitchens} cuisines\n` : ""}Prix: $${property.price.toLocaleString()}\nMarge: $${property.margin.toLocaleString()}\n\nPour plus d'informations, contactez-nous!`
+    const message = `Bonjour! Je vous propose ce bien à vendre:\n\n${PROPERTY_TYPE_LABELS[property.propertyType]}\nAdresse: ${property.fullAddress}\n${!isLand ? `${property.floors ?? 0} étages, ${property.bedrooms ?? 0} chambres, ${property.livingRooms ?? 0} salons, ${property.toilets ?? 0} douches, ${property.kitchens ?? 0} cuisines\n` : ""}Prix: $${property.price.toLocaleString()}\n\nPour plus d'informations, contactez-nous!`
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, "_blank")
   }
+
+  const images = property.images || []
+  const phones = property.phones || []
 
   return (
     <div className="space-y-6">
@@ -89,7 +126,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
           </Button>
         </Link>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setIsFavorite(!isFavorite)}>
+          <Button variant="outline" size="sm" onClick={toggleFavorite}>
             <Heart className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current text-red-500" : ""}`} />
             {isFavorite ? "Retiré" : "Favoris"}
           </Button>
@@ -101,7 +138,12 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
             <Edit className="h-4 w-4 mr-2" />
             Modifier
           </Button>
-          <Button variant="outline" size="sm" className="text-destructive bg-transparent" onClick={handleDelete}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive bg-transparent"
+            onClick={() => setShowDeleteModal(true)}
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             Supprimer
           </Button>
@@ -110,12 +152,11 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          {/* Image Gallery */}
           <Card className="border-border overflow-hidden">
             <div className="relative aspect-video bg-muted">
-              {property.images.length > 0 ? (
+              {images.length > 0 ? (
                 <Image
-                  src={property.images[currentImageIndex] || "/placeholder.svg"}
+                  src={images[currentImageIndex]?.image || "/placeholder.svg"}
                   alt={`Image ${currentImageIndex + 1} du bien`}
                   fill
                   className="object-cover"
@@ -126,18 +167,18 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               )}
             </div>
-            {property.images.length > 1 && (
+            {images.length > 1 && (
               <div className="p-4 flex gap-2 overflow-x-auto">
-                {property.images.map((image, index) => (
+                {images.map((image, index) => (
                   <button
-                    key={index}
+                    key={image.idPropertyImage}
                     onClick={() => setCurrentImageIndex(index)}
                     className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${
                       currentImageIndex === index ? "border-primary" : "border-border"
                     }`}
                   >
                     <Image
-                      src={image || "/placeholder.svg"}
+                      src={image.image || "/placeholder.svg"}
                       alt={`Miniature ${index + 1}`}
                       fill
                       className="object-cover"
@@ -148,24 +189,21 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
             )}
           </Card>
 
-          {/* Property Details */}
           <Card className="border-border">
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <CardTitle className="text-2xl text-balance">{property.address.avenue}</CardTitle>
+                  <CardTitle className="text-2xl text-balance">{property.avenue}</CardTitle>
                   <div className="flex items-center text-muted-foreground mt-2">
                     <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-                    <span className="text-sm">{property.address.fullAddress}</span>
+                    <span className="text-sm">{property.fullAddress}</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <Badge className="bg-secondary text-secondary-foreground whitespace-nowrap">
-                    {getTypeLabel(property.type)}
+                    {PROPERTY_TYPE_LABELS[property.propertyType]}
                   </Badge>
-                  {property.score && (
-                    <Badge className="bg-primary text-primary-foreground">Score: {property.score}</Badge>
-                  )}
+                  <Badge variant="secondary">{property.statut}</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -177,35 +215,35 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
                       <Building className="h-5 w-5 text-secondary" />
                       <div>
                         <p className="text-sm text-muted-foreground">Étages</p>
-                        <p className="text-lg font-semibold">{property.floors}</p>
+                        <p className="text-lg font-semibold">{property.floors ?? 0}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                       <Bed className="h-5 w-5 text-secondary" />
                       <div>
                         <p className="text-sm text-muted-foreground">Chambres</p>
-                        <p className="text-lg font-semibold">{property.bedrooms}</p>
+                        <p className="text-lg font-semibold">{property.bedrooms ?? 0}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                       <HomeIcon className="h-5 w-5 text-secondary" />
                       <div>
                         <p className="text-sm text-muted-foreground">Salons</p>
-                        <p className="text-lg font-semibold">{property.livingRooms}</p>
+                        <p className="text-lg font-semibold">{property.livingRooms ?? 0}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                       <Bath className="h-5 w-5 text-secondary" />
                       <div>
                         <p className="text-sm text-muted-foreground">Douches</p>
-                        <p className="text-lg font-semibold">{property.bathrooms}</p>
+                        <p className="text-lg font-semibold">{property.toilets ?? 0}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                       <HomeIcon className="h-5 w-5 text-secondary" />
                       <div>
                         <p className="text-sm text-muted-foreground">Cuisines</p>
-                        <p className="text-lg font-semibold">{property.kitchens}</p>
+                        <p className="text-lg font-semibold">{property.kitchens ?? 0}</p>
                       </div>
                     </div>
                   </div>
@@ -216,16 +254,16 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
 
               <div>
                 <h3 className="font-semibold mb-2">Description</h3>
-                <p className="text-muted-foreground">{property.details || "Aucune description disponible"}</p>
+                <p className="text-muted-foreground">{property.description || "Aucune description disponible"}</p>
               </div>
 
-              {property.gpsLocation && (
+              {property.latitude && property.longitude && (
                 <>
                   <Separator />
                   <div>
                     <h3 className="font-semibold mb-2">Localisation GPS</h3>
                     <p className="text-muted-foreground">
-                      Latitude: {property.gpsLocation.latitude}, Longitude: {property.gpsLocation.longitude}
+                      Latitude: {property.latitude}, Longitude: {property.longitude}
                     </p>
                   </div>
                 </>
@@ -235,7 +273,6 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="space-y-6">
-          {/* Price Card */}
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Prix de vente</CardTitle>
@@ -244,34 +281,38 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-secondary">${property.price.toLocaleString()}</span>
               </div>
-              <div className="p-3 rounded-lg bg-muted">
-                <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-4 w-4 text-primary" />
-                  <span className="text-muted-foreground">Marge:</span>
-                  <span className="font-semibold">${property.margin.toLocaleString()}</span>
+              {property.margin !== undefined && (
+                <div className="p-3 rounded-lg bg-muted">
+                  <div className="flex items-center gap-2 text-sm">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">Marge:</span>
+                    <span className="font-semibold">${property.margin.toLocaleString()}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Contact Card */}
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Contact</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {property.phones.map((phone, index) => (
-                <a key={index} href={`tel:${phone}`}>
-                  <Button variant="outline" className="w-full justify-start bg-transparent">
-                    <Phone className="h-4 w-4 mr-2" />
-                    {phone}
-                  </Button>
-                </a>
-              ))}
+              {phones.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun numéro enregistré</p>
+              ) : (
+                phones.map((phone) => (
+                  <a key={phone.idPropertyPhone} href={`tel:${phone.phoneNumber}`}>
+                    <Button variant="outline" className="w-full justify-start bg-transparent">
+                      <Phone className="h-4 w-4 mr-2" />
+                      {phone.phoneNumber}
+                    </Button>
+                  </a>
+                ))
+              )}
             </CardContent>
           </Card>
 
-          {/* Metadata Card */}
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Informations</CardTitle>
@@ -280,12 +321,12 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Ajouté le:</span>
-                <span className="font-medium">{property.createdAt.toLocaleDateString("fr-FR")}</span>
+                <span className="font-medium">{new Date(property.createdAt).toLocaleDateString("fr-FR")}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Modifié le:</span>
-                <span className="font-medium">{property.updatedAt.toLocaleDateString("fr-FR")}</span>
+                <span className="font-medium">{new Date(property.updatedAt).toLocaleDateString("fr-FR")}</span>
               </div>
             </CardContent>
           </Card>
@@ -293,6 +334,12 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <EditSaleModal open={showEditModal} onOpenChange={setShowEditModal} property={property} onEdit={handleEdit} />
+      <DeleteSaleModal
+        open={showDeleteModal}
+        onOpenChange={setShowDeleteModal}
+        property={property}
+        onDelete={handleDelete}
+      />
     </div>
   )
 }

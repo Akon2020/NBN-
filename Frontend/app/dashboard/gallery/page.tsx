@@ -5,42 +5,58 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ImageIcon, Home, Building2, Eye, Heart, Share2 } from "lucide-react"
-import { mockRentals, mockSales } from "@/lib/mock-data"
+import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2 } from "lucide-react"
+import { getAllProperties } from "@/actions/properties"
+import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
+import type { Property } from "@/lib/types"
 import Image from "next/image"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function GalleryPage() {
-  const [filter, setFilter] = useState<"all" | "rent" | "sale">("all")
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [filter, setFilter] = useState<"all" | "RENT" | "SALE">("all")
+  const [properties, setProperties] = useState<Property[]>([])
+  const [favorites, setFavorites] = useState<Set<number>>(new Set())
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const saved = localStorage.getItem("favorites")
-    if (saved) {
-      setFavorites(new Set(JSON.parse(saved)))
+    const load = async () => {
+      try {
+        const [allProperties, myFavorites] = await Promise.all([
+          getAllProperties(),
+          getMyFavorites().catch(() => []),
+        ])
+        setProperties(allProperties)
+        setFavorites(new Set(myFavorites.map((f) => f.idProperty)))
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+      } finally {
+        setIsLoading(false)
+      }
     }
+    load()
   }, [])
 
-  const allProperties = [
-    ...mockRentals.map((p) => ({ ...p, category: "rent" as const })),
-    ...mockSales.map((p) => ({ ...p, category: "sale" as const })),
-  ]
+  const filteredProperties = filter === "all" ? properties : properties.filter((p) => p.category === filter)
 
-  const filteredProperties = filter === "all" ? allProperties : allProperties.filter((p) => p.category === filter)
-
-  const toggleFavorite = (id: string) => {
-    const newFavorites = new Set(favorites)
-    if (newFavorites.has(id)) {
-      newFavorites.delete(id)
-    } else {
-      newFavorites.add(id)
+  const toggleFavorite = async (id: number) => {
+    try {
+      if (favorites.has(id)) {
+        await removeFavorite(id)
+        const next = new Set(favorites)
+        next.delete(id)
+        setFavorites(next)
+      } else {
+        await addFavorite(id)
+        setFavorites(new Set(favorites).add(id))
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
     }
-    setFavorites(newFavorites)
-    localStorage.setItem("favorites", JSON.stringify(Array.from(newFavorites)))
   }
 
-  const handlePropose = (property: any) => {
-    const message = `🏠 *Proposition Nyumbani Express*\n\n${property.category === "rent" ? "À louer" : "À vendre"}\n📍 ${property.address.neighborhood}, ${property.address.avenue}\n💰 Prix: $${property.price}${property.category === "rent" ? "/mois" : ""}\n\n${property.details || "Belle propriété disponible"}\n\n📞 Contact: ${property.phones[0]}`
+  const handlePropose = (property: Property) => {
+    const message = `🏠 *Proposition Nyumbani Express*\n\n${property.category === "RENT" ? "À louer" : "À vendre"}\n📍 ${property.quartier}, ${property.avenue}\n💰 Prix: $${property.price}${property.category === "RENT" ? "/mois" : ""}\n\n${property.description || "Belle propriété disponible"}\n\n📞 Contact: ${property.phones?.[0]?.phoneNumber || ""}`
 
     const encodedMessage = encodeURIComponent(message)
     window.open(`https://wa.me/?text=${encodedMessage}`, "_blank")
@@ -54,84 +70,92 @@ export default function GalleryPage() {
           <p className="text-muted-foreground mt-2">Toutes les images des biens immobiliers</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
+          <Select value={filter} onValueChange={(value: "all" | "RENT" | "SALE") => setFilter(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les biens</SelectItem>
-              <SelectItem value="rent">À louer</SelectItem>
-              <SelectItem value="sale">À vendre</SelectItem>
+              <SelectItem value="RENT">À louer</SelectItem>
+              <SelectItem value="SALE">À vendre</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredProperties.map((property) => (
-          <Card key={property.id} className="border-border overflow-hidden group relative">
-            <div className="relative aspect-square overflow-hidden">
-              <Image
-                src={property.images[0] || "/placeholder.svg"}
-                alt={`Property in ${property.address.neighborhood}`}
-                fill
-                className="object-cover transition-transform group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Badge
-                className={`absolute top-2 right-2 ${property.category === "rent" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
-              >
-                {property.category === "rent" ? (
-                  <>
-                    <Home className="h-3 w-3 mr-1" />
-                    Louer
-                  </>
-                ) : (
-                  <>
-                    <Building2 className="h-3 w-3 mr-1" />
-                    Vendre
-                  </>
-                )}
-              </Badge>
-              <div className="absolute bottom-2 left-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="flex-1 h-8 text-xs"
-                  onClick={() => handlePropose(property)}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredProperties.map((property) => (
+            <Card key={property.idProperty} className="border-border overflow-hidden group relative">
+              <div className="relative aspect-square overflow-hidden">
+                <Image
+                  src={property.images?.[0]?.image || "/placeholder.svg"}
+                  alt={`Property in ${property.quartier || ""}`}
+                  fill
+                  className="object-cover transition-transform group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Badge
+                  className={`absolute top-2 right-2 ${property.category === "RENT" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
                 >
-                  <Share2 className="h-3 w-3 mr-1" />
-                  Proposer
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className={`h-8 w-8 p-0 ${favorites.has(property.id) ? "bg-accent text-accent-foreground" : ""}`}
-                  onClick={() => toggleFavorite(property.id)}
-                >
-                  <Heart className={`h-3 w-3 ${favorites.has(property.id) ? "fill-current" : ""}`} />
-                </Button>
-                <Button size="sm" variant="secondary" className="h-8 w-8 p-0" asChild>
-                  <Link href={`/dashboard/${property.category === "rent" ? "rentals" : "sales"}`}>
-                    <Eye className="h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ImageIcon className="h-3 w-3" />
-                  {property.address.neighborhood}
+                  {property.category === "RENT" ? (
+                    <>
+                      <Home className="h-3 w-3 mr-1" />
+                      Louer
+                    </>
+                  ) : (
+                    <>
+                      <Building2 className="h-3 w-3 mr-1" />
+                      Vendre
+                    </>
+                  )}
+                </Badge>
+                <div className="absolute bottom-2 left-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex-1 h-8 text-xs"
+                    onClick={() => handlePropose(property)}
+                  >
+                    <Share2 className="h-3 w-3 mr-1" />
+                    Proposer
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className={`h-8 w-8 p-0 ${favorites.has(property.idProperty) ? "bg-accent text-accent-foreground" : ""}`}
+                    onClick={() => toggleFavorite(property.idProperty)}
+                  >
+                    <Heart className={`h-3 w-3 ${favorites.has(property.idProperty) ? "fill-current" : ""}`} />
+                  </Button>
+                  <Button size="sm" variant="secondary" className="h-8 w-8 p-0" asChild>
+                    <Link
+                      href={`/dashboard/${property.category === "RENT" ? "rentals" : "sales"}/${property.idProperty}`}
+                    >
+                      <Eye className="h-3 w-3" />
+                    </Link>
+                  </Button>
                 </div>
-                <div className="font-semibold text-sm">${property.price}</div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <ImageIcon className="h-3 w-3" />
+                    {property.quartier}
+                  </div>
+                  <div className="font-semibold text-sm">${property.price}</div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {filteredProperties.length === 0 && (
+      {!isLoading && filteredProperties.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <ImageIcon className="h-16 w-16 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold">Aucune image trouvée</h3>

@@ -197,4 +197,55 @@ Le contenu des 4 slides et le choix des icônes (Material Icons : home, vpn-key,
 
 ---
 
+## Session 3 — 2026-07-14 — Milestone 2 (Real Estate + CRM foundations)
+
+### ✅ BACK-G05 — Modèle `Property` complété
+- Ajout de `statut` (ENUM DISPONIBLE/RESERVE/LOUE_VENDU, défaut DISPONIBLE), `codeCommissionnaire`, `informateur`, `assignedTo` (inerte, CLAUDE.md §5), `idBailleur`.
+- `getPropertiesByStatut` recréé proprement (retiré en SEC-G04 faute de champ réel — le champ existe désormais).
+
+### ✅ BACK-G06 — Modèles `Client` et `Bailleur`
+- `Client` : segmentation (type LOCATAIRE/ACHETEUR, source, besoin), pipeline commercial (`statutPipeline` NOUVEAU→...→CONCLU/PERDU), scoring, relance.
+- `Bailleur` : fiche VIP, `margeAgence` (**champ sensible**, protégé par field-level authorization comme `Property.margin`).
+- Les deux rattachés à l'entité `Person` (CLAUDE.md §4 — une même personne peut être Client et Bailleur).
+
+### ✅ BACK-G07 — Routes property/favorite/proposal branchées
+- `property.controller.js` réécrit : CRUD transactionnel (Property + RentalProperty/SaleProperty + téléphones en une transaction), upload d'images découplé (`POST /:id/images`).
+- `favorite.controller.js` et `proposal.controller.js` remplis (vides depuis le début du projet) ; `Proposal.idClient` remplace les champs morts `clientName`/`clientPhone`.
+
+### ✅ BACK-G08 — Pipeline commercial et matching
+- Nouveau modèle `Matching` (Client ↔ Property, statut EN_COURS/PROPOSE/VALIDE).
+- Client.statutPipeline modifiable via `PATCH /api/clients/:id`.
+
+### Bugs réels trouvés et corrigés pendant cette session
+- **Association `Property↔User` cassée depuis avant le début du projet** : `Property.belongsTo(User, { foreignKey: "idUserCreator" })` référençait une colonne inexistante (la vraie FK est `createdBy`). Corrigé avec alias explicites (`creator`/`createdProperties`, `assignee`/`assignedProperties`).
+- **Alias Sequelize implicites imprévisibles** : sans `as` explicite, `Property.hasOne(RentalProperty, ...)` produit un accesseur `rentalProperty` (minuscule, singularisé), pas `RentalProperty`. Cause de plusieurs échecs de test en cascade. Corrigé en ajoutant des alias explicites partout (`rentalDetails`, `saleDetails`, `person`) — **règle à suivre systématiquement pour toute nouvelle association**.
+- **`Favorite.findAll({ include: Property })` levait `SequelizeEagerLoadingError`** : le `belongsToMany` via `Favorite` ne crée pas d'accesseur direct utilisable dans un `include` sur le modèle de jointure lui-même. Corrigé avec des `belongsTo` directs (`Favorite.belongsTo(Property)`, `Favorite.belongsTo(User)`).
+- **Même bug latent trouvé sur `Matching`, non couvert par les tests** (`getMatchingsByClient`/`getMatchingsByProperty` auraient levé la même erreur au premier appel réel) — corrigé par le même principe (`Matching.belongsTo(Property)`, `Matching.belongsTo(Client)`), découvert et corrigé en tout début de la session suivante (ADMIN-G03) en inspectant `Model.associations` directement plutôt qu'en relisant le code.
+- **`normalizeUploadPaths` ne gérait pas la forme `multer.array()`** (tableau plat) — ne gérait que la forme objet de `multer.fields()`. Corrigé avant que le nouvel endpoint `POST /properties/:id/images` ne puisse le déclencher en usage réel.
+
+### Vérifications effectuées
+Backend : 38/38 tests passent (8 fichiers), incluant les nouveaux `property.route.test.js` et `crm.test.js` (permissions, field-level auth sur `margin`/`margeAgence`, pipeline, matching, favoris).
+
+---
+
+## Session 3 (suite) — 2026-07-14 — ADMIN-G03 : Frontend branché sur l'API réelle
+
+### ✅ ADMIN-G03 — Suppression complète des données mockées
+- `Frontend/lib/mock-data.ts` supprimé. `Frontend/lib/types.ts` réécrit pour refléter exactement le contrat réel du Backend (`Property`/`RentalProperty`/`SaleProperty`/`PropertyImage`/`PropertyPhone`/`Favorite`) — l'ancien shape (id string, `address` imbriqué, enums anglais `apartment`/`durable`) n'avait plus aucun rapport avec l'API réelle.
+- `Frontend/actions/properties.ts` et `Frontend/actions/favorites.ts` créés (même pattern que `actions/accessGrants.ts` : axios + gestion d'erreur `axios.isAxiosError`).
+- Les 7 pages concernées (`rentals`, `sales`, `rentals/[id]`, `sales/[id]`, `favorites`, `gallery`, `search`) et les 6 modales de propriété (add/edit/delete × rental/sale) réécrites pour appeler l'API réelle — chargement asynchrone avec état de chargement, retours d'erreur via `sonner` (toasts).
+- `Toaster` (sonner) n'était jamais monté dans `app/layout.tsx` — ajouté, sinon aucun toast d'erreur/succès n'était visible nulle part dans l'app.
+- Page favoris : le Backend ne peuple pas les associations imbriquées sur `GET /api/favorites` (juste `idProperty`), donc la page croise la liste de favoris avec `getAllProperties()` côté client plutôt que de dépendre d'un `include` non garanti.
+
+### Bug réel trouvé et corrigé pendant la vérification navigateur
+- **`app/auth/login/page.tsx` bloquait la connexion de 7 des 9 rôles RBAC réels** : un `switch` en dur n'autorisait que `admin` (→ `/dashboard`) et `agent` (→ `/dashboard/search`), tous les autres rôles (operations, tresorerie, juridique, marketing, communication, technologique, commissionnaire, consultant) tombaient sur `setError("Accès refusée.")` **après une authentification backend réussie** — violation directe de CLAUDE.md §2.2 ("le Frontend n'applique jamais de logique d'autorisation métier"). Corrigé : tout utilisateur authentifié est redirigé vers `/dashboard`, l'autorisation réelle reste entièrement décidée par le Backend (RBAC + field-level auth déjà en place depuis M1).
+
+### Vérification — méthode
+Vérifié en conditions réelles dans le navigateur (Backend + Frontend démarrés en parallèle), avec un utilisateur `operations` créé ad hoc (rôle doté de `property:manage`) : création d'un bien à louer de bout en bout (formulaire → `POST /api/properties` → apparition immédiate dans la liste), consultation de la fiche détail, ajout/retrait des favoris (visible sur la page Favoris), suppression réelle (confirmée disparue de la liste et de la base). Galerie et Recherche vérifiées avec les données réelles multi-catégories (RENT + SALE). Le champ `margin` est correctement absent pour un rôle sans `property:margin:read` (field-level authorization respectée côté affichage). `npx tsc --noEmit` vert sur tout le Frontend. Utilisateur de test et son bien supprimés après vérification.
+
+### Décision à documenter/valider par l'utilisateur
+- Les modales d'édition ne permettent plus de saisir des URLs d'images à la main (c'était un champ texte libre sans lien avec le vrai flux d'upload) — l'upload réel de fichiers (`POST /api/properties/:id/images`, déjà exposé côté Backend depuis BACK-G07) n'a pas encore d'UI dédiée côté Frontend. À prioriser si la gestion des photos doit devenir utilisable en usage réel avant MOBILE-G03.
+
+---
+
 *Prochaine session suggérée : Milestone 2 (Real Estate + CRM — cœur métier immobilier, remplacement des données mockées). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, et l'audit des autres composants d'overlay Radix pour le bug Dialog.*

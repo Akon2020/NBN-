@@ -39,11 +39,49 @@ const Property = db.define("properties", {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
+  // BACK-G05 : statut réel du bien (CDC §4) — remplace le filtrage cassé
+  // retiré en SEC-G04, qui portait sur un champ inexistant.
+  statut: {
+    type: DataTypes.ENUM("DISPONIBLE", "RESERVE", "LOUE_VENDU"),
+    allowNull: false,
+    defaultValue: "DISPONIBLE",
+  },
+  // Source terrain (CDC §4) : code du commissionnaire ayant apporté le
+  // bien, ou nom de l'informateur — les deux optionnels et exclusifs en
+  // pratique, jamais combinés à un contrôle strict au niveau schéma.
+  codeCommissionnaire: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+  },
+  informateur: {
+    type: DataTypes.STRING(150),
+    allowNull: true,
+  },
   createdBy: {
     type: DataTypes.BIGINT,
     references: {
       model: "users",
       key: "idUser",
+    },
+  },
+  // Préparé mais inerte en V1 (CLAUDE.md §5) : le cloisonnement par
+  // agent/zone n'est pas encore une règle d'autorisation active.
+  assignedTo: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    references: {
+      model: "users",
+      key: "idUser",
+    },
+  },
+  // Bailleur ayant fourni ce bien (CDC §3 "Biens associés" — lien direct
+  // avec le module biens).
+  idBailleur: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    references: {
+      model: "bailleurs",
+      key: "idBailleur",
     },
   },
   createdAt: {

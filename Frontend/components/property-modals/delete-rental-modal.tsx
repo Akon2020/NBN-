@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,26 +11,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { RentalProperty } from "@/lib/types"
+import { Loader2 } from "lucide-react"
+import { deleteProperty } from "@/actions/properties"
+import { PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
+import { toast } from "sonner"
 
 interface DeleteRentalModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  property: RentalProperty | null
-  onDelete: (id: string) => void
+  property: Property | null
+  onDelete: (id: number) => void
 }
 
 export function DeleteRentalModal({ open, onOpenChange, property, onDelete }: DeleteRentalModalProps) {
-  const handleDelete = () => {
-    if (property) {
-      onDelete(property.id)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleDelete = async () => {
+    if (!property) return
+    setIsLoading(true)
+    try {
+      await deleteProperty(property.idProperty)
+      onDelete(property.idProperty)
       onOpenChange(false)
+      toast.success("Bien supprimé avec succès")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   if (!property) return null
-
-  const propertyLabel = property.type === "apartment" ? "Appartement" : "Maison"
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -40,7 +52,7 @@ export function DeleteRentalModal({ open, onOpenChange, property, onDelete }: De
             Êtes-vous sûr de vouloir supprimer ce bien à louer ?
             <br />
             <br />
-            <strong>{propertyLabel}</strong> - {property.address.neighborhood}, {property.address.avenue}
+            <strong>{PROPERTY_TYPE_LABELS[property.propertyType]}</strong> - {property.quartier}, {property.avenue}
             <br />
             Prix: ${property.price}/mois
             <br />
@@ -49,12 +61,13 @@ export function DeleteRentalModal({ open, onOpenChange, property, onDelete }: De
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>Annuler</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
+            disabled={isLoading}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Supprimer
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Supprimer"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

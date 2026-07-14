@@ -17,77 +17,85 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, X } from "lucide-react"
+import { createProperty } from "@/actions/properties"
+import { LAND_PROPERTY_TYPES, type Property, type PropertyType } from "@/lib/types"
+import { toast } from "sonner"
 
 interface AddSaleModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAdd: (property: any) => void
+  onAdd: (property: Property) => void
 }
 
 export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [phones, setPhones] = useState<string[]>(["", ""])
   const [formData, setFormData] = useState({
-    type: "",
-    neighborhood: "",
+    propertyType: "" as PropertyType | "",
+    quartier: "",
     avenue: "",
     fullAddress: "",
     floors: "",
     bedrooms: "",
     livingRooms: "",
-    bathrooms: "",
+    toilets: "",
     kitchens: "",
     price: "",
     margin: "",
-    details: "",
+    description: "",
   })
+
+  const isLand = formData.propertyType ? LAND_PROPERTY_TYPES.includes(formData.propertyType) : false
+
+  const resetForm = () => {
+    setFormData({
+      propertyType: "",
+      quartier: "",
+      avenue: "",
+      fullAddress: "",
+      floors: "",
+      bedrooms: "",
+      livingRooms: "",
+      toilets: "",
+      kitchens: "",
+      price: "",
+      margin: "",
+      description: "",
+    })
+    setPhones(["", ""])
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    if (!formData.propertyType) return
 
-    setTimeout(() => {
-      const newProperty = {
-        id: Date.now().toString(),
-        type: formData.type,
-        address: {
-          neighborhood: formData.neighborhood,
-          avenue: formData.avenue,
-          fullAddress: formData.fullAddress,
-        },
-        floors: Number.parseInt(formData.floors) || 0,
-        bedrooms: Number.parseInt(formData.bedrooms) || 0,
-        livingRooms: Number.parseInt(formData.livingRooms) || 0,
-        bathrooms: Number.parseInt(formData.bathrooms) || 0,
-        kitchens: Number.parseInt(formData.kitchens) || 0,
-        price: Number.parseInt(formData.price),
-        margin: Number.parseInt(formData.margin),
-        phones: phones.filter((p) => p),
-        images: ["/property-sale.jpg"],
-        details: formData.details,
-        score: Math.floor(Math.random() * 30) + 70,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-      onAdd(newProperty)
-      onOpenChange(false)
-      setIsLoading(false)
-      setFormData({
-        type: "",
-        neighborhood: "",
-        avenue: "",
-        fullAddress: "",
-        floors: "",
-        bedrooms: "",
-        livingRooms: "",
-        bathrooms: "",
-        kitchens: "",
-        price: "",
-        margin: "",
-        details: "",
+    setIsLoading(true)
+    try {
+      const created = await createProperty({
+        category: "SALE",
+        propertyType: formData.propertyType,
+        quartier: formData.quartier,
+        avenue: formData.avenue,
+        fullAddress: formData.fullAddress,
+        floors: isLand ? 0 : Number.parseInt(formData.floors) || 0,
+        bedrooms: isLand ? 0 : Number.parseInt(formData.bedrooms) || 0,
+        livingRooms: isLand ? 0 : Number.parseInt(formData.livingRooms) || 0,
+        toilets: isLand ? 0 : Number.parseInt(formData.toilets) || 0,
+        kitchens: isLand ? 0 : Number.parseInt(formData.kitchens) || 0,
+        price: Number.parseFloat(formData.price),
+        margin: Number.parseFloat(formData.margin),
+        phones: phones.filter((p) => p.trim() !== ""),
+        description: formData.description,
       })
-      setPhones(["", ""])
-    }, 1000)
+      onAdd(created)
+      onOpenChange(false)
+      resetForm()
+      toast.success("Bien à vendre ajouté avec succès")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePhoneChange = (index: number, value: string) => {
@@ -106,8 +114,6 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
     }
   }
 
-  const isLand = formData.type === "flat-land" || formData.type === "slope-land"
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -117,28 +123,32 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="type">Type</Label>
-            <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })} required>
+            <Label htmlFor="propertyType">Type</Label>
+            <Select
+              value={formData.propertyType}
+              onValueChange={(value: PropertyType) => setFormData({ ...formData, propertyType: value })}
+              required
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Sélectionnez le type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="durable">Construction durable</SelectItem>
-                <SelectItem value="semi-durable">Construction semi-durable</SelectItem>
-                <SelectItem value="flat-land">Terrain plat</SelectItem>
-                <SelectItem value="slope-land">Terrain en pente</SelectItem>
+                <SelectItem value="CONSTRUCTION_DURABLE">Construction durable</SelectItem>
+                <SelectItem value="CONSTRUCTION_SEMI_DURABLE">Construction semi-durable</SelectItem>
+                <SelectItem value="TERRAIN_PLAT">Terrain plat</SelectItem>
+                <SelectItem value="TERRAIN_PENTE">Terrain en pente</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="neighborhood">Quartier</Label>
+              <Label htmlFor="quartier">Quartier</Label>
               <Input
-                id="neighborhood"
+                id="quartier"
                 placeholder="Ex: Nyalukemba, Ndendere"
-                value={formData.neighborhood}
-                onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                value={formData.quartier}
+                onChange={(e) => setFormData({ ...formData, quartier: e.target.value })}
                 required
               />
             </div>
@@ -166,60 +176,58 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
           </div>
 
           {!isLand && (
-            <>
-              <div className="grid gap-4 sm:grid-cols-5">
-                <div className="space-y-2">
-                  <Label htmlFor="floors">Étages</Label>
-                  <Input
-                    id="floors"
-                    type="number"
-                    min="0"
-                    value={formData.floors}
-                    onChange={(e) => setFormData({ ...formData, floors: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bedrooms">Chambres</Label>
-                  <Input
-                    id="bedrooms"
-                    type="number"
-                    min="0"
-                    value={formData.bedrooms}
-                    onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="livingRooms">Salons</Label>
-                  <Input
-                    id="livingRooms"
-                    type="number"
-                    min="0"
-                    value={formData.livingRooms}
-                    onChange={(e) => setFormData({ ...formData, livingRooms: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bathrooms">Toilettes</Label>
-                  <Input
-                    id="bathrooms"
-                    type="number"
-                    min="0"
-                    value={formData.bathrooms}
-                    onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="kitchens">Cuisines</Label>
-                  <Input
-                    id="kitchens"
-                    type="number"
-                    min="0"
-                    value={formData.kitchens}
-                    onChange={(e) => setFormData({ ...formData, kitchens: e.target.value })}
-                  />
-                </div>
+            <div className="grid gap-4 sm:grid-cols-5">
+              <div className="space-y-2">
+                <Label htmlFor="floors">Étages</Label>
+                <Input
+                  id="floors"
+                  type="number"
+                  min="0"
+                  value={formData.floors}
+                  onChange={(e) => setFormData({ ...formData, floors: e.target.value })}
+                />
               </div>
-            </>
+              <div className="space-y-2">
+                <Label htmlFor="bedrooms">Chambres</Label>
+                <Input
+                  id="bedrooms"
+                  type="number"
+                  min="0"
+                  value={formData.bedrooms}
+                  onChange={(e) => setFormData({ ...formData, bedrooms: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="livingRooms">Salons</Label>
+                <Input
+                  id="livingRooms"
+                  type="number"
+                  min="0"
+                  value={formData.livingRooms}
+                  onChange={(e) => setFormData({ ...formData, livingRooms: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="toilets">Toilettes</Label>
+                <Input
+                  id="toilets"
+                  type="number"
+                  min="0"
+                  value={formData.toilets}
+                  onChange={(e) => setFormData({ ...formData, toilets: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="kitchens">Cuisines</Label>
+                <Input
+                  id="kitchens"
+                  type="number"
+                  min="0"
+                  value={formData.kitchens}
+                  onChange={(e) => setFormData({ ...formData, kitchens: e.target.value })}
+                />
+              </div>
+            </div>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -275,12 +283,12 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="details">Détails supplémentaires</Label>
+            <Label htmlFor="description">Détails supplémentaires</Label>
             <Textarea
-              id="details"
+              id="description"
               placeholder="Description du bien..."
-              value={formData.details}
-              onChange={(e) => setFormData({ ...formData, details: e.target.value })}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
             />
           </div>

@@ -17,75 +17,83 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, X } from "lucide-react"
+import { createProperty } from "@/actions/properties"
+import type { Property, PropertyType, RentalUnit } from "@/lib/types"
+import { toast } from "sonner"
 
 interface AddRentalModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAdd: (property: any) => void
+  onAdd: (property: Property) => void
 }
 
 export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [phones, setPhones] = useState<string[]>(["", ""])
   const [formData, setFormData] = useState({
-    type: "",
-    neighborhood: "",
+    propertyType: "" as PropertyType | "",
+    quartier: "",
     avenue: "",
-    floor: "",
+    floors: "",
     bedrooms: "",
     livingRooms: "",
-    bathrooms: "",
+    toilets: "",
     kitchens: "",
     price: "",
-    guaranteeValue: "",
-    guaranteeUnit: "",
-    details: "",
+    guarantee: "",
+    unit: "" as RentalUnit | "",
+    description: "",
   })
+
+  const resetForm = () => {
+    setFormData({
+      propertyType: "",
+      quartier: "",
+      avenue: "",
+      floors: "",
+      bedrooms: "",
+      livingRooms: "",
+      toilets: "",
+      kitchens: "",
+      price: "",
+      guarantee: "",
+      unit: "",
+      description: "",
+    })
+    setPhones(["", ""])
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    if (!formData.propertyType || !formData.unit) return
 
-    // Simulate API call
-    setTimeout(() => {
-      const newProperty = {
-        id: Date.now().toString(),
-        type: formData.type,
-        address: { neighborhood: formData.neighborhood, avenue: formData.avenue },
-        floor: Number.parseInt(formData.floor),
-        bedrooms: Number.parseInt(formData.bedrooms),
-        livingRooms: Number.parseInt(formData.livingRooms),
-        bathrooms: Number.parseInt(formData.bathrooms),
-        kitchens: Number.parseInt(formData.kitchens),
-        price: Number.parseInt(formData.price),
-        guarantee: { value: Number.parseInt(formData.guaranteeValue), unit: formData.guaranteeUnit },
-        phones: phones.filter((p) => p),
-        images: ["/diverse-property-showcase.png"],
-        details: formData.details,
-        score: Math.floor(Math.random() * 30) + 70,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-      onAdd(newProperty)
-      onOpenChange(false)
-      setIsLoading(false)
-      // Reset form
-      setFormData({
-        type: "",
-        neighborhood: "",
-        avenue: "",
-        floor: "",
-        bedrooms: "",
-        livingRooms: "",
-        bathrooms: "",
-        kitchens: "",
-        price: "",
-        guaranteeValue: "",
-        guaranteeUnit: "",
-        details: "",
+    setIsLoading(true)
+    try {
+      const created = await createProperty({
+        category: "RENT",
+        propertyType: formData.propertyType,
+        quartier: formData.quartier,
+        avenue: formData.avenue,
+        floors: Number.parseInt(formData.floors) || 0,
+        bedrooms: Number.parseInt(formData.bedrooms) || 0,
+        livingRooms: Number.parseInt(formData.livingRooms) || 0,
+        toilets: Number.parseInt(formData.toilets) || 0,
+        kitchens: Number.parseInt(formData.kitchens) || 0,
+        price: Number.parseFloat(formData.price),
+        guarantee: Number.parseFloat(formData.guarantee),
+        unit: formData.unit,
+        phones: phones.filter((p) => p.trim() !== ""),
+        description: formData.description,
       })
-      setPhones(["", ""])
-    }, 1000)
+      onAdd(created)
+      onOpenChange(false)
+      resetForm()
+      toast.success("Bien à louer ajouté avec succès")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePhoneChange = (index: number, value: string) => {
@@ -114,29 +122,29 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="propertyType">Type</Label>
               <Select
-                value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                value={formData.propertyType}
+                onValueChange={(value: PropertyType) => setFormData({ ...formData, propertyType: value })}
                 required
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sélectionnez le type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="apartment">Appartement</SelectItem>
-                  <SelectItem value="house">Maison</SelectItem>
+                  <SelectItem value="APPARTEMENT">Appartement</SelectItem>
+                  <SelectItem value="MAISON">Maison</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="floor">Étage</Label>
+              <Label htmlFor="floors">Étage</Label>
               <Input
-                id="floor"
+                id="floors"
                 type="number"
                 min="0"
-                value={formData.floor}
-                onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                value={formData.floors}
+                onChange={(e) => setFormData({ ...formData, floors: e.target.value })}
                 required
               />
             </div>
@@ -144,12 +152,12 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="neighborhood">Quartier</Label>
+              <Label htmlFor="quartier">Quartier</Label>
               <Input
-                id="neighborhood"
+                id="quartier"
                 placeholder="Ex: Nyalukemba, Ndendere"
-                value={formData.neighborhood}
-                onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                value={formData.quartier}
+                onChange={(e) => setFormData({ ...formData, quartier: e.target.value })}
                 required
               />
             </div>
@@ -189,13 +197,13 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bathrooms">Toilettes</Label>
+              <Label htmlFor="toilets">Toilettes</Label>
               <Input
-                id="bathrooms"
+                id="toilets"
                 type="number"
                 min="0"
-                value={formData.bathrooms}
-                onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })}
+                value={formData.toilets}
+                onChange={(e) => setFormData({ ...formData, toilets: e.target.value })}
                 required
               />
             </div>
@@ -226,31 +234,31 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="guaranteeValue">Garantie</Label>
+              <Label htmlFor="guarantee">Garantie</Label>
               <Input
-                id="guaranteeValue"
+                id="guarantee"
                 type="number"
                 min="0"
                 placeholder="3"
-                value={formData.guaranteeValue}
-                onChange={(e) => setFormData({ ...formData, guaranteeValue: e.target.value })}
+                value={formData.guarantee}
+                onChange={(e) => setFormData({ ...formData, guarantee: e.target.value })}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="guaranteeUnit">Unité</Label>
+              <Label htmlFor="unit">Unité</Label>
               <Select
-                value={formData.guaranteeUnit}
-                onValueChange={(value) => setFormData({ ...formData, guaranteeUnit: value })}
+                value={formData.unit}
+                onValueChange={(value: RentalUnit) => setFormData({ ...formData, unit: value })}
                 required
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Unité" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="days">Jours</SelectItem>
-                  <SelectItem value="months">Mois</SelectItem>
-                  <SelectItem value="years">Années</SelectItem>
+                  <SelectItem value="DAY">Jours</SelectItem>
+                  <SelectItem value="MONTH">Mois</SelectItem>
+                  <SelectItem value="YEAR">Années</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -282,12 +290,12 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="details">Détails supplémentaires</Label>
+            <Label htmlFor="description">Détails supplémentaires</Label>
             <Textarea
-              id="details"
+              id="description"
               placeholder="Description du bien..."
-              value={formData.details}
-              onChange={(e) => setFormData({ ...formData, details: e.target.value })}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
             />
           </div>

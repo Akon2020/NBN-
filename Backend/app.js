@@ -11,6 +11,12 @@ import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import accessGrantRouter from "./routes/accessGrant.route.js";
 import permissionRouter from "./routes/permission.route.js";
+import propertyRouter from "./routes/property.route.js";
+import favoriteRouter from "./routes/favorite.route.js";
+import proposalRouter from "./routes/proposal.route.js";
+import clientRouter from "./routes/client.route.js";
+import bailleurRouter from "./routes/bailleur.route.js";
+import matchingRouter from "./routes/matching.route.js";
 
 const app = express();
 
@@ -46,6 +52,12 @@ app.use("/api/users", userRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/access-grants", accessGrantRouter);
 app.use("/api/permissions", permissionRouter);
+app.use("/api/properties", propertyRouter);
+app.use("/api/favorites", favoriteRouter);
+app.use("/api/proposals", proposalRouter);
+app.use("/api/clients", clientRouter);
+app.use("/api/bailleurs", bailleurRouter);
+app.use("/api/matchings", matchingRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

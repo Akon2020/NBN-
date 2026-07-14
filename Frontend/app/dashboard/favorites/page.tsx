@@ -5,49 +5,57 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Heart, Home, Building2, MapPin, Share2, X, Check } from "lucide-react"
-import { mockRentals, mockSales } from "@/lib/mock-data"
+import { Heart, Home, Building2, MapPin, Share2, X, Check, Loader2 } from "lucide-react"
+import { getAllProperties } from "@/actions/properties"
+import { getMyFavorites, removeFavorite } from "@/actions/favorites"
+import { PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
 import Image from "next/image"
+import { toast } from "sonner"
 
 const MAX_GROUP_SIZE = 6
 
 export default function FavoritesPage() {
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
-  const [selectedForGroup, setSelectedForGroup] = useState<Set<string>>(new Set())
+  const [favoriteProperties, setFavoriteProperties] = useState<Property[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedForGroup, setSelectedForGroup] = useState<Set<number>>(new Set())
 
   useEffect(() => {
-    const saved = localStorage.getItem("favorites")
-    if (saved) {
-      setFavorites(new Set(JSON.parse(saved)))
+    const load = async () => {
+      try {
+        const [favorites, allProperties] = await Promise.all([
+          getMyFavorites(),
+          getAllProperties(),
+        ])
+        const favoriteIds = new Set(favorites.map((f) => f.idProperty))
+        setFavoriteProperties(allProperties.filter((p) => favoriteIds.has(p.idProperty)))
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+      } finally {
+        setIsLoading(false)
+      }
     }
+    load()
   }, [])
 
-  const allProperties = [
-    ...mockRentals.map((p) => ({ ...p, category: "rent" as const })),
-    ...mockSales.map((p) => ({ ...p, category: "sale" as const })),
-  ]
-
-  const favoriteProperties = allProperties.filter((p) => favorites.has(p.id))
-
-  const removeFavorite = (id: string) => {
-    const newFavorites = new Set(favorites)
-    newFavorites.delete(id)
-    setFavorites(newFavorites)
-    localStorage.setItem("favorites", JSON.stringify(Array.from(newFavorites)))
-
-    // Also remove from selection
-    const newSelection = new Set(selectedForGroup)
-    newSelection.delete(id)
-    setSelectedForGroup(newSelection)
+  const handleRemoveFavorite = async (id: number) => {
+    try {
+      await removeFavorite(id)
+      setFavoriteProperties(favoriteProperties.filter((p) => p.idProperty !== id))
+      const newSelection = new Set(selectedForGroup)
+      newSelection.delete(id)
+      setSelectedForGroup(newSelection)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    }
   }
 
-  const toggleSelection = (id: string) => {
+  const toggleSelection = (id: number) => {
     const newSelection = new Set(selectedForGroup)
     if (newSelection.has(id)) {
       newSelection.delete(id)
     } else {
       if (newSelection.size >= MAX_GROUP_SIZE) {
-        alert(`Vous ne pouvez sélectionner que ${MAX_GROUP_SIZE} biens maximum`)
+        toast.error(`Vous ne pouvez sélectionner que ${MAX_GROUP_SIZE} biens maximum`)
         return
       }
       newSelection.add(id)
@@ -57,18 +65,18 @@ export default function FavoritesPage() {
 
   const sendGroupProposal = () => {
     if (selectedForGroup.size === 0) {
-      alert("Veuillez sélectionner au moins un bien")
+      toast.error("Veuillez sélectionner au moins un bien")
       return
     }
 
-    const selectedProperties = favoriteProperties.filter((p) => selectedForGroup.has(p.id))
+    const selectedProperties = favoriteProperties.filter((p) => selectedForGroup.has(p.idProperty))
     let message = `🏠 *Proposition Groupée Nyumbani Express*\n\n`
     message += `Nous avons ${selectedProperties.length} biens qui pourraient vous intéresser:\n\n`
 
     selectedProperties.forEach((property, index) => {
-      message += `*${index + 1}. ${property.category === "rent" ? "À louer" : "À vendre"}*\n`
-      message += `📍 ${property.address.neighborhood}, ${property.address.avenue}\n`
-      message += `💰 $${property.price}${property.category === "rent" ? "/mois" : ""}\n\n`
+      message += `*${index + 1}. ${property.category === "RENT" ? "À louer" : "À vendre"}*\n`
+      message += `📍 ${property.quartier}, ${property.avenue}\n`
+      message += `💰 $${property.price}${property.category === "RENT" ? "/mois" : ""}\n\n`
     })
 
     message += `📞 Contactez-nous pour plus d'informations`
@@ -103,7 +111,11 @@ export default function FavoritesPage() {
         </Alert>
       )}
 
-      {favoriteProperties.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : favoriteProperties.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Heart className="h-16 w-16 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold">Aucun favori pour le moment</h3>
@@ -114,12 +126,12 @@ export default function FavoritesPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {favoriteProperties.map((property) => {
-            const isSelected = selectedForGroup.has(property.id)
+            const isSelected = selectedForGroup.has(property.idProperty)
             return (
               <Card
-                key={property.id}
+                key={property.idProperty}
                 className={`border-border overflow-hidden group relative cursor-pointer transition-all ${isSelected ? "ring-2 ring-primary" : ""}`}
-                onClick={() => toggleSelection(property.id)}
+                onClick={() => toggleSelection(property.idProperty)}
               >
                 {isSelected && (
                   <div className="absolute top-2 left-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -132,22 +144,22 @@ export default function FavoritesPage() {
                   className="absolute top-2 right-2 z-10 h-8 w-8 bg-background/80 backdrop-blur hover:bg-destructive hover:text-destructive-foreground"
                   onClick={(e) => {
                     e.stopPropagation()
-                    removeFavorite(property.id)
+                    handleRemoveFavorite(property.idProperty)
                   }}
                 >
                   <X className="h-4 w-4" />
                 </Button>
                 <div className="relative aspect-video overflow-hidden">
                   <Image
-                    src={property.images[0] || "/placeholder.svg"}
-                    alt={`Property in ${property.address.neighborhood}`}
+                    src={property.images?.[0]?.image || "/placeholder.svg"}
+                    alt={`Property in ${property.quartier || ""}`}
                     fill
                     className="object-cover transition-transform group-hover:scale-105"
                   />
                   <Badge
-                    className={`absolute bottom-2 left-2 ${property.category === "rent" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+                    className={`absolute bottom-2 left-2 ${property.category === "RENT" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
                   >
-                    {property.category === "rent" ? (
+                    {property.category === "RENT" ? (
                       <>
                         <Home className="h-3 w-3 mr-1" />À louer
                       </>
@@ -160,19 +172,17 @@ export default function FavoritesPage() {
                 </div>
                 <CardContent className="p-4 space-y-2">
                   <div>
-                    <h3 className="font-semibold text-lg line-clamp-1">{property.address.avenue}</h3>
+                    <h3 className="font-semibold text-lg line-clamp-1">{property.avenue}</h3>
                     <div className="flex items-center text-sm text-muted-foreground mt-1">
                       <MapPin className="h-3 w-3 mr-1" />
-                      {property.address.neighborhood}
+                      {property.quartier}
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-border">
                     <div className="text-2xl font-bold text-primary">${property.price}</div>
-                    {property.score && (
-                      <Badge variant="secondary" className="text-xs">
-                        Score: {property.score}
-                      </Badge>
-                    )}
+                    <Badge variant="secondary" className="text-xs">
+                      {PROPERTY_TYPE_LABELS[property.propertyType]}
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>
