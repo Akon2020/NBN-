@@ -2,18 +2,19 @@
   "name": "nbn-backend",
   "version": "1.0.0",
   "description": "API de Nyumbani Express Plus",
-  "main": "app.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node app.js",
-    "dev": "cross-env NODE_ENV=development nodemon app.js",
-    "db:migrate": "npx sequelize-cli db:migrate",
-    "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
-    "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
-    "db:seed": "npx sequelize-cli db:seed:all",
-    "db:seed:undo": "npx sequelize-cli db:seed:undo",
-    "db:seed:undo:all": "npx sequelize-cli db:seed:undo:all",
-    "db:reset": "npm run db:migrate:undo:all && npm run db:migrate && npm run db:seed"
+    "start": "cross-env NODE_ENV=production node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "db:migrate": "npx sequelize-cli db:migrate --config config/config.cjs",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo --config config/config.cjs",
+    "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all --config config/config.cjs",
+    "db:seed": "npx sequelize-cli db:seed:all --config config/config.cjs",
+    "db:seed:undo": "npx sequelize-cli db:seed:undo --config config/config.cjs",
+    "db:seed:undo:all": "npx sequelize-cli db:seed:undo:all --config config/config.cjs",
+    "db:reset": "npm run db:migrate:undo:all && npm run db:migrate && npm run db:seed",
+    "test": "cross-env NODE_ENV=development vitest run"
   },
   "keywords": [
     "API",
@@ -32,7 +33,9 @@
     "@eslint/js": "^9.29.0",
     "eslint": "^9.29.0",
     "globals": "^16.2.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "axios": "^1.10.0",
@@ -43,6 +46,7 @@
     "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.5.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",

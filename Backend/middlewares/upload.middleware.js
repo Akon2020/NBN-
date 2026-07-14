@@ -23,6 +23,27 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// SEC-G06 : whitelist MIME + limite de taille propre à multer, indépendante
+// de la limite globale body-parser (1024mb) qui n'est là que pour les gros payloads JSON.
+const MIME_AUTORISES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const TAILLE_MAX_OCTETS = 5 * 1024 * 1024; // 5 Mo par fichier
+
+const fileFilter = (_, file, cb) => {
+  if (!MIME_AUTORISES.includes(file.mimetype)) {
+    return cb(
+      new multer.MulterError(
+        "LIMIT_UNEXPECTED_FILE",
+        `Type de fichier non autorisé : ${file.mimetype}. Formats acceptés : ${MIME_AUTORISES.join(", ")}`
+      )
+    );
+  }
+  cb(null, true);
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: TAILLE_MAX_OCTETS },
+});
 
 export default upload;

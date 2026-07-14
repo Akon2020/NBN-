@@ -1,5 +1,5 @@
 import { Sequelize } from "sequelize";
-import { DB_HOST, DB_NAME, DB_PASS, DB_USER, NODE_ENV } from "../config/env.js";
+import { DB_HOST, DB_NAME, DB_PASSWORD, DB_USER, NODE_ENV } from "../config/env.js";
 
 if (!DB_HOST) {
   throw new Error(
@@ -7,7 +7,7 @@ if (!DB_HOST) {
   );
 }
 
-const db = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
+const db = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
   host: DB_HOST,
   dialect: "mysql",
   logging: NODE_ENV === "development" ? console.log : false,

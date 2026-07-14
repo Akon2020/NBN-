@@ -49,7 +49,7 @@ Property.hasMany(Proposal, { foreignKey: "idProperty" });
 Proposal.belongsTo(Property, { foreignKey: "idProperty" });
 
 // Property - Score
-Property.hasOne(PropertyScore, { foreignKey: "idProperty" });
+Property.hasOne(PropertyScore, { foreignKey: "idProperty", as: "scores" });
 PropertyScore.belongsTo(Property, { foreignKey: "idProperty" });
 
 // User - ActivityLog

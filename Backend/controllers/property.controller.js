@@ -49,35 +49,9 @@ export const getSingleProperty = async (req, res, next) => {
   }
 };
 
-export const getPropertiesByStatut = async (req, res, next) => {
-  try {
-    const { statut } = req.params;
-    const properties = await Property.findAll({
-      where: { statut },
-      include: [
-        {
-          model: PropertyImage,
-          as: "images",
-        },
-        {
-          model: PropertyPhone,
-          as: "phones",
-        },
-        {
-          model: PropertyScore,
-          as: "scores",
-        },
-      ],
-    });
-    return res.status(200).json({
-      nombre: properties.length,
-      propertiesInfo: properties,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Erreur serveur" });
-    next(error);
-  }
-};
+// NB (SEC-G04) : le filtrage par statut a été retiré ici car le champ `statut`
+// n'existe pas encore sur le modèle Property. Il sera recréé proprement en M2
+// (BACK-G05) une fois le vrai champ ENUM ajouté au modèle.
 
 export const deleteProperty = async (req, res, next) => {
   const transaction = await db.transaction();
@@ -106,17 +80,17 @@ export const deleteProperty = async (req, res, next) => {
     }
 
     await PropertyImage.destroy({
-      where: { propertyId: id },
+      where: { idProperty: id },
       transaction,
     });
 
     await PropertyPhone.destroy({
-      where: { propertyId: id },
+      where: { idProperty: id },
       transaction,
     });
 
     await PropertyScore.destroy({
-      where: { propertyId: id },
+      where: { idProperty: id },
       transaction,
     });
 

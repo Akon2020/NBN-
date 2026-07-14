@@ -22,8 +22,12 @@ import {
 
 export const register = async (req, res, next) => {
   try {
-    const { fullName, email, password, role } = req.body;
+    const { fullName, email, password } = req.body;
     const avatar = req.file ? req.file.path : null;
+    // SEC-G02 : l'auto-inscription publique ne doit jamais permettre de
+    // s'attribuer un rôle privilégié (ex. admin). Les rôles privilégiés ne
+    // sont attribuables que par un admin via POST /api/users/add (protégé).
+    const role = "agent";
 
     if (!email || !password || !fullName) {
       return res
@@ -57,7 +61,7 @@ export const register = async (req, res, next) => {
       fullName,
       email,
       password: hashedPassword,
-      role: role || "agent",
+      role,
       avatar,
       status: "ACTIVE",
     });

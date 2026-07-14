@@ -11,8 +11,8 @@ export const authMiddlware = async (req, res, next) => {
     token = authHeader.split(" ")[1];
   }
 
-  if (!token && req.cookies && req.cookies.loginToken) {
-    token = req.cookies.loginToken;
+  if (!token && req.cookies && req.cookies.token) {
+    token = req.cookies.token;
   }
 
   if (!token) {
@@ -41,6 +41,12 @@ export const authMiddlware = async (req, res, next) => {
         .json({ message: "Utilisateur non trouvé ou compte désactivé." });
     }
 
+    if (user.status === "INACTIVE") {
+      return res
+        .status(401)
+        .json({ message: "Ce compte a été désactivé." });
+    }
+
     req.user = user;
     next();
   } catch (error) {
@@ -56,6 +62,29 @@ export const authMiddlware = async (req, res, next) => {
       .status(500)
       .json({ message: "Erreur serveur lors de l'authentification." });
   }
+};
+
+/**
+ * Garde de rôle minimale (SEC-G02).
+ * Version provisoire avant le RBAC complet (Role/Permission/AccessGrant) du Milestone 1 :
+ * ne vérifie qu'une liste de rôles autorisés, doit être appelée après authMiddlware.
+ */
+export const requireRole = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ message: "Authentification requise." });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res
+        .status(403)
+        .json({ message: "Accès refusé : permissions insuffisantes." });
+    }
+
+    next();
+  };
 };
 
 export const checkAuthStatus = (req, res) => {
