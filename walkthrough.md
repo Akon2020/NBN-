@@ -310,4 +310,23 @@ Backend + Frontend + Mobile (web) démarrés en parallèle. Parcours "client fin
 
 ---
 
-*Prochaine session suggérée : clôture du Milestone 2 (vérification globale + commit final), puis Milestone 3 (Commissionnaire, collecte terrain offline-first). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, l'audit des autres composants d'overlay Radix pour le bug Dialog, l'UI d'upload d'images côté Frontend (Session 3), l'absence de drag-and-drop réel sur le Kanban clients (Session 4), et le nouvel endpoint public à documenter formellement dans Swagger si ce n'est pas déjà suffisant (Session 4).*
+## Session 4 (clôture) — 2026-07-14 — Milestone 2 terminé
+
+Tous les goals de `plan.md` pour le Milestone 2 sont livrés et vérifiés : BACK-G05 à BACK-G08 (Property complété, Client/Bailleur, routes property/favorite/proposal, pipeline/matching), ADMIN-G03 (Frontend branché sur l'API réelle) et ADMIN-G04 (fiches client/bailleur + pipeline), MOBILE-G03 + DESIGN-G02 (consultation biens Mobile, deux parcours).
+
+**Vérification finale, les trois projets en parallèle** :
+- Backend : `npm test` → 42/42.
+- Frontend : `npx tsc --noEmit` → 0 erreur.
+- Mobile : `npx tsc --noEmit` → 0 erreur, `npm test` → 3/3.
+
+**Bugs réels trouvés et corrigés pendant ce milestone** (résumé, détails dans les sessions ci-dessus) : association `Property↔User` cassée depuis avant le projet (FK inexistante) ; alias Sequelize implicites imprévisibles sur plusieurs associations ; `Favorite`/`Matching` sans association directe utilisable en `include` ; `updateClient`/`updateBailleur` perdaient la `Person` associée après un PATCH ; `login/page.tsx` (Frontend) bloquait 7 des 9 rôles RBAC réels avec une liste blanche en dur ; onboarding Mobile web rendu à largeur 0 (capture de `Dimensions` au chargement du module plutôt que via un hook réactif).
+
+**Reporté explicitement à une session ultérieure** (aucun n'est bloquant pour la suite) :
+1. Incompatibilité Jest/NativeWind sur Mobile (Session 1) — nécessite de revisiter les dépendances RN/Jest.
+2. Rafraîchissement automatique du token côté Frontend web toujours désactivé (bloc commenté dans `lib/axios.ts`).
+3. Seul `Dialog` a été audité pour le bug "overlay bloque les clics après fermeture" — Sheet/AlertDialog/Popover/DropdownMenu non vérifiés.
+4. UI d'upload d'images manquante côté Frontend (l'endpoint `POST /properties/:id/images` existe côté Backend depuis BACK-G07, jamais branché à une interface).
+5. Kanban clients sans drag-and-drop réel (avancement par bouton uniquement, décision assumée pour éviter une dépendance supplémentaire).
+6. Nouvel endpoint public (`/api/properties/public*`) à documenter plus formellement si la stratégie de documentation Swagger distingue un jour explicitement les routes publiques des routes authentifiées.
+
+*Prochaine session suggérée : Milestone 3 — Field Operations (Commissionnaires) + collecte terrain Mobile offline-first (BACK-G09 et suivants).*
