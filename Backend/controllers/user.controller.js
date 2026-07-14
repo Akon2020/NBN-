@@ -10,6 +10,8 @@ import {
 import { newUserEmailTemplate } from "../utils/email.template.js";
 import transporter from "../config/nodemailer.js";
 import { deleteFile } from "../utils/deletefile.js";
+import { revokeAllUserSessions } from "../utils/session.utils.js";
+import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -134,7 +136,7 @@ export const updateUser = async (req, res, next) => {
       return res.status(404).json({ message: "User non trouvé" });
     }
 
-    const champsModifiables = ["fullName", "email", "role"];
+    const champsModifiables = ["fullName", "email", "role", "status"];
     const donneesAMettreAJour = {};
 
     champsModifiables.forEach((champ) => {
@@ -150,7 +152,22 @@ export const updateUser = async (req, res, next) => {
       donneesAMettreAJour.avatar = req.file.path;
     }
 
+    const passageEnInactif =
+      donneesAMettreAJour.status === "INACTIVE" && user.status !== "INACTIVE";
+
+    if (passageEnInactif) {
+      // CLAUDE.md §5 : suspension/exclusion -> révocation immédiate de
+      // toutes les sessions actives + incrément de securityVersion (double
+      // mécanisme, cohérent l'un avec l'autre).
+      donneesAMettreAJour.securityVersion = user.securityVersion + 1;
+    }
+
     const utilisateurModifie = await user.update(donneesAMettreAJour);
+
+    if (passageEnInactif) {
+      await revokeAllUserSessions(user.idUser, "account_suspended");
+      invalidateSecurityVersion(user.idUser);
+    }
 
     const safeUser = getUserWithoutPassword(utilisateurModifie);
 

@@ -21,8 +21,20 @@ const User = db.define("users", {
     allowNull: false,
   },
   role: {
-    type: DataTypes.ENUM("admin", "agent", "consultant"),
+    // BACK-G02 : chaîne validée en application contre le catalogue `roles`
+    // (table statique mais extensible), plus un ENUM figé au niveau DB.
+    type: DataTypes.STRING(50),
+    allowNull: false,
     defaultValue: "agent",
+  },
+  securityVersion: {
+    // Incrémenté à chaque événement de révocation (suspension, changement
+    // de mot de passe, déconnexion globale). Embarqué dans l'access token à
+    // l'émission ; toute requête dont le jeton porte une version différente
+    // est rejetée (CLAUDE.md §5).
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
   },
   avatar: {
     type: DataTypes.STRING,

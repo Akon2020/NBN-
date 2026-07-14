@@ -113,4 +113,65 @@ Poussé sur `dev` dans un second commit distinct du premier (fondations Backend/
 
 ---
 
-*Prochaine session suggérée : démarrer M1 (Identity/Authorization/Organization), prérequis de tout le reste du plan. Point de vigilance à report : l'incompatibilité Jest/NativeWind ci-dessus, à retenter après toute mise à jour de dépendances Mobile.*
+## Session 2 — 2026-07-14 — Milestone 1 (Identity, Authorization, Organization)
+
+Objectif : poser le socle dont dépendent tous les domaines métier futurs (M2+), conformément à `plan.md`. C'est le chantier le plus large à ce jour : sessions avec rotation de refresh token, RBAC complet par permission, autorisation au niveau champ, et le modèle Organization.
+
+### ✅ BACK-G01 — Sessions, rotation du refresh token, securityVersion
+- Entité `Session` (`Backend/models/session.model.js`) : `refreshTokenHash` (sha256, jamais le token en clair), `tokenFamilyId`, `replacedBySessionId` (auto-référence), `platform`, `deviceLabel` (dérivé du User-Agent), `expiresAt`, `revokedAt`/`revokedReason`.
+- `Backend/utils/session.utils.js` : génération du token opaque (crypto.randomBytes), rotation (`rotateSession` — révoque l'ancienne session et pointe vers la nouvelle, même famille), révocation de toute une famille (`revokeTokenFamily`, déclenchée sur réutilisation détectée), révocation globale (`revokeAllUserSessions`).
+- `User.securityVersion` ajouté (migration + modèle). Embarqué dans l'access token à l'émission. `Backend/utils/securityVersionCache.js` : cache in-process (`Map`, TTL ~60s) conforme à l'abstraction `SecurityVersionCache` décrite dans `CLAUDE.md` §5 — remplaçable si l'hébergement final tourne en cluster.
+- Nouveaux endpoints : `POST /api/auth/refresh` (rotation + détection de réutilisation), `POST /api/auth/logout-all` (toutes sessions + incrément securityVersion).
+- `POST /api/users/update/:id` accepte désormais `status` : passer un compte à `INACTIVE` révoque immédiatement toutes ses sessions et invalide le cache de securityVersion (double mécanisme cohérent, CLAUDE.md §5).
+- Cookie `token` (access, 15 min) et nouveau cookie `refreshToken` (httpOnly, `path: /api/auth`). Les deux jetons sont aussi renvoyés dans le corps de la réponse pour le Mobile (pas de cookies inter-app).
+- Nouvelles variables d'env : `ACCESS_TOKEN_EXPIRES_IN` (15m), `REFRESH_TOKEN_EXPIRES_WEB_DAYS` (7), `REFRESH_TOKEN_EXPIRES_MOBILE_DAYS` (30).
+- **Nécessité découverte en cours de route** : les tests d'intégration (bcrypt réel + SMTP réel) dépassaient le timeout par défaut de vitest (5s) sous charge système — `Backend/vitest.config.js` ajouté avec `testTimeout: 20000`. Vérifié : ce n'était pas une régression (un login avec mauvais mot de passe, code inchangé, prenait déjà 2,7s sous la charge de cette session).
+
+### ✅ BACK-G02 — RBAC (Role/Permission/RolePermission/AccessGrant)
+- Modèles `Role`, `Permission`, `RolePermission`, `AccessGrant`. `User.role` migré d'ENUM figé vers `STRING` validée en application contre le catalogue `roles` (CLAUDE.md §16 point sur la base de dev jetable — pas de préservation de données historiques).
+- Catalogue initial neuf rôles : admin, communication, marketing, operations, technologique, juridique, tresorerie, commissionnaire, consultant (seeder `20260714200000-seed-rbac-catalog.cjs`, rejouable sans erreur — idempotent).
+- `Backend/utils/rbac.js` : `getEffectivePermissions` (permissions du rôle + AccessGrant actifs non expirés), `requirePermission(key)` — remplace entièrement le `requireRole` provisoire de SEC-G02.
+- Permissions initiales : `users:read`, `users:manage`, `property:margin:read`, `roles:manage`. `admin` a un accès total géré en code (statut distingué), pas via des lignes RolePermission à maintenir. `technologique` gère utilisateurs/rôles (conforme au CDC — pas seulement admin). `tresorerie` voit les marges. `consultant` naît à zéro permission.
+- `/api/users` (GET liste/détail/email) est désormais aussi gardé par `users:read` (avant : accessible à tout utilisateur authentifié).
+
+### ✅ BACK-G03 — Field-level authorization (Property.margin)
+- `Backend/utils/serializers/property.serializer.js` : couche centralisée par ressource, retire `margin` de la réponse JSON si l'appelant n'a pas `property:margin:read`. Branché dans `getAllProperties`/`getSingleProperty` (les routes properties elles-mêmes restent non montées, prévu pour M2/BACK-G07 — mais le serializer est prêt et testé directement).
+
+### ✅ BACK-G04 — Organization (Person/EmployeeProfile/Service/Poste)
+- Modèles `Person` (identité de base, `idUser` nullable), `EmployeeProfile` (`idPerson`, `idService`, `idPoste` nullable, `idResponsable` auto-référence hiérarchique), `Service`, `Poste`. Catalogue de 9 services seedé (Communication, Commercial, Marketing, Opérations, Technologique, Juridique, Trésorerie, Secrétariat, Commissionnaires).
+- Pas de routes/contrôleurs CRUD à ce stade (hors périmètre explicite de BACK-G04 — le module RH complet est un chantier ultérieur) ; modèles et associations vérifiés directement par test.
+
+### ✅ QA-G02 — Matrice de tests RBAC
+- `Backend/tests/session.test.js` : rotation du refresh token, détection de réutilisation (toute la famille révoquée, y compris un token intermédiaire jamais réutilisé), suspension d'un compte invalidant l'accès immédiatement même avec un access token encore valide.
+- `Backend/tests/rbac.test.js` : technologique peut créer/lister des utilisateurs, operations ne peut ni l'un ni l'autre ; property:margin:read accordé à tresorerie et refusé à operations ; consultant sans accès par défaut ; AccessGrant actif/révoqué/expiré (chaque cas sur un consultant dédié pour éviter la contamination entre tests — bug de test trouvé et corrigé en cours de route, pas un bug de code).
+- `Backend/tests/organization.test.js` : EmployeeProfile sans User, consultant sans EmployeeProfile.
+- `Backend/tests/accessGrant.route.test.js` : API `/api/access-grants` (création avec motif obligatoire, révocation, refus sans `roles:manage`).
+- **24/24 tests passent** au global (6 fichiers).
+
+### ✅ MOBILE-G02 — Login réel + stockage sécurisé
+- `expo-secure-store` et `axios` installés. `lib/secureStore.ts` (Keychain/Keystore, jamais AsyncStorage), `lib/api.ts` (intercepteur d'requête qui attache l'access token, intercepteur de réponse qui tente un unique refresh transparent sur 401 avant de rejouer la requête), `lib/auth.ts` (login/logout/getCurrentUser contre l'API réelle).
+- `app/index.tsx` : le sélecteur de rôle "mock" de MOBILE-G01 est remplacé par un vrai formulaire de connexion. Redirection automatique post-login selon le rôle (`commissionnaire` → arborescence Commissionnaire, tout le reste → Interne). Un lien "Explorer comme client (démo)" reste disponible — aucun compte client n'existe encore côté backend (CRM, M2).
+- Bouton de déconnexion fonctionnel ajouté sur un écran de chaque arborescence réelle (`RoleScreenPlaceholder` accepte désormais `showLogout`).
+- Vérifié par `tsc --noEmit`, `expo lint`, `npm test`, et un export Metro réel complet (`npx expo export --platform web`).
+
+### ✅ ADMIN-G02 — Écran de gestion des AccessGrant
+- Backend : routes `GET/POST /api/access-grants`, `PATCH /api/access-grants/:id/revoke`, `GET /api/permissions` — toutes gardées par `roles:manage`.
+- Frontend : `actions/accessGrants.ts`, `actions/users.ts` (rempli — était vide depuis le début du projet), page `app/dashboard/access-grants/page.tsx` : liste des accès (utilisateur, permission, motif, expiration, statut), formulaire de création avec motif obligatoire, révocation en un clic.
+- `dashboard/layout.tsx` : `allowedRoles={["admin", "agent"]}` retiré du `ProtectedRoute` — avec 9 rôles désormais possibles (BACK-G02), cette liste bloquait tous les nouveaux rôles hors admin/agent. L'autorisation réelle reste entièrement côté backend (permissions), le Frontend ne vérifie plus que l'authentification.
+- **Vérifié en conditions réelles dans le navigateur** (pas seulement en tests automatisés) : création d'un AccessGrant réussie de bout en bout avec données réelles.
+- **Bug réel trouvé et corrigé en cours de vérification** : l'overlay du composant `Dialog` (shadcn/Radix, préexistant, utilisé par toutes les modales de l'app) restait monté avec `pointer-events: auto` après fermeture si l'animation de sortie ne déclenchait pas le démontage attendu par Radix Presence — bloquant silencieusement tout clic sur le reste de la page. Corrigé par `data-[state=closed]:pointer-events-none` sur `DialogOverlay` et `DialogContent` (`Frontend/components/ui/dialog.tsx`). **Ce bug affectait potentiellement toutes les modales existantes** (add/edit/delete user, property modals) — non auditées une par une dans cette session, à surveiller.
+- Type `RoleEnum` (`Frontend/types/type.ts`) mis à jour pour refléter les 9 rôles réels (était limité à admin/agent/consultant, désynchronisé de BACK-G02).
+
+### Vérifications effectuées
+- Backend : 24/24 tests passent (6 fichiers), boot propre.
+- Frontend : `npm run build` vert (TypeScript strict), `npm test` 3/3, vérification live navigateur du flux AccessGrant complet (création confirmée en base ; révocation confirmée déclenchée correctement après correctif du bug Dialog, bloquée seulement par une expiration de token légitime pendant le test prolongé).
+- Mobile : `tsc --noEmit`, `expo lint`, `npm test` (3/3), export Metro réel — tous verts.
+
+### Décisions à documenter/valider par l'utilisateur
+1. Le Frontend n'a toujours pas de rafraîchissement automatique du token à expiration (bloc commenté dans `lib/axios.ts` depuis avant cette session, non activé) — un utilisateur reste déconnecté après 15 minutes d'inactivité sans redirection propre vers le login tant que ce n'est pas branché. À prioriser si l'expérience utilisateur web doit rester fluide sur de longues sessions.
+2. Le bug de `Dialog` qui bloque les clics après fermeture n'a été corrigé que sur le composant de base — les autres composants d'overlay Radix (Sheet, AlertDialog, Popover, DropdownMenu) n'ont pas été audités et pourraient avoir le même défaut.
+3. `Backend/routes/user.route.js` : `PATCH /update/:id/password` reste sans garde `requirePermission` (peut changer le mot de passe de n'importe quel compte s'il connaît déjà l'ancien mot de passe cible) — risque faible mais non nul, hors du périmètre explicite de BACK-G02.
+
+---
+
+*Prochaine session suggérée : Milestone 2 (Real Estate + CRM — cœur métier immobilier, remplacement des données mockées). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, et l'audit des autres composants d'overlay Radix pour le bug Dialog.*

@@ -9,6 +9,8 @@ import errorMiddleware, { errorLogs } from "./middlewares/error.middleware.js";
 import { setupSwagger } from "./swagger.js";
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
+import accessGrantRouter from "./routes/accessGrant.route.js";
+import permissionRouter from "./routes/permission.route.js";
 
 const app = express();
 
@@ -42,6 +44,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/users", userRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/access-grants", accessGrantRouter);
+app.use("/api/permissions", permissionRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);
