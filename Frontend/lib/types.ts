@@ -1,55 +1,317 @@
-export interface RentalProperty {
-  id: string
-  type: "apartment" | "house"
-  address: {
-    neighborhood: string
-    avenue: string
-  }
-  floor: number
-  bedrooms: number
-  livingRooms: number
-  bathrooms: number
-  kitchens: number
-  price: number
-  guarantee: {
-    value: number
-    unit: "months" | "years" | "days"
-  }
-  phones: string[]
-  images: string[]
-  details: string
-  gpsLocation?: {
-    latitude: number
-    longitude: number
-  }
-  score?: number
-  createdAt: Date
-  updatedAt: Date
+export type PropertyCategory = "RENT" | "SALE"
+
+export type PropertyType =
+  | "APPARTEMENT"
+  | "MAISON"
+  | "CONSTRUCTION_DURABLE"
+  | "CONSTRUCTION_SEMI_DURABLE"
+  | "TERRAIN_PLAT"
+  | "TERRAIN_PENTE"
+
+export type PropertyStatut = "DISPONIBLE" | "RESERVE" | "LOUE_VENDU"
+
+export type RentalUnit = "DAY" | "MONTH" | "YEAR"
+
+export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
+  APPARTEMENT: "Appartement",
+  MAISON: "Maison",
+  CONSTRUCTION_DURABLE: "Construction durable",
+  CONSTRUCTION_SEMI_DURABLE: "Construction semi-durable",
+  TERRAIN_PLAT: "Terrain plat",
+  TERRAIN_PENTE: "Terrain en pente",
 }
 
-export interface SaleProperty {
-  id: string
-  type: "durable" | "semi-durable" | "flat-land" | "slope-land"
-  address: {
-    neighborhood: string
-    avenue: string
-    fullAddress: string
-  }
-  floors: number
-  bedrooms: number
-  livingRooms: number
-  bathrooms: number
-  kitchens: number
+export const RENTAL_PROPERTY_TYPES: PropertyType[] = ["APPARTEMENT", "MAISON"]
+export const SALE_PROPERTY_TYPES: PropertyType[] = [
+  "CONSTRUCTION_DURABLE",
+  "CONSTRUCTION_SEMI_DURABLE",
+  "TERRAIN_PLAT",
+  "TERRAIN_PENTE",
+]
+export const LAND_PROPERTY_TYPES: PropertyType[] = ["TERRAIN_PLAT", "TERRAIN_PENTE"]
+
+export const RENTAL_UNIT_LABELS: Record<RentalUnit, string> = {
+  DAY: "Jours",
+  MONTH: "Mois",
+  YEAR: "Ans",
+}
+
+export interface RentalDetails {
+  idProperty: number
+  guarantee: number | null
+  unit: RentalUnit
+}
+
+export interface SaleDetails {
+  idProperty: number
+}
+
+export interface PropertyImageEntry {
+  idPropertyImage: number
+  idProperty: number
+  image: string
+}
+
+export interface PropertyPhoneEntry {
+  idPropertyPhone: number
+  idProperty: number
+  phoneNumber: string
+}
+
+// Forme réelle renvoyée par le Backend (Backend/controllers/property.controller.js
+// + Backend/utils/serializers/property.serializer.js). `margin` est absent
+// de la réponse si l'utilisateur n'a pas la permission property:margin:read
+// (field-level authorization, CLAUDE.md §5) — jamais présumer sa présence.
+export interface Property {
+  idProperty: number
+  category: PropertyCategory
+  propertyType: PropertyType
+  quartier?: string | null
+  avenue?: string | null
+  fullAddress?: string | null
+  floors?: number | null
+  bedrooms?: number | null
+  livingRooms?: number | null
+  toilets?: number | null
+  kitchens?: number | null
   price: number
-  margin: number
-  phones: string[]
-  images: string[]
-  details: string
-  gpsLocation?: {
-    latitude: number
-    longitude: number
-  }
-  score?: number
-  createdAt: Date
-  updatedAt: Date
+  margin?: number
+  statut: PropertyStatut
+  codeCommissionnaire?: string | null
+  informateur?: string | null
+  idBailleur?: number | null
+  latitude?: number | null
+  longitude?: number | null
+  description?: string | null
+  createdBy?: number
+  assignedTo?: number | null
+  rentalDetails?: RentalDetails
+  saleDetails?: SaleDetails
+  images?: PropertyImageEntry[]
+  phones?: PropertyPhoneEntry[]
+  scores?: unknown
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PropertyPayload {
+  category: PropertyCategory
+  propertyType: PropertyType
+  quartier?: string
+  avenue?: string
+  fullAddress?: string
+  floors?: number
+  bedrooms?: number
+  livingRooms?: number
+  toilets?: number
+  kitchens?: number
+  price?: number
+  margin?: number
+  statut?: PropertyStatut
+  description?: string
+  guarantee?: number
+  unit?: RentalUnit
+  phones?: string[]
+}
+
+export interface Favorite {
+  idFavorite: number
+  idUser: number
+  idProperty: number
+  createdAt: string
+}
+
+// --- CRM (BACK-G06/BACK-G08) ---------------------------------------------
+
+export interface Person {
+  idPerson: number
+  fullName: string
+  phone?: string | null
+  email?: string | null
+  idNumber?: string | null
+  idUser?: number | null
+}
+
+export type ClientType = "LOCATAIRE" | "ACHETEUR"
+export type ClientSousType = "PARTICULIER" | "PROFESSIONNEL" | "ENTREPRISE" | "DIASPORA"
+export type ClientSource = "TERRAIN" | "WHATSAPP" | "APPEL" | "RECOMMANDATION" | "COMMISSIONNAIRE"
+export type ClientBesoinUsage = "HABITATION" | "PROFESSIONNEL" | "COMMERCIAL" | "MIXTE"
+export type ClientFlexibilite = "STRICT" | "FLEXIBLE"
+export type ClientUrgence = "IMMEDIAT" | "1_2_SEMAINES" | "1_MOIS" | "FLEXIBLE"
+export type ClientScore = "SERIEUX" | "MOYEN" | "FAIBLE"
+export type ClientStatutRelance = "A_RELANCER" | "RELANCE" | "INACTIF"
+export type ClientStatutPipeline =
+  | "NOUVEAU"
+  | "PROPOSE"
+  | "VISITE_PROGRAMMEE"
+  | "VISITE_EFFECTUEE"
+  | "NEGOCIATION"
+  | "CONCLU"
+  | "PERDU"
+
+export const CLIENT_PIPELINE_STAGES: ClientStatutPipeline[] = [
+  "NOUVEAU",
+  "PROPOSE",
+  "VISITE_PROGRAMMEE",
+  "VISITE_EFFECTUEE",
+  "NEGOCIATION",
+  "CONCLU",
+  "PERDU",
+]
+
+export const CLIENT_PIPELINE_LABELS: Record<ClientStatutPipeline, string> = {
+  NOUVEAU: "Nouveau",
+  PROPOSE: "Proposé",
+  VISITE_PROGRAMMEE: "Visite programmée",
+  VISITE_EFFECTUEE: "Visite effectuée",
+  NEGOCIATION: "Négociation",
+  CONCLU: "Conclu",
+  PERDU: "Perdu",
+}
+
+export const CLIENT_TYPE_LABELS: Record<ClientType, string> = {
+  LOCATAIRE: "Locataire",
+  ACHETEUR: "Acheteur",
+}
+
+export const CLIENT_SCORE_LABELS: Record<ClientScore, string> = {
+  SERIEUX: "Sérieux",
+  MOYEN: "Moyen",
+  FAIBLE: "Faible",
+}
+
+export interface Client {
+  idClient: number
+  idPerson: number
+  type: ClientType
+  sousType?: ClientSousType | null
+  source?: ClientSource | null
+  sourceCommissionnaireCode?: string | null
+  besoinTypeBien?: string | null
+  besoinUsage?: ClientBesoinUsage | null
+  localisationVille?: string | null
+  localisationQuartiers?: string | null
+  localisationFlexibilite?: ClientFlexibilite | null
+  budgetMin?: number | null
+  budgetMax?: number | null
+  urgence?: ClientUrgence | null
+  dateSouhaitee?: string | null
+  score?: ClientScore | null
+  tags?: string | null
+  statutPipeline: ClientStatutPipeline
+  statutRelance?: ClientStatutRelance | null
+  dernierContact?: string | null
+  prochaineRelance?: string | null
+  notesAgent?: string | null
+  createdBy?: number | null
+  person?: Person
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClientCreatePayload {
+  idPerson?: number
+  fullName?: string
+  phone?: string
+  email?: string
+  type: ClientType
+  sousType?: ClientSousType
+  source?: ClientSource
+}
+
+export interface ClientUpdatePayload {
+  sousType?: ClientSousType
+  source?: ClientSource
+  sourceCommissionnaireCode?: string
+  besoinTypeBien?: string
+  besoinUsage?: ClientBesoinUsage
+  localisationVille?: string
+  localisationQuartiers?: string
+  localisationFlexibilite?: ClientFlexibilite
+  budgetMin?: number
+  budgetMax?: number
+  urgence?: ClientUrgence
+  dateSouhaitee?: string
+  score?: ClientScore
+  tags?: string
+  statutPipeline?: ClientStatutPipeline
+  statutRelance?: ClientStatutRelance
+  dernierContact?: string
+  prochaineRelance?: string
+  notesAgent?: string
+}
+
+export type BailleurType = "PROPRIETAIRE" | "MANDATAIRE"
+export type BailleurTypeCollaboration = "OCCASIONNELLE" | "REGULIERE" | "EXCLUSIVE"
+export type BailleurFiabilite = "SERIEUX" | "MOYEN" | "DIFFICILE"
+export type BailleurStatutRelation = "ACTIF" | "INACTIF" | "A_RELANCER" | "SUSPENDU"
+export type BailleurValeur = "FAIBLE" | "MOYEN" | "FORT" | "PARTENAIRE_CLE"
+
+export const BAILLEUR_TYPE_LABELS: Record<BailleurType, string> = {
+  PROPRIETAIRE: "Propriétaire",
+  MANDATAIRE: "Mandataire",
+}
+
+export const BAILLEUR_STATUT_LABELS: Record<BailleurStatutRelation, string> = {
+  ACTIF: "Actif",
+  INACTIF: "Inactif",
+  A_RELANCER: "À relancer",
+  SUSPENDU: "Suspendu",
+}
+
+export const BAILLEUR_VALEUR_LABELS: Record<BailleurValeur, string> = {
+  FAIBLE: "Faible",
+  MOYEN: "Moyen",
+  FORT: "Fort",
+  PARTENAIRE_CLE: "Partenaire clé",
+}
+
+// `margeAgence` est absent de la réponse si l'utilisateur n'a pas
+// `bailleur:marge:read` (field-level authorization, même principe que
+// Property.margin) — jamais présumer sa présence.
+export interface Bailleur {
+  idBailleur: number
+  idPerson: number
+  type: BailleurType
+  typeCollaboration?: BailleurTypeCollaboration | null
+  dureeCollaboration?: string | null
+  margeAgence?: number
+  frequenceContactJours?: number | null
+  dernierContact?: string | null
+  prochainContact?: string | null
+  notes?: string | null
+  fiabilite?: BailleurFiabilite | null
+  restrictions?: string | null
+  exigencesFinancieres?: string | null
+  statutRelation: BailleurStatutRelation
+  valeurBailleur?: BailleurValeur | null
+  createdBy?: number | null
+  person?: Person
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BailleurCreatePayload {
+  idPerson?: number
+  fullName?: string
+  phone?: string
+  email?: string
+  type: BailleurType
+  typeCollaboration?: BailleurTypeCollaboration
+  margeAgence?: number
+}
+
+export interface BailleurUpdatePayload {
+  typeCollaboration?: BailleurTypeCollaboration
+  dureeCollaboration?: string
+  margeAgence?: number
+  frequenceContactJours?: number
+  dernierContact?: string
+  prochainContact?: string
+  notes?: string
+  fiabilite?: BailleurFiabilite
+  restrictions?: string
+  exigencesFinancieres?: string
+  statutRelation?: BailleurStatutRelation
+  valeurBailleur?: BailleurValeur
 }

@@ -35,20 +35,14 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const auth = await login({ email, password });
+      await login({ email, password });
 
-      const role = auth.data.userInfo.role;
-
-      switch (role) {
-        case "admin":
-          router.push("/dashboard");
-          break;
-        case "agent":
-          router.push("/dashboard/search");
-          break;
-        default:
-          setError("Accès refusée.");
-      }
+      // BACK-G02 : le Backend est la seule source d'autorité sur les
+      // permissions (CLAUDE.md §2.2) — le Frontend ne bloque plus l'accès
+      // sur une liste blanche de rôles, il laisse simplement entrer tout
+      // utilisateur authentifié. L'affichage conditionnel par permission
+      // se fait ensuite à l'intérieur du dashboard.
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Erreur lors de la connexion");
     } finally {

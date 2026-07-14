@@ -21,14 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, X } from "lucide-react";
-import type { SaleProperty } from "@/lib/types";
+import { Loader2 } from "lucide-react";
+import { updateProperty } from "@/actions/properties";
+import { LAND_PROPERTY_TYPES, type Property, type PropertyType } from "@/lib/types";
+import { toast } from "sonner";
 
 interface EditSaleModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  property: SaleProperty | null;
-  onEdit: (property: SaleProperty) => void;
+  property: Property | null;
+  onEdit: (property: Property) => void;
 }
 
 export function EditSaleModal({
@@ -37,87 +39,68 @@ export function EditSaleModal({
   property,
   onEdit,
 }: EditSaleModalProps) {
-  const [type, setType] = useState<
-    "durable" | "semi-durable" | "flat-land" | "slope-land"
-  >("durable");
-  const [neighborhood, setNeighborhood] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [propertyType, setPropertyType] = useState<PropertyType>("CONSTRUCTION_DURABLE");
+  const [quartier, setQuartier] = useState("");
   const [avenue, setAvenue] = useState("");
   const [fullAddress, setFullAddress] = useState("");
   const [floors, setFloors] = useState("0");
   const [bedrooms, setBedrooms] = useState("0");
   const [livingRooms, setLivingRooms] = useState("0");
-  const [bathrooms, setBathrooms] = useState("0");
+  const [toilets, setToilets] = useState("0");
   const [kitchens, setKitchens] = useState("0");
   const [price, setPrice] = useState("");
   const [margin, setMargin] = useState("");
-  const [phones, setPhones] = useState<string[]>([""]);
-  const [images, setImages] = useState<string[]>([""]);
-  const [details, setDetails] = useState("");
+  const [description, setDescription] = useState("");
 
   useEffect(() => {
     if (property) {
-      setType(property.type);
-      setNeighborhood(property.address.neighborhood);
-      setAvenue(property.address.avenue);
-      setFullAddress(property.address.fullAddress);
-      setFloors(property.floors.toString());
-      setBedrooms(property.bedrooms.toString());
-      setLivingRooms(property.livingRooms.toString());
-      setBathrooms(property.bathrooms.toString());
-      setKitchens(property.kitchens.toString());
+      setPropertyType(property.propertyType);
+      setQuartier(property.quartier || "");
+      setAvenue(property.avenue || "");
+      setFullAddress(property.fullAddress || "");
+      setFloors((property.floors ?? 0).toString());
+      setBedrooms((property.bedrooms ?? 0).toString());
+      setLivingRooms((property.livingRooms ?? 0).toString());
+      setToilets((property.toilets ?? 0).toString());
+      setKitchens((property.kitchens ?? 0).toString());
       setPrice(property.price.toString());
-      setMargin(property.margin.toString());
-      setPhones(property.phones.length > 0 ? property.phones : [""]);
-      setImages(property.images.length > 0 ? property.images : [""]);
-      setDetails(property.details);
+      setMargin((property.margin ?? 0).toString());
+      setDescription(property.description || "");
     }
   }, [property]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!property) return;
 
-    if (property) {
-      const updatedProperty: SaleProperty = {
-        ...property,
-        type,
-        address: { neighborhood, avenue, fullAddress },
-        floors: Number.parseInt(floors),
-        bedrooms: Number.parseInt(bedrooms),
-        livingRooms: Number.parseInt(livingRooms),
-        bathrooms: Number.parseInt(bathrooms),
-        kitchens: Number.parseInt(kitchens),
+    setIsLoading(true);
+    try {
+      const updated = await updateProperty(property.idProperty, {
+        propertyType,
+        quartier,
+        avenue,
+        fullAddress,
+        floors: isLand ? 0 : Number.parseInt(floors),
+        bedrooms: isLand ? 0 : Number.parseInt(bedrooms),
+        livingRooms: isLand ? 0 : Number.parseInt(livingRooms),
+        toilets: isLand ? 0 : Number.parseInt(toilets),
+        kitchens: isLand ? 0 : Number.parseInt(kitchens),
         price: Number.parseFloat(price),
         margin: Number.parseFloat(margin),
-        phones: phones.filter((p) => p.trim() !== ""),
-        images: images.filter((img) => img.trim() !== ""),
-        details,
-        updatedAt: new Date(),
-      };
-
-      onEdit(updatedProperty);
+        description,
+      });
+      onEdit(updated);
       onOpenChange(false);
+      toast.success("Bien mis à jour avec succès");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const addPhone = () => setPhones([...phones, ""]);
-  const removePhone = (index: number) =>
-    setPhones(phones.filter((_, i) => i !== index));
-  const updatePhone = (index: number, value: string) => {
-    const newPhones = [...phones];
-    newPhones[index] = value;
-    setPhones(newPhones);
-  };
-
-  const addImage = () => setImages([...images, ""]);
-  const removeImage = (index: number) =>
-    setImages(images.filter((_, i) => i !== index));
-  const updateImage = (index: number, value: string) => {
-    const newImages = [...images];
-    newImages[index] = value;
-    setImages(newImages);
-  };
-
-  const isLand = type === "flat-land" || type === "slope-land";
+  const isLand = LAND_PROPERTY_TYPES.includes(propertyType);
 
   if (!property) return null;
 
@@ -134,29 +117,29 @@ export function EditSaleModal({
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
             <Label htmlFor="edit-sale-type">Type de bien *</Label>
-            <Select value={type} onValueChange={(value: any) => setType(value)}>
+            <Select value={propertyType} onValueChange={(value: PropertyType) => setPropertyType(value)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="durable">Construction durable</SelectItem>
-                <SelectItem value="semi-durable">
+                <SelectItem value="CONSTRUCTION_DURABLE">Construction durable</SelectItem>
+                <SelectItem value="CONSTRUCTION_SEMI_DURABLE">
                   Construction semi-durable
                 </SelectItem>
-                <SelectItem value="flat-land">Terrain plat</SelectItem>
-                <SelectItem value="slope-land">Terrain en pente</SelectItem>
+                <SelectItem value="TERRAIN_PLAT">Terrain plat</SelectItem>
+                <SelectItem value="TERRAIN_PENTE">Terrain en pente</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="edit-neighborhood">Quartier *</Label>
+              <Label htmlFor="edit-quartier">Quartier *</Label>
               <Input
-                id="edit-neighborhood"
+                id="edit-quartier"
                 placeholder="Nyalukemba"
-                value={neighborhood}
-                onChange={(e) => setNeighborhood(e.target.value)}
+                value={quartier}
+                onChange={(e) => setQuartier(e.target.value)}
                 required
               />
             </div>
@@ -226,13 +209,13 @@ export function EditSaleModal({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-sale-bathrooms">Douches/WC *</Label>
+                  <Label htmlFor="edit-sale-toilets">Douches/WC *</Label>
                   <Input
-                    id="edit-sale-bathrooms"
+                    id="edit-sale-toilets"
                     type="number"
                     min="0"
-                    value={bathrooms}
-                    onChange={(e) => setBathrooms(e.target.value)}
+                    value={toilets}
+                    onChange={(e) => setToilets(e.target.value)}
                     required
                   />
                 </div>
@@ -281,79 +264,12 @@ export function EditSaleModal({
           </div>
 
           <div className="space-y-2">
-            <Label>Numéros de téléphone *</Label>
-            {phones.map((phone, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder="+243 999 000 111"
-                  value={phone}
-                  onChange={(e) => updatePhone(index, e.target.value)}
-                  required
-                />
-                {phones.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removePhone(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addPhone}
-              className="w-full bg-transparent"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un numéro
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            <Label>URLs des images</Label>
-            {images.map((image, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder="https://example.com/image.jpg"
-                  value={image}
-                  onChange={(e) => updateImage(index, e.target.value)}
-                />
-                {images.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeImage(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addImage}
-              className="w-full bg-transparent"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter une image
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-sale-details">Détails supplémentaires</Label>
+            <Label htmlFor="edit-sale-description">Détails supplémentaires</Label>
             <Textarea
-              id="edit-sale-details"
+              id="edit-sale-description"
               placeholder="Description du bien, commodités, etc."
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={4}
             />
           </div>
@@ -369,8 +285,16 @@ export function EditSaleModal({
             <Button
               type="submit"
               className="bg-primary text-primary-foreground"
+              disabled={isLoading}
             >
-              Enregistrer les modifications
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                "Enregistrer les modifications"
+              )}
             </Button>
           </div>
         </form>

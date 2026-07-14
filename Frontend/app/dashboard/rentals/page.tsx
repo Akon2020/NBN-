@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,44 +13,60 @@ import {
   Bath,
   HomeIcon,
   Eye,
+  Loader2,
 } from "lucide-react";
-import type { RentalProperty } from "@/lib/types";
-import { mockRentals } from "@/lib/mock-data";
+import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_LABELS, type Property } from "@/lib/types";
+import { getAllProperties } from "@/actions/properties";
 import { AddRentalModal } from "@/components/property-modals/add-rental-modal";
 import { EditRentalModal } from "@/components/property-modals/edit-rental-modal";
 import { DeleteRentalModal } from "@/components/property-modals/delete-rental-modal";
 import Image from "next/image";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function RentalsPage() {
-  const [properties, setProperties] = useState<RentalProperty[]>(mockRentals);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedProperty, setSelectedProperty] =
-    useState<RentalProperty | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
 
-  const handleAdd = (property: RentalProperty) => {
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const all = await getAllProperties();
+        setProperties(all.filter((p) => p.category === "RENT"));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erreur inconnue");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const handleAdd = (property: Property) => {
     setProperties([property, ...properties]);
   };
 
-  const handleEdit = (updatedProperty: RentalProperty) => {
+  const handleEdit = (updatedProperty: Property) => {
     setProperties(
-      properties.map((p) => (p.id === updatedProperty.id ? updatedProperty : p))
+      properties.map((p) => (p.idProperty === updatedProperty.idProperty ? updatedProperty : p))
     );
   };
 
-  const handleDelete = (id: string) => {
-    setProperties(properties.filter((p) => p.id !== id));
+  const handleDelete = (id: number) => {
+    setProperties(properties.filter((p) => p.idProperty !== id));
     setShowDeleteModal(false);
   };
 
-  const openEditModal = (property: RentalProperty) => {
+  const openEditModal = (property: Property) => {
     setSelectedProperty(property);
     setShowEditModal(true);
   };
 
-  const openDeleteModal = (property: RentalProperty) => {
+  const openDeleteModal = (property: Property) => {
     setSelectedProperty(property);
     setShowDeleteModal(true);
   };
@@ -75,52 +91,61 @@ export default function RentalsPage() {
         </Button>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {properties.map((property) => (
-          <Link href={`/dashboard/rentals/${property.id}`}>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : properties.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <HomeIcon className="h-16 w-16 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold">Aucun bien à louer</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ajoutez votre premier bien à louer pour commencer
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {properties.map((property) => (
             <Card
-              key={property.id}
+              key={property.idProperty}
               className="border-border overflow-hidden group"
             >
-              <div className="relative aspect-video overflow-hidden">
-                <Image
-                  src={property.images[0] || "/placeholder.svg"}
-                  alt={`${property.type} à ${property.address.neighborhood}`}
-                  fill
-                  className="object-cover transition-transform group-hover:scale-105"
-                />
-                <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
-                  {property.type === "apartment" ? "Appartement" : "Maison"}
-                </Badge>
-                {property.score && (
-                  <Badge className="absolute top-2 left-2 bg-secondary text-secondary-foreground">
-                    Score: {property.score}
+              <Link href={`/dashboard/rentals/${property.idProperty}`}>
+                <div className="relative aspect-video overflow-hidden">
+                  <Image
+                    src={property.images?.[0]?.image || "/placeholder.svg"}
+                    alt={`${PROPERTY_TYPE_LABELS[property.propertyType]} à ${property.quartier || ""}`}
+                    fill
+                    className="object-cover transition-transform group-hover:scale-105"
+                  />
+                  <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
+                    {PROPERTY_TYPE_LABELS[property.propertyType]}
                   </Badge>
-                )}
-              </div>
+                </div>
+              </Link>
               <CardContent className="p-4 space-y-3">
                 <div>
                   <h3 className="font-semibold text-lg line-clamp-1">
-                    {property.address.avenue}
+                    {property.avenue}
                   </h3>
                   <div className="flex items-center text-sm text-muted-foreground mt-1">
                     <MapPin className="h-3 w-3 mr-1" />
-                    {property.address.neighborhood}
+                    {property.quartier}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Bed className="h-4 w-4" />
-                    {property.bedrooms}
+                    {property.bedrooms ?? 0}
                   </div>
                   <div className="flex items-center gap-1">
                     <Bath className="h-4 w-4" />
-                    {property.bathrooms}
+                    {property.toilets ?? 0}
                   </div>
                   <div className="flex items-center gap-1">
                     <HomeIcon className="h-4 w-4" />
-                    {property.livingRooms}
+                    {property.livingRooms ?? 0}
                   </div>
                 </div>
 
@@ -129,17 +154,15 @@ export default function RentalsPage() {
                     <div className="text-2xl font-bold text-primary">
                       ${property.price}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Garantie: {property.guarantee.value}{" "}
-                      {property.guarantee.unit === "months"
-                        ? "mois"
-                        : property.guarantee.unit === "years"
-                        ? "ans"
-                        : "jours"}
-                    </div>
+                    {property.rentalDetails && (
+                      <div className="text-xs text-muted-foreground">
+                        Garantie: {property.rentalDetails.guarantee ?? 0}{" "}
+                        {RENTAL_UNIT_LABELS[property.rentalDetails.unit]}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-1">
-                    <Link href={`/dashboard/rentals/${property.id}`}>
+                    <Link href={`/dashboard/rentals/${property.idProperty}`}>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -164,9 +187,9 @@ export default function RentalsPage() {
                 </div>
               </CardContent>
             </Card>
-          </Link>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <AddRentalModal
         open={showAddModal}

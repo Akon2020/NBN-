@@ -174,4 +174,113 @@ Objectif : poser le socle dont dépendent tous les domaines métier futurs (M2+)
 
 ---
 
-*Prochaine session suggérée : Milestone 2 (Real Estate + CRM — cœur métier immobilier, remplacement des données mockées). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, et l'audit des autres composants d'overlay Radix pour le bug Dialog.*
+## Session 2 (suite) — 2026-07-14 — Onboarding Mobile
+
+Demande explicite hors plan.md : un onboarding attrayant et bien stylisé pour l'app Mobile, avant de démarrer M2.
+
+### ✅ Onboarding de marque
+- 4 slides swipeables (`app/onboarding.tsx`, données dans `constants/onboarding.ts`) : bienvenue, location & vente, accompagnement complet, CTA final — voix de marque alignée sur le flyer NBN Express ("Avec NBN Express, trouver devient simple").
+- Cercle en dégradé par slide (`expo-linear-gradient`, couleurs exactes des tokens CLAUDE.md §10 : navy, orange, vert), icône `MaterialIcons` centrée, indicateur à points animé (`react-native-reanimated` — largeur/opacité interpolées sur la position de scroll), bouton "Passer" et "Suivant"/"Commencer".
+- Typographie de marque installée : `@expo-google-fonts/manrope` (titres, SemiBold) et `@expo-google-fonts/inter` (corps, Regular/Medium/SemiBold) — chargées dans `app/_layout.tsx` via `expo-font`, écran natif conservé jusqu'au chargement (`expo-splash-screen`). Enregistrées comme familles Tailwind (`font-heading`, `font-body`, ...) dans `tailwind.config.js`.
+- Persistance "déjà vu" via `@react-native-async-storage/async-storage` (`lib/onboardingStorage.ts`) — non sensible, contrairement aux tokens (`expo-secure-store`).
+- Restructuration de la navigation : `app/index.tsx` devient un écran de décision pur (session active → arborescence du rôle ; sinon onboarding une seule fois, puis login) ; le formulaire de login déplacé et re-stylisé dans `app/login.tsx` (en-tête en dégradé, typographie de marque, bouton en `accent-600`).
+
+### Bugs réels trouvés et corrigés pendant la vérification visuelle
+- **`expo-secure-store` n'a pas d'implémentation web** : `getValueWithKeyAsync is not a function` faisait planter l'écran de décision au chargement dès qu'on prévisualise sur le web (le web ne sert qu'à la prévisualisation en développement, la cible réelle est iOS/Android). `lib/secureStore.ts` bascule désormais sur un repli en mémoire quand `Platform.OS === 'web'`, sans jamais toucher au comportement natif réel.
+- **Police d'icônes non chargée sur le web** : `MaterialCommunityIcons` affichait des glyphes de substitution (tofu) faute d'être enregistrée via `expo-font`. Remplacé par `MaterialIcons` (déjà éprouvé ailleurs dans le projet, `components/ui/icon-symbol.tsx`) et chargé explicitement dans `useFonts`. Vérifié programmatiquement : la police se charge (`document.fonts`) et le glyphe pointe vers le bon codepoint (`U+E88A` = home).
+
+### Vérification — méthode
+Le screenshot pixel du navigateur reste indisponible dans cet environnement (déjà rencontré en Session 1 avec le Frontend). Vérification faite par inspection JS directe des styles calculés dans la page rendue (`getComputedStyle`) : dégradés exacts (`linear-gradient(135deg, #14294A, #1E3A63)` etc.), police de titre (`Manrope_600SemiBold`), couleur de bouton (`#C13F0B` = accent-600, la variante conforme AA), dimensions du cercle (220×220, border-radius 110 = cercle parfait), support du mode sombre. Complété par `tsc --noEmit`, `expo lint`, `npm test` (3/3) et un export Metro de production réel (`npx expo export --platform web`, 17 routes bundlées avec succès, CSS généré).
+
+### Décision à documenter/valider par l'utilisateur
+Le contenu des 4 slides et le choix des icônes (Material Icons : home, vpn-key, groups, rocket-launch) sont une proposition éditoriale de cette session, pas une validation client — à ajuster si le ton ou les priorités de communication doivent changer.
+
+---
+
+## Session 3 — 2026-07-14 — Milestone 2 (Real Estate + CRM foundations)
+
+### ✅ BACK-G05 — Modèle `Property` complété
+- Ajout de `statut` (ENUM DISPONIBLE/RESERVE/LOUE_VENDU, défaut DISPONIBLE), `codeCommissionnaire`, `informateur`, `assignedTo` (inerte, CLAUDE.md §5), `idBailleur`.
+- `getPropertiesByStatut` recréé proprement (retiré en SEC-G04 faute de champ réel — le champ existe désormais).
+
+### ✅ BACK-G06 — Modèles `Client` et `Bailleur`
+- `Client` : segmentation (type LOCATAIRE/ACHETEUR, source, besoin), pipeline commercial (`statutPipeline` NOUVEAU→...→CONCLU/PERDU), scoring, relance.
+- `Bailleur` : fiche VIP, `margeAgence` (**champ sensible**, protégé par field-level authorization comme `Property.margin`).
+- Les deux rattachés à l'entité `Person` (CLAUDE.md §4 — une même personne peut être Client et Bailleur).
+
+### ✅ BACK-G07 — Routes property/favorite/proposal branchées
+- `property.controller.js` réécrit : CRUD transactionnel (Property + RentalProperty/SaleProperty + téléphones en une transaction), upload d'images découplé (`POST /:id/images`).
+- `favorite.controller.js` et `proposal.controller.js` remplis (vides depuis le début du projet) ; `Proposal.idClient` remplace les champs morts `clientName`/`clientPhone`.
+
+### ✅ BACK-G08 — Pipeline commercial et matching
+- Nouveau modèle `Matching` (Client ↔ Property, statut EN_COURS/PROPOSE/VALIDE).
+- Client.statutPipeline modifiable via `PATCH /api/clients/:id`.
+
+### Bugs réels trouvés et corrigés pendant cette session
+- **Association `Property↔User` cassée depuis avant le début du projet** : `Property.belongsTo(User, { foreignKey: "idUserCreator" })` référençait une colonne inexistante (la vraie FK est `createdBy`). Corrigé avec alias explicites (`creator`/`createdProperties`, `assignee`/`assignedProperties`).
+- **Alias Sequelize implicites imprévisibles** : sans `as` explicite, `Property.hasOne(RentalProperty, ...)` produit un accesseur `rentalProperty` (minuscule, singularisé), pas `RentalProperty`. Cause de plusieurs échecs de test en cascade. Corrigé en ajoutant des alias explicites partout (`rentalDetails`, `saleDetails`, `person`) — **règle à suivre systématiquement pour toute nouvelle association**.
+- **`Favorite.findAll({ include: Property })` levait `SequelizeEagerLoadingError`** : le `belongsToMany` via `Favorite` ne crée pas d'accesseur direct utilisable dans un `include` sur le modèle de jointure lui-même. Corrigé avec des `belongsTo` directs (`Favorite.belongsTo(Property)`, `Favorite.belongsTo(User)`).
+- **Même bug latent trouvé sur `Matching`, non couvert par les tests** (`getMatchingsByClient`/`getMatchingsByProperty` auraient levé la même erreur au premier appel réel) — corrigé par le même principe (`Matching.belongsTo(Property)`, `Matching.belongsTo(Client)`), découvert et corrigé en tout début de la session suivante (ADMIN-G03) en inspectant `Model.associations` directement plutôt qu'en relisant le code.
+- **`normalizeUploadPaths` ne gérait pas la forme `multer.array()`** (tableau plat) — ne gérait que la forme objet de `multer.fields()`. Corrigé avant que le nouvel endpoint `POST /properties/:id/images` ne puisse le déclencher en usage réel.
+
+### Vérifications effectuées
+Backend : 38/38 tests passent (8 fichiers), incluant les nouveaux `property.route.test.js` et `crm.test.js` (permissions, field-level auth sur `margin`/`margeAgence`, pipeline, matching, favoris).
+
+---
+
+## Session 3 (suite) — 2026-07-14 — ADMIN-G03 : Frontend branché sur l'API réelle
+
+### ✅ ADMIN-G03 — Suppression complète des données mockées
+- `Frontend/lib/mock-data.ts` supprimé. `Frontend/lib/types.ts` réécrit pour refléter exactement le contrat réel du Backend (`Property`/`RentalProperty`/`SaleProperty`/`PropertyImage`/`PropertyPhone`/`Favorite`) — l'ancien shape (id string, `address` imbriqué, enums anglais `apartment`/`durable`) n'avait plus aucun rapport avec l'API réelle.
+- `Frontend/actions/properties.ts` et `Frontend/actions/favorites.ts` créés (même pattern que `actions/accessGrants.ts` : axios + gestion d'erreur `axios.isAxiosError`).
+- Les 7 pages concernées (`rentals`, `sales`, `rentals/[id]`, `sales/[id]`, `favorites`, `gallery`, `search`) et les 6 modales de propriété (add/edit/delete × rental/sale) réécrites pour appeler l'API réelle — chargement asynchrone avec état de chargement, retours d'erreur via `sonner` (toasts).
+- `Toaster` (sonner) n'était jamais monté dans `app/layout.tsx` — ajouté, sinon aucun toast d'erreur/succès n'était visible nulle part dans l'app.
+- Page favoris : le Backend ne peuple pas les associations imbriquées sur `GET /api/favorites` (juste `idProperty`), donc la page croise la liste de favoris avec `getAllProperties()` côté client plutôt que de dépendre d'un `include` non garanti.
+
+### Bug réel trouvé et corrigé pendant la vérification navigateur
+- **`app/auth/login/page.tsx` bloquait la connexion de 7 des 9 rôles RBAC réels** : un `switch` en dur n'autorisait que `admin` (→ `/dashboard`) et `agent` (→ `/dashboard/search`), tous les autres rôles (operations, tresorerie, juridique, marketing, communication, technologique, commissionnaire, consultant) tombaient sur `setError("Accès refusée.")` **après une authentification backend réussie** — violation directe de CLAUDE.md §2.2 ("le Frontend n'applique jamais de logique d'autorisation métier"). Corrigé : tout utilisateur authentifié est redirigé vers `/dashboard`, l'autorisation réelle reste entièrement décidée par le Backend (RBAC + field-level auth déjà en place depuis M1).
+
+### Vérification — méthode
+Vérifié en conditions réelles dans le navigateur (Backend + Frontend démarrés en parallèle), avec un utilisateur `operations` créé ad hoc (rôle doté de `property:manage`) : création d'un bien à louer de bout en bout (formulaire → `POST /api/properties` → apparition immédiate dans la liste), consultation de la fiche détail, ajout/retrait des favoris (visible sur la page Favoris), suppression réelle (confirmée disparue de la liste et de la base). Galerie et Recherche vérifiées avec les données réelles multi-catégories (RENT + SALE). Le champ `margin` est correctement absent pour un rôle sans `property:margin:read` (field-level authorization respectée côté affichage). `npx tsc --noEmit` vert sur tout le Frontend. Utilisateur de test et son bien supprimés après vérification.
+
+### Décision à documenter/valider par l'utilisateur
+- Les modales d'édition ne permettent plus de saisir des URLs d'images à la main (c'était un champ texte libre sans lien avec le vrai flux d'upload) — l'upload réel de fichiers (`POST /api/properties/:id/images`, déjà exposé côté Backend depuis BACK-G07) n'a pas encore d'UI dédiée côté Frontend. À prioriser si la gestion des photos doit devenir utilisable en usage réel avant MOBILE-G03.
+
+---
+
+## Session 4 — 2026-07-14 — Vérification visuelle Onboarding Mobile (demande explicite hors plan.md)
+
+Demande utilisateur : vérifier que le serveur web Expo répond, revoir visuellement l'onboarding (slides, dégradés, typographie, dots animés) et l'écran de login construits en Session 2 (suite), avant de continuer M2.
+
+### Bug réel trouvé et corrigé — `Mobile/app/onboarding.tsx`
+- **`SCREEN_WIDTH` capturé à l'échelle du module** (`const { width } = Dimensions.get('window')`, évalué une seule fois à l'import du module) **valait 0 sur le web**, la fenêtre n'étant pas encore dimensionnée au moment de l'évaluation du bundle. Conséquence en inspectant le DOM réel : chaque slide (`<View style={{ width: SCREEN_WIDTH }}>`) rendait à `width: 0px`, et l'indicateur à points restait bloqué sur son état "inactif" (`width: 8px, opacity: 0.3`) pour les 4 points simultanément — l'interpolation Reanimated des dots dégénère quand `SCREEN_WIDTH = 0` (plage d'entrée `[0,0,0]`).
+- Corrigé en remplaçant la capture au niveau module par le hook réactif `useWindowDimensions()` de `react-native`, appelé dans chacun des trois composants qui en ont besoin (`Slide`, `Dot`, `OnboardingScreen`) plutôt que passé en prop — plus simple et chaque composant reste indépendamment correct si la fenêtre est redimensionnée.
+- Vérifié après correction (DOM réel) : chaque slide fait bien `width: 1280px` (= largeur du viewport de test), et le premier point affiche `width: 28px; opacity: 1` (actif) contre `8px / 0.3` pour les trois autres (inactifs) — comportement exact attendu à l'affichage initial.
+- **Non corrigé, hors périmètre de cette vérification** : la simulation de swipe tactile via des événements de scroll synthétiques ne déclenche pas la mise à jour de `activeIndex` dans cet environnement de navigateur automatisé (limite de l'outil de test, pas un défaut de l'app — le geste tactile réel sur device n'est pas concerné). Un artefact Fast Refresh transitoire (`ReferenceError: SCREEN_WIDTH is not defined` dans la console, capturé pendant le rechargement à chaud consécutif à l'édition du fichier) a été observé puis confirmé sans impact : il provient exclusivement de la réconciliation React Fast Refresh (outil de développement) et disparaît après un rechargement complet de page — le HTML rendu réel restait correct des deux côtés de cet événement.
+
+### Écran de login (`Mobile/app/login.tsx`) — vérifié sans modification nécessaire
+En-tête en dégradé navy exact (`linear-gradient(135deg, #14294A, #1E3A63)`), titre "NBN Express" en `Manrope_600SemiBold`, sous-titre en `Inter_400Regular` blanc/70, champs de saisie stylés, bouton "Se connecter" en `bg-accent-600` (conforme à la règle de contraste AA de CLAUDE.md §10) correctement désactivé (`aria-disabled`, opacité 0.6) tant que les champs sont vides et réactivé après saisie.
+
+### Vérification — méthode
+Serveur Expo web déjà démarré sur le port **8081** (pas 8090 comme supposé initialement par l'utilisateur — aucun serveur n'écoutait sur ce port). DOM réel inspecté directement (`document.getElementById('root').outerHTML`) plutôt que par capture d'écran (le screenshot du navigateur reste indisponible dans cet environnement, limite déjà rencontrée en Session 1 et 2). `npx tsc --noEmit`, `expo lint`, `npm test` (3/3) tous verts après correctif.
+
+---
+
+## Session 4 (suite) — 2026-07-14 — ADMIN-G04 : Fiches client/bailleur et pipeline Frontend
+
+### ✅ ADMIN-G04 — Interfaces CRM côté Frontend
+- `Frontend/lib/types.ts` complété avec les types réels `Person`, `Client`, `Bailleur` (tous les champs et enums du Backend, y compris les libellés français pour l'affichage) ; `Frontend/actions/clients.ts` et `Frontend/actions/bailleurs.ts` créés sur le pattern établi.
+- **Page Clients** (`app/dashboard/clients/page.tsx`) : tableau Kanban par colonnes = étapes du pipeline (`statutPipeline`), une carte par client avec action rapide "avancer à l'étape suivante" (pas de drag-and-drop — aucune librairie DnD dans le projet, un bouton d'avancement rapide reste fidèle à l'esprit pipeline sans ajouter de dépendance). Fiche détail dédiée (`clients/[id]/page.tsx`) avec modale d'édition complète (statut pipeline, relance, score, budget, notes).
+- **Page Bailleurs** (`app/dashboard/bailleurs/page.tsx` + `bailleurs/[id]/page.tsx`) : mêmes principes, `margeAgence` (champ sensible) affiché uniquement si présent dans la réponse — jamais présumé, cohérent avec le pattern déjà utilisé pour `Property.margin` en Session 3.
+- **Cloisonnement RBAC (CDC §3)** : les deux pages listent normalement mais affichent un état "Accès non autorisé" propre si le Backend renvoie un refus de permission (`clients:read`/`bailleurs:read` manquants) — aucune logique d'autorisation dupliquée côté Frontend, le Backend reste seul décisionnaire (CLAUDE.md §2.2).
+- Liens de navigation "Clients" et "Bailleurs" ajoutés à la sidebar (`dashboard/layout.tsx`).
+
+### Bug réel trouvé et corrigé — incohérence de contrat PATCH vs GET
+- **`updateClient` et `updateBailleur` ne réincluaient pas la `Person` associée** dans leur réponse (contrairement à `updateProperty`, qui re-fetch bien avec ses `include` après écriture) : après toute modification (ex. faire avancer un client dans le pipeline), la réponse ne contenait plus `person.fullName`, provoquant l'affichage de "Client #1" à la place du vrai nom dans l'UI — **repéré en conditions réelles dans le navigateur**, pas en test automatisé (aucun test n'asserait sur le contenu de `person` après un PATCH). Corrigé dans les deux contrôleurs (`Backend/controllers/client.controller.js`, `Backend/controllers/bailleur.controller.js`) : re-fetch avec `include: [{ model: Person, as: "person" }]` après `.update()`, exactement comme pour `Property`. Deux assertions de non-régression ajoutées à `Backend/tests/crm.test.js` (`res.body.data.person.fullName` après PATCH, client et bailleur).
+
+### Vérification — méthode
+Vérifié en conditions réelles dans le navigateur avec deux comptes ad hoc (`operations` et `tresorerie`) : Kanban clients (avancement d'étape en direct, persistance du nom après plusieurs mises à jour), fiche client + modale d'édition (notes, champ persistant après rechargement), liste et fiche bailleurs avec le contraste attendu — `margeAgence` invisible pour `operations`, visible (`$200.00`) pour `tresorerie` sur la même fiche. `npx tsc --noEmit` (Frontend) vert. Backend : 39/39 tests passent (2 nouveaux). Comptes de test et données manipulées laissés en base (BDD de dev jetable, CLAUDE.md §2.10) sauf les comptes utilisateurs ad hoc, supprimés après vérification.
+
+---
+
+*Prochaine session suggérée : MOBILE-G03 + DESIGN-G02 (consultation biens/clients Mobile, composants de fiche bien). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, l'audit des autres composants d'overlay Radix pour le bug Dialog, l'UI d'upload d'images côté Frontend (Session 3), et l'absence de drag-and-drop réel sur le Kanban clients (Session 4, avancement par bouton uniquement).*

@@ -19,16 +19,27 @@ import Service from "./service.model.js";
 import Poste from "./poste.model.js";
 import Person from "./person.model.js";
 import EmployeeProfile from "./employeeProfile.model.js";
+import Client from "./client.model.js";
+import Bailleur from "./bailleur.model.js";
+import Matching from "./matching.model.js";
 
 // User - Property
-Property.belongsTo(User, { foreignKey: "idUserCreator" });
-User.hasMany(Property, { foreignKey: "idUserCreator" });
+// NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
+// `createdBy`, pas `idUserCreator` (bug préexistant, l'association était
+// silencieusement cassée).
+Property.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+User.hasMany(Property, { foreignKey: "createdBy", as: "createdProperties" });
+
+Property.belongsTo(User, { foreignKey: "assignedTo", as: "assignee" });
+User.hasMany(Property, { foreignKey: "assignedTo", as: "assignedProperties" });
 
 // Property - Rental / Sale
-Property.hasOne(RentalProperty, { foreignKey: "idProperty" });
+// NB : alias explicites — sans `as`, Sequelize dérive un nom en minuscule
+// (singularisation automatique du modèle) peu prévisible pour l'API.
+Property.hasOne(RentalProperty, { foreignKey: "idProperty", as: "rentalDetails" });
 RentalProperty.belongsTo(Property, { foreignKey: "idProperty" });
 
-Property.hasOne(SaleProperty, { foreignKey: "idProperty" });
+Property.hasOne(SaleProperty, { foreignKey: "idProperty", as: "saleDetails" });
 SaleProperty.belongsTo(Property, { foreignKey: "idProperty" });
 
 // Property - Images
@@ -52,6 +63,13 @@ Property.belongsToMany(User, {
   otherKey: "idUser",
   as: "likedBy",
 });
+
+// Association directe sur le modèle de jointure lui-même — nécessaire pour
+// pouvoir faire `Favorite.findAll({ include: Property })` (le
+// belongsToMany ci-dessus ne crée des accesseurs que sur User/Property,
+// pas sur Favorite).
+Favorite.belongsTo(Property, { foreignKey: "idProperty" });
+Favorite.belongsTo(User, { foreignKey: "idUser" });
 
 // Property - Proposals
 Property.hasMany(Proposal, { foreignKey: "idProperty" });
@@ -109,6 +127,43 @@ EmployeeProfile.belongsTo(EmployeeProfile, {
   as: "responsable",
 });
 
+// BACK-G06 — CRM : Client/Bailleur rattachés à Person (une même Person
+// peut être Client ET Bailleur, CLAUDE.md §4).
+Person.hasOne(Client, { foreignKey: "idPerson" });
+Client.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
+
+Person.hasOne(Bailleur, { foreignKey: "idPerson" });
+Bailleur.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
+
+// Biens associés à un bailleur (CDC §3 — lien direct avec le module biens).
+Bailleur.hasMany(Property, { foreignKey: "idBailleur" });
+Property.belongsTo(Bailleur, { foreignKey: "idBailleur" });
+
+// BACK-G07 — une proposition envoyée à un Client réel (remplace les
+// champs clientName/clientPhone jamais activés).
+Client.hasMany(Proposal, { foreignKey: "idClient" });
+Proposal.belongsTo(Client, { foreignKey: "idClient" });
+
+// BACK-G08 — Matching : 1 client ↔ plusieurs biens.
+Client.belongsToMany(Property, {
+  through: Matching,
+  foreignKey: "idClient",
+  otherKey: "idProperty",
+  as: "matchedProperties",
+});
+Property.belongsToMany(Client, {
+  through: Matching,
+  foreignKey: "idProperty",
+  otherKey: "idClient",
+  as: "matchedClients",
+});
+
+// Association directe sur le modèle de jointure lui-même — même raison que
+// pour Favorite ci-dessus : le belongsToMany seul ne permet pas
+// `Matching.findAll({ include: Property })`.
+Matching.belongsTo(Property, { foreignKey: "idProperty" });
+Matching.belongsTo(Client, { foreignKey: "idClient" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -139,5 +194,8 @@ export {
   Poste,
   Person,
   EmployeeProfile,
+  Client,
+  Bailleur,
+  Matching,
   syncModels,
 };

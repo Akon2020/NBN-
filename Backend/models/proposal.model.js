@@ -15,8 +15,16 @@ const Proposal = db.define("proposals", {
       key: "idProperty",
     },
   },
-  //   clientName: DataTypes.STRING,
-  //   clientPhone: DataTypes.STRING(20),
+  // BACK-G07 : remplace les champs clientName/clientPhone jamais activés
+  // par un vrai lien vers un Client.
+  idClient: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    references: {
+      model: "clients",
+      key: "idClient",
+    },
+  },
   message: DataTypes.TEXT,
   sentAt: {
     type: DataTypes.DATE,
