@@ -20,6 +20,8 @@ import {
   ShieldCheck,
   Star,
   Users,
+  UserRound,
+  Handshake,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,6 +62,8 @@ export default function DashboardLayout({
     { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
     { name: "Biens à louer", href: "/dashboard/rentals", icon: Home },
     { name: "Biens à vendre", href: "/dashboard/sales", icon: Building2 },
+    { name: "Clients", href: "/dashboard/clients", icon: UserRound },
+    { name: "Bailleurs", href: "/dashboard/bailleurs", icon: Handshake },
     { name: "Galerie", href: "/dashboard/gallery", icon: ImageIcon },
     { name: "Favoris", href: "/dashboard/favorites", icon: Star },
     { name: "Recherche", href: "/dashboard/search", icon: Search },

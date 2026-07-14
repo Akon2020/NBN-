@@ -107,7 +107,8 @@ export const updateClient = async (req, res, next) => {
       }
     });
 
-    const updated = await client.update(donneesAMettreAJour);
+    await client.update(donneesAMettreAJour);
+    const updated = await Client.findByPk(id, { include: [{ model: Person, as: "person" }] });
     return res.status(200).json({ message: "Client mis à jour", data: updated });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });

@@ -120,7 +120,8 @@ export const updateBailleur = async (req, res, next) => {
       }
     }
 
-    const updated = await bailleur.update(donneesAMettreAJour);
+    await bailleur.update(donneesAMettreAJour);
+    const updated = await Bailleur.findByPk(id, { include: [{ model: Person, as: "person" }] });
     const data = await serializeBailleur(updated, req.user);
     return res.status(200).json({ message: "Bailleur mis à jour", data });
   } catch (error) {

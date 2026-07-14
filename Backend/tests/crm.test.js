@@ -127,6 +127,9 @@ describe("BACK-G06 - Client (segmentation, pipeline)", () => {
       .send({ statutPipeline: "VISITE_PROGRAMMEE" });
     expect(res.status).toBe(200);
     expect(res.body.data.statutPipeline).toBe("VISITE_PROGRAMMEE");
+    // La réponse de PATCH doit rester cohérente avec GET (Person incluse),
+    // sinon le Frontend perd le nom du client après chaque mise à jour.
+    expect(res.body.data.person.fullName).toBe("Client Test QA");
   });
 });
 
@@ -181,6 +184,18 @@ describe("BACK-G06/BACK-G03 - Bailleur (fiche VIP, marge sensible)", () => {
       .set("Cookie", cookies)
       .send({ notes: "Ne devrait pas passer" });
     expect(updateRes.status).toBe(403);
+  });
+
+  it("la réponse de mise à jour d'un bailleur inclut toujours sa Person", async () => {
+    const idBailleur = createdBailleurIds[0];
+    const cookies = await loginAs(operationsEmail);
+    const res = await request(app)
+      .patch(`/api/bailleurs/${idBailleur}`)
+      .set("Cookie", cookies)
+      .send({ statutRelation: "A_RELANCER" });
+    expect(res.status).toBe(200);
+    expect(res.body.data.statutRelation).toBe("A_RELANCER");
+    expect(res.body.data.person.fullName).toBe("Bailleur Test QA");
   });
 });
 

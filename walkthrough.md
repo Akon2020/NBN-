@@ -266,4 +266,21 @@ Serveur Expo web déjà démarré sur le port **8081** (pas 8090 comme supposé 
 
 ---
 
-*Prochaine session suggérée : poursuite du Milestone 2 — ADMIN-G04 (fiches client/bailleur et pipeline Frontend), puis MOBILE-G03 + DESIGN-G02 (consultation biens Mobile). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, l'audit des autres composants d'overlay Radix pour le bug Dialog, et l'UI d'upload d'images côté Frontend (Session 3).*
+## Session 4 (suite) — 2026-07-14 — ADMIN-G04 : Fiches client/bailleur et pipeline Frontend
+
+### ✅ ADMIN-G04 — Interfaces CRM côté Frontend
+- `Frontend/lib/types.ts` complété avec les types réels `Person`, `Client`, `Bailleur` (tous les champs et enums du Backend, y compris les libellés français pour l'affichage) ; `Frontend/actions/clients.ts` et `Frontend/actions/bailleurs.ts` créés sur le pattern établi.
+- **Page Clients** (`app/dashboard/clients/page.tsx`) : tableau Kanban par colonnes = étapes du pipeline (`statutPipeline`), une carte par client avec action rapide "avancer à l'étape suivante" (pas de drag-and-drop — aucune librairie DnD dans le projet, un bouton d'avancement rapide reste fidèle à l'esprit pipeline sans ajouter de dépendance). Fiche détail dédiée (`clients/[id]/page.tsx`) avec modale d'édition complète (statut pipeline, relance, score, budget, notes).
+- **Page Bailleurs** (`app/dashboard/bailleurs/page.tsx` + `bailleurs/[id]/page.tsx`) : mêmes principes, `margeAgence` (champ sensible) affiché uniquement si présent dans la réponse — jamais présumé, cohérent avec le pattern déjà utilisé pour `Property.margin` en Session 3.
+- **Cloisonnement RBAC (CDC §3)** : les deux pages listent normalement mais affichent un état "Accès non autorisé" propre si le Backend renvoie un refus de permission (`clients:read`/`bailleurs:read` manquants) — aucune logique d'autorisation dupliquée côté Frontend, le Backend reste seul décisionnaire (CLAUDE.md §2.2).
+- Liens de navigation "Clients" et "Bailleurs" ajoutés à la sidebar (`dashboard/layout.tsx`).
+
+### Bug réel trouvé et corrigé — incohérence de contrat PATCH vs GET
+- **`updateClient` et `updateBailleur` ne réincluaient pas la `Person` associée** dans leur réponse (contrairement à `updateProperty`, qui re-fetch bien avec ses `include` après écriture) : après toute modification (ex. faire avancer un client dans le pipeline), la réponse ne contenait plus `person.fullName`, provoquant l'affichage de "Client #1" à la place du vrai nom dans l'UI — **repéré en conditions réelles dans le navigateur**, pas en test automatisé (aucun test n'asserait sur le contenu de `person` après un PATCH). Corrigé dans les deux contrôleurs (`Backend/controllers/client.controller.js`, `Backend/controllers/bailleur.controller.js`) : re-fetch avec `include: [{ model: Person, as: "person" }]` après `.update()`, exactement comme pour `Property`. Deux assertions de non-régression ajoutées à `Backend/tests/crm.test.js` (`res.body.data.person.fullName` après PATCH, client et bailleur).
+
+### Vérification — méthode
+Vérifié en conditions réelles dans le navigateur avec deux comptes ad hoc (`operations` et `tresorerie`) : Kanban clients (avancement d'étape en direct, persistance du nom après plusieurs mises à jour), fiche client + modale d'édition (notes, champ persistant après rechargement), liste et fiche bailleurs avec le contraste attendu — `margeAgence` invisible pour `operations`, visible (`$200.00`) pour `tresorerie` sur la même fiche. `npx tsc --noEmit` (Frontend) vert. Backend : 39/39 tests passent (2 nouveaux). Comptes de test et données manipulées laissés en base (BDD de dev jetable, CLAUDE.md §2.10) sauf les comptes utilisateurs ad hoc, supprimés après vérification.
+
+---
+
+*Prochaine session suggérée : MOBILE-G03 + DESIGN-G02 (consultation biens/clients Mobile, composants de fiche bien). Points de vigilance reportés : l'incompatibilité Jest/NativeWind (Session 1), le rafraîchissement de token Frontend absent, l'audit des autres composants d'overlay Radix pour le bug Dialog, l'UI d'upload d'images côté Frontend (Session 3), et l'absence de drag-and-drop réel sur le Kanban clients (Session 4, avancement par bouton uniquement).*
