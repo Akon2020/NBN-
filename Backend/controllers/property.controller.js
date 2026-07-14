@@ -7,13 +7,18 @@ import {
 import { Op } from "sequelize";
 import { deleteFile } from "../utils/deletefile.js";
 import db from "../database/db.js";
+import {
+  serializeProperties,
+  serializeProperty,
+} from "../utils/serializers/property.serializer.js";
 
-export const getAllProperties = async (_, res, next) => {
+export const getAllProperties = async (req, res, next) => {
   try {
     const properties = await Property.findAll();
+    const propertiesInfo = await serializeProperties(properties, req.user);
     return res.status(200).json({
-      nombre: properties.length,
-      propertiesInfo: properties,
+      nombre: propertiesInfo.length,
+      propertiesInfo,
     });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
@@ -42,7 +47,8 @@ export const getSingleProperty = async (req, res, next) => {
     if (!property) {
       return res.status(404).json({ message: "Propriété non trouvée" });
     }
-    return res.status(200).json(property);
+    const serialized = await serializeProperty(property, req.user);
+    return res.status(200).json(serialized);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);

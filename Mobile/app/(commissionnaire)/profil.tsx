@@ -5,6 +5,7 @@ export default function ProfilCommissionnaireScreen() {
     <RoleScreenPlaceholder
       title="Profil"
       description="Score, niveau et historique du commissionnaire (à venir : Milestone 3)."
+      showLogout
     />
   );
 }

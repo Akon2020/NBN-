@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   login,
   logout,
+  logoutAll,
+  refresh,
   register,
   resetPassword,
   updatePassword,
@@ -112,6 +114,20 @@ authRouter.post("/login", authLimiter, login);
 
 /**
  * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Rafraîchit l'access token à partir du refresh token (rotation)
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Jeton rafraîchi
+ *       401:
+ *         description: Refresh token manquant, invalide, expiré, ou réutilisation détectée
+ */
+authRouter.post("/refresh", refresh);
+
+/**
+ * @swagger
  * /api/auth/reset-password:
  *   post:
  *     summary: Demande de réinitialisation de mot de passe
@@ -180,5 +196,21 @@ authRouter.post("/resetpassword", updatePassword);
  *         description: Déconnexion réussie
  */
 authRouter.post("/logout", logout);
+
+/**
+ * @swagger
+ * /api/auth/logout-all:
+ *   post:
+ *     summary: Déconnecte toutes les sessions de l'utilisateur (tous appareils)
+ *     tags: [Auth]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Déconnecté de toutes les sessions
+ *       401:
+ *         description: Non authentifié
+ */
+authRouter.post("/logout-all", authMiddlware, logoutAll);
 
 export default authRouter;

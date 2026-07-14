@@ -39,6 +39,9 @@ jobs:
       DB_NAME: nbn
       JWT_SECRET: ci-only-secret-not-used-in-prod
       JWT_EXPIRES_IN: 1d
+      ACCESS_TOKEN_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_WEB_DAYS: 7
+      REFRESH_TOKEN_EXPIRES_MOBILE_DAYS: 30
       DEFAULT_PASSWD: Changemoi@NBN2026
       EMAIL: ci@example.com
       EMAIL_PASSWORD: ci-placeholder
@@ -61,6 +64,9 @@ jobs:
           DB_NAME=$DB_NAME
           JWT_SECRET=$JWT_SECRET
           JWT_EXPIRES_IN=$JWT_EXPIRES_IN
+          ACCESS_TOKEN_EXPIRES_IN=$ACCESS_TOKEN_EXPIRES_IN
+          REFRESH_TOKEN_EXPIRES_WEB_DAYS=$REFRESH_TOKEN_EXPIRES_WEB_DAYS
+          REFRESH_TOKEN_EXPIRES_MOBILE_DAYS=$REFRESH_TOKEN_EXPIRES_MOBILE_DAYS
           EMAIL=$EMAIL
           EMAIL_PASSWORD=$EMAIL_PASSWORD
           URL_ORIGIN="*"
@@ -70,5 +76,7 @@ jobs:
           EOF
       - name: Appliquer les migrations
         run: npm run db:migrate
+      - name: Appliquer les seeders (catalogue RBAC, admin par défaut)
+        run: npm run db:seed
       - name: Lancer les tests
         run: npm test

@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 import { User } from "../models/index.model.js";
 import { getUserWithoutPassword } from "../utils/user.utils.js";
+import { getSecurityVersion } from "../utils/securityVersionCache.js";
 
 export const authMiddlware = async (req, res, next) => {
   let token = null;
@@ -42,9 +43,22 @@ export const authMiddlware = async (req, res, next) => {
     }
 
     if (user.status === "INACTIVE") {
-      return res
-        .status(401)
-        .json({ message: "Ce compte a été désactivé." });
+      return res.status(401).json({ message: "Ce compte a été désactivé." });
+    }
+
+    // BACK-G01 : un jeton dont la securityVersion ne correspond plus à
+    // celle du compte (suspension, déconnexion globale, changement de mot
+    // de passe) est rejeté même s'il n'est pas cryptographiquement expiré.
+    // Lu depuis un cache in-process (~60s) pour éviter un aller-retour DB
+    // dédié à chaque requête.
+    const currentSecurityVersion = await getSecurityVersion(user.idUser);
+    if (
+      currentSecurityVersion === null ||
+      decoded.securityVersion !== currentSecurityVersion
+    ) {
+      return res.status(401).json({
+        message: "Session invalidée. Veuillez vous reconnecter.",
+      });
     }
 
     req.user = user;
@@ -62,29 +76,6 @@ export const authMiddlware = async (req, res, next) => {
       .status(500)
       .json({ message: "Erreur serveur lors de l'authentification." });
   }
-};
-
-/**
- * Garde de rôle minimale (SEC-G02).
- * Version provisoire avant le RBAC complet (Role/Permission/AccessGrant) du Milestone 1 :
- * ne vérifie qu'une liste de rôles autorisés, doit être appelée après authMiddlware.
- */
-export const requireRole = (...allowedRoles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res
-        .status(401)
-        .json({ message: "Authentification requise." });
-    }
-
-    if (!allowedRoles.includes(req.user.role)) {
-      return res
-        .status(403)
-        .json({ message: "Accès refusé : permissions insuffisantes." });
-    }
-
-    next();
-  };
 };
 
 export const checkAuthStatus = (req, res) => {

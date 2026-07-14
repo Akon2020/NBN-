@@ -17,6 +17,7 @@ import {
   Menu,
   Search,
   Settings,
+  ShieldCheck,
   Star,
   Users,
   X,
@@ -63,11 +64,15 @@ export default function DashboardLayout({
     { name: "Favoris", href: "/dashboard/favorites", icon: Star },
     { name: "Recherche", href: "/dashboard/search", icon: Search },
     { name: "Utilisateurs", href: "/dashboard/users", icon: Users },
+    { name: "Accès consultants", href: "/dashboard/access-grants", icon: ShieldCheck },
     { name: "Paramètres", href: "/dashboard/settings", icon: Settings },
   ];
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "agent"]}>
+    // BACK-G02 : le catalogue de rôles ne se limite plus à admin/agent —
+    // l'autorisation réelle est tranchée par le backend (RBAC par
+    // permission), le Frontend ne fait ici que vérifier l'authentification.
+    <ProtectedRoute>
     <div className="min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (

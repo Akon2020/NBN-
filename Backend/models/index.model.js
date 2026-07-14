@@ -10,6 +10,15 @@ import Favorite from "./favorite.model.js";
 import Proposal from "./proposal.model.js";
 import PropertyScore from "./propertyScore.model.js";
 import ActivityLog from "./activityLog.model.js";
+import Role from "./role.model.js";
+import Permission from "./permission.model.js";
+import RolePermission from "./rolePermission.model.js";
+import AccessGrant from "./accessGrant.model.js";
+import Session from "./session.model.js";
+import Service from "./service.model.js";
+import Poste from "./poste.model.js";
+import Person from "./person.model.js";
+import EmployeeProfile from "./employeeProfile.model.js";
 
 // User - Property
 Property.belongsTo(User, { foreignKey: "idUserCreator" });
@@ -56,6 +65,50 @@ PropertyScore.belongsTo(Property, { foreignKey: "idProperty" });
 ActivityLog.belongsTo(User, { foreignKey: "idUser" });
 User.hasMany(ActivityLog, { foreignKey: "idUser" });
 
+// BACK-G01 — User - Session
+User.hasMany(Session, { foreignKey: "idUser" });
+Session.belongsTo(User, { foreignKey: "idUser" });
+Session.belongsTo(Session, { foreignKey: "replacedBySessionId", as: "replacedBy" });
+
+// BACK-G02 — RBAC : Role - Permission (via RolePermission), User - AccessGrant
+Role.belongsToMany(Permission, {
+  through: RolePermission,
+  foreignKey: "idRole",
+  otherKey: "idPermission",
+  as: "permissions",
+});
+Permission.belongsToMany(Role, {
+  through: RolePermission,
+  foreignKey: "idPermission",
+  otherKey: "idRole",
+  as: "roles",
+});
+
+User.hasMany(AccessGrant, { foreignKey: "idUser" });
+AccessGrant.belongsTo(User, { foreignKey: "idUser" });
+AccessGrant.belongsTo(User, { foreignKey: "grantedBy", as: "grantedByUser" });
+
+// BACK-G04 — Organization : Person - User (0-1), Person - EmployeeProfile (0-1)
+Person.belongsTo(User, { foreignKey: "idUser" });
+User.hasOne(Person, { foreignKey: "idUser" });
+
+Person.hasOne(EmployeeProfile, { foreignKey: "idPerson" });
+EmployeeProfile.belongsTo(Person, { foreignKey: "idPerson" });
+
+Service.hasMany(Poste, { foreignKey: "idService" });
+Poste.belongsTo(Service, { foreignKey: "idService" });
+
+Service.hasMany(EmployeeProfile, { foreignKey: "idService" });
+EmployeeProfile.belongsTo(Service, { foreignKey: "idService" });
+
+Poste.hasMany(EmployeeProfile, { foreignKey: "idPoste" });
+EmployeeProfile.belongsTo(Poste, { foreignKey: "idPoste" });
+
+EmployeeProfile.belongsTo(EmployeeProfile, {
+  foreignKey: "idResponsable",
+  as: "responsable",
+});
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -77,5 +130,14 @@ export {
   Proposal,
   PropertyScore,
   ActivityLog,
+  Role,
+  Permission,
+  RolePermission,
+  AccessGrant,
+  Session,
+  Service,
+  Poste,
+  Person,
+  EmployeeProfile,
   syncModels,
 };
