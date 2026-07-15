@@ -1,26 +1,52 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PropertyCard } from '@/components/property-card';
-import { getPublicProperties, type Property, type PropertyCategory } from '@/lib/properties';
+import {
+  getPublicProperties,
+  PROPERTY_TYPE_LABELS,
+  type Property,
+  type PropertyCategory,
+  type PropertyType,
+} from '@/lib/properties';
 import { getLocalFavoriteIds, toggleLocalFavorite } from '@/lib/localFavorites';
-import { APP_COLORS } from '@/constants/theme-app';
+import { getAccessToken } from '@/lib/secureStore';
+import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
 
 type CategoryFilter = 'all' | PropertyCategory;
+type TypeFilter = 'all' | PropertyType;
 
-const FILTERS: { key: CategoryFilter; label: string }[] = [
+const CATEGORY_FILTERS: { key: CategoryFilter; label: string }[] = [
   { key: 'all', label: 'Tous' },
   { key: 'RENT', label: 'À louer' },
   { key: 'SALE', label: 'À vendre' },
 ];
 
+const TYPE_FILTERS: { key: TypeFilter; label: string; icon: keyof typeof MaterialIcons.glyphMap }[] = [
+  { key: 'all', label: 'Tous types', icon: 'apps' },
+  { key: 'APPARTEMENT', label: PROPERTY_TYPE_LABELS.APPARTEMENT, icon: 'apartment' },
+  { key: 'MAISON', label: PROPERTY_TYPE_LABELS.MAISON, icon: 'home' },
+  { key: 'CONSTRUCTION_DURABLE', label: 'Construction', icon: 'foundation' },
+  { key: 'TERRAIN_PLAT', label: 'Terrain', icon: 'terrain' },
+];
+
 // MOBILE-G03 — consultation "client final" : lecture publique (sans
 // compte), recherche/filtre en ligne uniquement (CLAUDE.md §8, "en ligne
-// uniquement" pour le catalogue complet). Thème clair aligné sur
-// Frontend/styles/globals.css.
+// uniquement" pour le catalogue complet). Thème clair aligné sur la vraie
+// palette de marque du Frontend (Frontend/app/globals.css). L'icône profil
+// en haut à droite est le seul point d'entrée vers la connexion agent/
+// commissionnaire — il n'y a plus de passage obligé par le login.
 export default function RechercheScreen() {
   const insets = useSafeAreaInsets();
   const [properties, setProperties] = useState<Property[]>([]);
@@ -28,6 +54,8 @@ export default function RechercheScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('all');
+  const [propertyType, setPropertyType] = useState<TypeFilter>('all');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -45,6 +73,12 @@ export default function RechercheScreen() {
     load();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      getAccessToken().then((token) => setIsAuthenticated(!!token));
+    }, [])
+  );
+
   const toggleFavorite = async (idProperty: number) => {
     const updated = await toggleLocalFavorite(idProperty);
     setFavoriteIds(new Set(updated));
@@ -53,6 +87,7 @@ export default function RechercheScreen() {
   const filtered = useMemo(() => {
     return properties.filter((property) => {
       if (category !== 'all' && property.category !== category) return false;
+      if (propertyType !== 'all' && property.propertyType !== propertyType) return false;
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         const matches =
@@ -62,18 +97,48 @@ export default function RechercheScreen() {
       }
       return true;
     });
-  }, [properties, category, searchTerm]);
+  }, [properties, category, propertyType, searchTerm]);
 
   return (
     <View style={{ flex: 1, backgroundColor: APP_COLORS.background, paddingTop: insets.top }}>
       <View style={{ gap: 16, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
-        <View>
-          <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 24, color: APP_COLORS.foreground }}>
-            Découvrir
-          </Text>
-          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.mutedForeground, marginTop: 2 }}>
-            Trouvez votre prochain bien à Bukavu
-          </Text>
+        <View className="flex-row items-start justify-between">
+          <View>
+            <Text style={{ fontFamily: 'Manrope_700Bold', fontSize: 24, color: APP_COLORS.foreground }}>
+              Découvrir
+            </Text>
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.mutedForeground, marginTop: 2 }}>
+              Trouvez votre prochain bien à Bukavu
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(client)/profil')}
+            style={{
+              height: 44,
+              width: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 999,
+              backgroundColor: APP_COLORS.muted,
+            }}
+          >
+            <MaterialIcons name="person" size={22} color={APP_COLORS.foreground} />
+            {isAuthenticated && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 6,
+                  right: 6,
+                  height: 9,
+                  width: 9,
+                  borderRadius: 999,
+                  backgroundColor: APP_COLORS.success,
+                  borderWidth: 1.5,
+                  borderColor: APP_COLORS.background,
+                }}
+              />
+            )}
+          </TouchableOpacity>
         </View>
 
         <View
@@ -98,7 +163,7 @@ export default function RechercheScreen() {
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          {FILTERS.map((option) => {
+          {CATEGORY_FILTERS.map((option) => {
             const active = category === option.key;
             return (
               <TouchableOpacity
@@ -124,6 +189,47 @@ export default function RechercheScreen() {
             );
           })}
         </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8 }}
+        >
+          {TYPE_FILTERS.map((option) => {
+            const active = propertyType === option.key;
+            return (
+              <TouchableOpacity
+                key={option.key}
+                onPress={() => setPropertyType(option.key)}
+                className="flex-row items-center"
+                style={{
+                  gap: 6,
+                  borderRadius: APP_RADIUS.md,
+                  paddingHorizontal: 14,
+                  paddingVertical: 9,
+                  borderWidth: 1,
+                  borderColor: active ? APP_COLORS.foreground : APP_COLORS.border,
+                  backgroundColor: active ? APP_COLORS.foreground : APP_COLORS.background,
+                }}
+              >
+                <MaterialIcons
+                  name={option.icon}
+                  size={15}
+                  color={active ? APP_COLORS.background : APP_COLORS.mutedForeground}
+                />
+                <Text
+                  style={{
+                    fontFamily: 'Inter_500Medium',
+                    fontSize: 12.5,
+                    color: active ? APP_COLORS.background : APP_COLORS.mutedForeground,
+                  }}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {isLoading ? (

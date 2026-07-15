@@ -187,9 +187,29 @@ export default function ProfilCommissionnaireScreen() {
       )}
 
       <TouchableOpacity
-        onPress={handleLogout}
+        onPress={() => router.push('/(client)/recherche')}
         style={{
           marginTop: 24,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: APP_COLORS.border,
+          paddingVertical: 14,
+        }}
+      >
+        <MaterialIcons name="storefront" size={18} color={APP_COLORS.foreground} />
+        <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: APP_COLORS.foreground }}>
+          Parcourir le catalogue public
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={handleLogout}
+        style={{
+          marginTop: 12,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',

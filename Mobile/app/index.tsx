@@ -8,7 +8,9 @@ import { hasSeenOnboarding } from '@/lib/onboardingStorage';
 
 // Écran de décision, sans UI propre (les polices/le splash natif restent
 // affichés le temps de trancher) : session active -> arborescence du rôle ;
-// sinon onboarding de marque une seule fois, puis login (MOBILE-G01/G02).
+// sinon onboarding de marque une seule fois, puis catalogue public
+// ("client"), la connexion agent/commissionnaire restant un choix explicite
+// depuis cet espace (icône en haut à droite), jamais un passage obligé.
 export default function RouteDecisionScreen() {
   useEffect(() => {
     const decide = async () => {
@@ -22,7 +24,7 @@ export default function RouteDecisionScreen() {
       }
 
       const seen = await hasSeenOnboarding();
-      router.replace(seen ? '/login' : '/onboarding');
+      router.replace(seen ? '/(client)/recherche' : '/onboarding');
     };
 
     decide();

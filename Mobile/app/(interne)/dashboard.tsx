@@ -5,6 +5,7 @@ export default function DashboardInterneScreen() {
     <RoleScreenPlaceholder
       title="Tableau de bord"
       description="Vue d'ensemble de l'activité pour les agents et l'administration (à venir : Milestone 5)."
+      showBrowseClient
       showLogout
     />
   );

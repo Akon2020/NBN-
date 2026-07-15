@@ -11,6 +11,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ONBOARDING_SLIDES, type OnboardingSlide } from '@/constants/onboarding';
@@ -116,7 +117,10 @@ export default function OnboardingScreen() {
 
   const finishOnboarding = async () => {
     await markOnboardingSeen();
-    router.replace('/login');
+    // Le parcours démarre côté "client" (catalogue public, sans compte) —
+    // la connexion agent/commissionnaire reste accessible via l'icône en
+    // haut à droite de l'écran de recherche, pas un passage obligé.
+    router.replace('/(client)/recherche');
   };
 
   const goNext = () => {
@@ -132,6 +136,7 @@ export default function OnboardingScreen() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: APP_COLORS.foreground }}>
+      <StatusBar style="light" />
       {!isLastSlide && (
         <TouchableOpacity
           onPress={finishOnboarding}

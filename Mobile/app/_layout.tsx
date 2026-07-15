@@ -54,7 +54,11 @@ export default function RootLayout() {
         <Stack.Screen name="collecte/client" />
         <Stack.Screen name="collecte/suivi" />
       </Stack>
-      <StatusBar style="auto" />
+      {/* L'app est en thème clair partout sauf l'onboarding (photo plein
+          cadre) — "auto" suit le mode sombre du téléphone et peut poser des
+          icônes blanches invisibles sur nos fonds clairs. `onboarding.tsx`
+          surcharge localement avec style="light" pendant son affichage. */}
+      <StatusBar style="dark" />
     </ThemeProvider>
   );
 }
