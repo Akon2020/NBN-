@@ -34,6 +34,7 @@ import PaymentMethod from "./paymentMethod.model.js";
 import Payment from "./payment.model.js";
 import CashMovement from "./cashMovement.model.js";
 import LedgerEntry from "./ledgerEntry.model.js";
+import Commission from "./commission.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -240,6 +241,18 @@ LedgerEntry.belongsTo(CashMovement, { foreignKey: "idCashMovement", as: "cashMov
 LedgerEntry.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 CashMovement.hasOne(LedgerEntry, { foreignKey: "idCashMovement", as: "ledgerEntry" });
 
+// BACK-G15 — Commission calculée à partir d'une transaction conclue (CDC),
+// éligible à un Payment une fois marquée DUE (même circuit que Requisition).
+Commission.belongsTo(Client, { foreignKey: "idClient", as: "client" });
+Commission.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
+Commission.belongsTo(User, { foreignKey: "beneficiaireUserId", as: "beneficiaireUser" });
+Commission.belongsTo(Commissionnaire, { foreignKey: "idCommissionnaire", as: "commissionnaire" });
+Commission.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+Commission.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+Commission.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+Payment.belongsTo(Commission, { foreignKey: "idCommission", as: "commission" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -285,5 +298,6 @@ export {
   Payment,
   CashMovement,
   LedgerEntry,
+  Commission,
   syncModels,
 };

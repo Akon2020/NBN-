@@ -42,6 +42,10 @@ const Payment = db.define(
       type: DataTypes.BIGINT,
       allowNull: true,
     },
+    idCommission: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+    },
     statut: {
       type: DataTypes.ENUM(
         "recorded_manually",

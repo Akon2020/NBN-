@@ -9,6 +9,7 @@ import {
   CaisseBalance,
   Currency,
   Requisition,
+  Commission,
   User,
 } from "../models/index.model.js";
 
@@ -17,6 +18,7 @@ const PAYMENT_INCLUDES = [
   { model: Currency, as: "currency" },
   { model: PaymentMethod, as: "paymentMethod" },
   { model: Requisition, as: "requisition", attributes: ["idRequisition", "nature"] },
+  { model: Commission, as: "commission", attributes: ["idCommission", "montantCommission"] },
   { model: User, as: "recorder", attributes: ["idUser", "fullName"] },
 ];
 
@@ -28,8 +30,16 @@ const PAYMENT_INCLUDES = [
 export const recordPayment = async (req, res, next) => {
   const t = await db.transaction();
   try {
-    const { type, amount, currencyCode, idCaisse, idPaymentMethod, idRequisition, description } =
-      req.body;
+    const {
+      type,
+      amount,
+      currencyCode,
+      idCaisse,
+      idPaymentMethod,
+      idRequisition,
+      idCommission,
+      description,
+    } = req.body;
 
     if (!type || !amount || !currencyCode || !idCaisse || !idPaymentMethod) {
       await t.rollback();
@@ -92,6 +102,31 @@ export const recordPayment = async (req, res, next) => {
       }
     }
 
+    let commission = null;
+    if (idCommission) {
+      commission = await Commission.findByPk(idCommission, { transaction: t });
+      if (!commission) {
+        await t.rollback();
+        return res.status(404).json({ message: "Commission non trouvée" });
+      }
+      if (commission.statut !== "DUE") {
+        await t.rollback();
+        return res
+          .status(400)
+          .json({ message: "Seule une commission marquée DUE peut être payée." });
+      }
+      const alreadyPaidCommission = await Payment.findOne({
+        where: { idCommission, statut: { [Op.ne]: "cancelled" } },
+        transaction: t,
+      });
+      if (alreadyPaidCommission) {
+        await t.rollback();
+        return res
+          .status(409)
+          .json({ message: "Cette commission a déjà donné lieu à un paiement." });
+      }
+    }
+
     const movementType = type === "ENCAISSEMENT" ? "ENTREE" : "SORTIE";
     const currentBalance = Number(balance.balance);
     const newBalance =
@@ -112,11 +147,16 @@ export const recordPayment = async (req, res, next) => {
         idCaisse,
         idPaymentMethod,
         idRequisition: idRequisition || null,
+        idCommission: idCommission || null,
         description: description || null,
         recordedBy: req.user.idUser,
       },
       { transaction: t }
     );
+
+    if (commission) {
+      await commission.update({ statut: "PAYEE" }, { transaction: t });
+    }
 
     const cashMovement = await CashMovement.create(
       {
