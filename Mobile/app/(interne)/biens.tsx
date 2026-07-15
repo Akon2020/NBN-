@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PropertyCard } from '@/components/property-card';
-import { getPublicProperties, type Property, type PropertyCategory } from '@/lib/properties';
-import { getLocalFavoriteIds, toggleLocalFavorite } from '@/lib/localFavorites';
+import { getAllProperties, type Property, type PropertyCategory } from '@/lib/properties';
+import { addFavorite, getMyFavorites, removeFavorite } from '@/lib/favorites';
 import { APP_COLORS } from '@/constants/theme-app';
 
 type CategoryFilter = 'all' | PropertyCategory;
@@ -17,11 +17,9 @@ const FILTERS: { key: CategoryFilter; label: string }[] = [
   { key: 'SALE', label: 'À vendre' },
 ];
 
-// MOBILE-G03 — consultation "client final" : lecture publique (sans
-// compte), recherche/filtre en ligne uniquement (CLAUDE.md §8, "en ligne
-// uniquement" pour le catalogue complet). Thème clair aligné sur
-// Frontend/styles/globals.css.
-export default function RechercheScreen() {
+// MOBILE-G03 — consultation "interne limité" : compte réel, lecture
+// authentifiée du catalogue complet, favoris synchronisés côté serveur.
+export default function BiensInterneScreen() {
   const insets = useSafeAreaInsets();
   const [properties, setProperties] = useState<Property[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
@@ -33,11 +31,11 @@ export default function RechercheScreen() {
     const load = async () => {
       try {
         const [propertiesData, favorites] = await Promise.all([
-          getPublicProperties(),
-          getLocalFavoriteIds(),
+          getAllProperties(),
+          getMyFavorites().catch(() => []),
         ]);
         setProperties(propertiesData);
-        setFavoriteIds(favorites);
+        setFavoriteIds(new Set(favorites.map((f) => f.idProperty)));
       } finally {
         setIsLoading(false);
       }
@@ -45,10 +43,26 @@ export default function RechercheScreen() {
     load();
   }, []);
 
-  const toggleFavorite = async (idProperty: number) => {
-    const updated = await toggleLocalFavorite(idProperty);
-    setFavoriteIds(new Set(updated));
-  };
+  const toggleFavorite = useCallback(
+    async (idProperty: number) => {
+      try {
+        if (favoriteIds.has(idProperty)) {
+          await removeFavorite(idProperty);
+          setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(idProperty);
+            return next;
+          });
+        } else {
+          await addFavorite(idProperty);
+          setFavoriteIds((prev) => new Set(prev).add(idProperty));
+        }
+      } catch {
+        // Silencieux : l'utilisateur peut réessayer.
+      }
+    },
+    [favoriteIds]
+  );
 
   const filtered = useMemo(() => {
     return properties.filter((property) => {
@@ -65,17 +79,8 @@ export default function RechercheScreen() {
   }, [properties, category, searchTerm]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: APP_COLORS.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: APP_COLORS.background }}>
       <View style={{ gap: 16, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
-        <View>
-          <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 24, color: APP_COLORS.foreground }}>
-            Découvrir
-          </Text>
-          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.mutedForeground, marginTop: 2 }}>
-            Trouvez votre prochain bien à Bukavu
-          </Text>
-        </View>
-
         <View
           style={{
             flexDirection: 'row',
@@ -134,7 +139,7 @@ export default function RechercheScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item) => String(item.idProperty)}
-          contentContainerStyle={{ padding: 20 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 20 }}
           renderItem={({ item }) => (
             <PropertyCard
               property={item}

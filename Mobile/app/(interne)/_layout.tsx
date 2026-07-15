@@ -2,18 +2,21 @@ import { Tabs } from 'expo-router';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { APP_COLORS } from '@/constants/theme-app';
 
 // Arborescence "Interne" — agents/employés (tâches, collecte terrain non
-// commissionnée, RH). Écrans placeholders pour l'instant.
+// commissionnée, RH). Écrans placeholders pour l'instant (sauf "Biens").
 export default function InterneLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
-        tabBarActiveTintColor: colorScheme === 'dark' ? '#F25414' : '#C13F0B',
+        headerStyle: { backgroundColor: APP_COLORS.background },
+        headerTintColor: APP_COLORS.foreground,
+        headerShadowVisible: false,
+        tabBarActiveTintColor: APP_COLORS.primary,
+        tabBarInactiveTintColor: APP_COLORS.mutedForeground,
+        tabBarStyle: { backgroundColor: APP_COLORS.background, borderTopColor: APP_COLORS.border },
         tabBarButton: HapticTab,
       }}
     >
@@ -22,6 +25,13 @@ export default function InterneLayout() {
         options={{
           title: 'Tableau de bord',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="biens"
+        options={{
+          title: 'Biens',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen

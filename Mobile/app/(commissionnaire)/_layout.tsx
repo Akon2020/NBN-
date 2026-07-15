@@ -2,19 +2,20 @@ import { Tabs } from 'expo-router';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { APP_COLORS } from '@/constants/theme-app';
 
 // Arborescence "Commissionnaire" — collecte terrain (biens, clients),
-// suivi de ses apports et de ses commissions. Écrans placeholders pour
-// l'instant (contenu réel : MOBILE-G04, offline-first).
+// suivi de ses apports (MOBILE-G04). "Missions" et "Profil" construisent
+// leur propre en-tête, le header natif reste désactivé pour éviter le
+// doublon.
 export default function CommissionnaireLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
-        tabBarActiveTintColor: colorScheme === 'dark' ? '#F25414' : '#C13F0B',
+        headerShown: false,
+        tabBarActiveTintColor: APP_COLORS.primary,
+        tabBarInactiveTintColor: APP_COLORS.mutedForeground,
+        tabBarStyle: { backgroundColor: APP_COLORS.background, borderTopColor: APP_COLORS.border },
         tabBarButton: HapticTab,
       }}
     >
