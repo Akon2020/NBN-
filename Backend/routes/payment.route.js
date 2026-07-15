@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   cancelPayment,
   getAllLedgerEntries,
+  getAllPaymentMethods,
   getAllPayments,
   recordPayment,
 } from "../controllers/payment.controller.js";
@@ -25,6 +26,23 @@ paymentRouter.get(
   authMiddlware,
   requirePermission("payments:read"),
   getAllLedgerEntries
+);
+
+/**
+ * @swagger
+ * /api/payments/methods:
+ *   get:
+ *     summary: Liste les moyens de paiement actifs (CASH/VIREMENT/MOBILE_MONEY)
+ *     tags: [Treasury]
+ *     responses:
+ *       200:
+ *         description: Liste récupérée avec succès
+ */
+paymentRouter.get(
+  "/methods",
+  authMiddlware,
+  requirePermission("payments:read"),
+  getAllPaymentMethods
 );
 
 /**

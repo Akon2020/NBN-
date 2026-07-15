@@ -313,6 +313,19 @@ export const cancelPayment = async (req, res, next) => {
 
 // Le ledger reste strictement en lecture seule ici : aucune route
 // PATCH/DELETE n'existe pour LedgerEntry, par construction (append-only).
+export const getAllPaymentMethods = async (req, res, next) => {
+  try {
+    const methods = await PaymentMethod.findAll({
+      where: { isActive: true },
+      order: [["code", "ASC"]],
+    });
+    return res.status(200).json({ nombre: methods.length, data: methods });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
 export const getAllLedgerEntries = async (req, res, next) => {
   try {
     const { idCaisse, currencyCode } = req.query;

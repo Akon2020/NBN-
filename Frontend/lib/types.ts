@@ -448,3 +448,206 @@ export interface Mission {
   createdAt: string
   updatedAt: string
 }
+
+// --- Milestone 4 : Trésorerie (BACK-G12 à G15) ---
+
+export interface Currency {
+  code: string
+  label: string
+  symbol: string
+  isActive: boolean
+}
+
+export interface CaisseBalance {
+  idCaisseBalance: number
+  idCaisse: number
+  currencyCode: string
+  balance: number
+  currency?: Currency
+}
+
+export type CaisseStatut = "OUVERTE" | "CLOTUREE"
+
+export const CAISSE_STATUT_LABELS: Record<CaisseStatut, string> = {
+  OUVERTE: "Ouverte",
+  CLOTUREE: "Clôturée",
+}
+
+export interface Caisse {
+  idCaisse: number
+  label: string
+  responsableUserId?: number | null
+  statut: CaisseStatut
+  responsable?: { idUser: number; fullName: string; email: string } | null
+  balances?: CaisseBalance[]
+  createdAt: string
+}
+
+export interface ExchangeRate {
+  idExchangeRate: number
+  fromCurrency: string
+  toCurrency: string
+  rate: number
+  date: string
+  source?: string | null
+  from?: Currency
+  to?: Currency
+}
+
+export type RequisitionStatut = "SOUMISE" | "COMPLEMENT_DEMANDE" | "APPROUVEE" | "REJETEE"
+
+export const REQUISITION_STATUT_LABELS: Record<RequisitionStatut, string> = {
+  SOUMISE: "Soumise",
+  COMPLEMENT_DEMANDE: "Complément demandé",
+  APPROUVEE: "Approuvée",
+  REJETEE: "Rejetée",
+}
+
+export interface Requisition {
+  idRequisition: number
+  demandeurId: number
+  idCaisse: number
+  nature: string
+  quantite?: number | null
+  coutEstime: number
+  currencyCode: string
+  justificatif?: string | null
+  statut: RequisitionStatut
+  motifDecision?: string | null
+  validationCode?: string | null
+  decidedBy?: number | null
+  decidedAt?: string | null
+  demandeur?: { idUser: number; fullName: string; email: string }
+  decideur?: { idUser: number; fullName: string; email: string } | null
+  caisse?: { idCaisse: number; label: string }
+  currency?: Currency
+  createdAt: string
+}
+
+export interface RequisitionCreatePayload {
+  idCaisse: number
+  nature: string
+  quantite?: number
+  coutEstime: number
+  currencyCode: string
+  justificatif?: string
+}
+
+export interface PaymentMethod {
+  idPaymentMethod: number
+  code: string
+  label: string
+  isActive: boolean
+}
+
+export type PaymentType = "ENCAISSEMENT" | "DECAISSEMENT"
+export type PaymentStatut =
+  | "recorded_manually"
+  | "initiated"
+  | "provider_confirmed"
+  | "pending"
+  | "failed"
+  | "cancelled"
+  | "reconciled"
+
+export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
+  ENCAISSEMENT: "Encaissement",
+  DECAISSEMENT: "Décaissement",
+}
+
+export interface Payment {
+  idPayment: number
+  type: PaymentType
+  amount: number
+  currencyCode: string
+  idCaisse: number
+  idPaymentMethod: number
+  idRequisition?: number | null
+  idCommission?: number | null
+  statut: PaymentStatut
+  description?: string | null
+  reversalOfPaymentId?: number | null
+  recordedBy: number
+  caisse?: { idCaisse: number; label: string }
+  currency?: Currency
+  paymentMethod?: PaymentMethod
+  requisition?: { idRequisition: number; nature: string } | null
+  commission?: { idCommission: number; montantCommission: number } | null
+  recorder?: { idUser: number; fullName: string }
+  createdAt: string
+}
+
+export interface PaymentCreatePayload {
+  type: PaymentType
+  amount: number
+  currencyCode: string
+  idCaisse: number
+  idPaymentMethod: number
+  idRequisition?: number
+  idCommission?: number
+  description?: string
+}
+
+export interface LedgerEntry {
+  idLedgerEntry: number
+  idCaisse: number
+  currencyCode: string
+  amount: number
+  type: "ENTREE" | "SORTIE"
+  balanceAfter: number
+  idCashMovement: number
+  description?: string | null
+  caisse?: { idCaisse: number; label: string }
+  currency?: Currency
+  creator?: { idUser: number; fullName: string }
+  createdAt: string
+}
+
+export type CommissionBeneficiaireType = "AGENCE" | "AGENT" | "COMMISSIONNAIRE"
+export type CommissionStatut = "CALCULEE" | "DUE" | "PAYEE" | "ANNULEE"
+
+export const COMMISSION_BENEFICIAIRE_LABELS: Record<CommissionBeneficiaireType, string> = {
+  AGENCE: "Agence",
+  AGENT: "Agent",
+  COMMISSIONNAIRE: "Commissionnaire",
+}
+
+export const COMMISSION_STATUT_LABELS: Record<CommissionStatut, string> = {
+  CALCULEE: "Calculée",
+  DUE: "Due",
+  PAYEE: "Payée",
+  ANNULEE: "Annulée",
+}
+
+export interface Commission {
+  idCommission: number
+  idClient: number
+  idProperty?: number | null
+  beneficiaireType: CommissionBeneficiaireType
+  beneficiaireUserId?: number | null
+  idCommissionnaire?: number | null
+  montantTransaction: number
+  currencyCode: string
+  tauxCommission?: number | null
+  montantCommission: number
+  idCaisse?: number | null
+  statut: CommissionStatut
+  client?: { idClient: number; type: string; statutPipeline: string }
+  property?: { idProperty: number; quartier?: string; price?: number } | null
+  beneficiaireUser?: { idUser: number; fullName: string } | null
+  commissionnaire?: { idCommissionnaire: number; code: string; person?: { fullName: string } } | null
+  currency?: Currency
+  caisse?: { idCaisse: number; label: string } | null
+  createdAt: string
+}
+
+export interface CommissionCreatePayload {
+  idClient: number
+  idProperty?: number
+  beneficiaireType: CommissionBeneficiaireType
+  beneficiaireUserId?: number
+  montantTransaction: number
+  currencyCode: string
+  tauxCommission?: number
+  montantCommission?: number
+}

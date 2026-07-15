@@ -24,6 +24,9 @@ import {
   Handshake,
   ClipboardCheck,
   Compass,
+  Wallet,
+  FileText,
+  Percent,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -68,6 +71,9 @@ export default function DashboardLayout({
     { name: "Bailleurs", href: "/dashboard/bailleurs", icon: Handshake },
     { name: "Commissionnaires", href: "/dashboard/commissionnaires", icon: Compass },
     { name: "Missions", href: "/dashboard/missions", icon: ClipboardCheck },
+    { name: "Caisses", href: "/dashboard/caisses", icon: Wallet },
+    { name: "Réquisitions", href: "/dashboard/requisitions", icon: FileText },
+    { name: "Commissions", href: "/dashboard/commissions", icon: Percent },
     { name: "Galerie", href: "/dashboard/gallery", icon: ImageIcon },
     { name: "Favoris", href: "/dashboard/favorites", icon: Star },
     { name: "Recherche", href: "/dashboard/search", icon: Search },
