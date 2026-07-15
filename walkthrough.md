@@ -330,3 +330,44 @@ Tous les goals de `plan.md` pour le Milestone 2 sont livrés et vérifiés : BAC
 6. Nouvel endpoint public (`/api/properties/public*`) à documenter plus formellement si la stratégie de documentation Swagger distingue un jour explicitement les routes publiques des routes authentifiées.
 
 *Prochaine session suggérée : Milestone 3 — Field Operations (Commissionnaires) + collecte terrain Mobile offline-first (BACK-G09 et suivants).*
+
+---
+
+## Session 5 — 2026-07-15 — Milestone 3 (Field Operations + collecte terrain offline-first)
+
+### ✅ BACK-G09 — Modèle Commissionnaire, scoring, grille d'évolution
+Nouveaux modèles `Commissionnaire` (rattaché à `Person`, code unique, zone, niveau JUNIOR/CONFIRME/SENIOR, statut ACTIF/OBSERVATION/SUSPENDU/EXCLU, 4 sous-scores 0-25 + `scoreGlobal` dérivé) et `CommissionnaireIncident` (type, gravité, impact sur `scoreDiscipline`). `utils/commissionnaireScoring.js` centralise le calcul du score global et la grille d'évolution (promotion JUNIOR→CONFIRME à ≥75, CONFIRME→SENIOR à ≥90 ; passage automatique en OBSERVATION si le score descend sous 60). `classement` (ELITE/TRES_PERFORMANT/MOYEN/RISQUE) toujours dérivé à la volée, jamais stocké.
+
+### ✅ BACK-G10 — Missions terrain et validation
+Modèle `Mission` (types COLLECTE_BIEN/APPORT_CLIENT/SUIVI, statuts SOUMISE/VALIDEE/REJETEE/CORRECTION_DEMANDEE), soumission idempotente via `uuid` généré côté client (`findOrCreate`) — une resoumission après coupure réseau ne crée jamais de doublon. Trois actions de transition (`valider`/`rejeter`/`demander-correction`), les deux dernières exigent un motif.
+
+### ✅ BACK-G11 — Suspension commissionnaire → révocation de session
+La suspension/exclusion d'un commissionnaire déclenche le même mécanisme que pour un `User` désactivé (incrément `securityVersion` + révocation de toutes les `Session` actives), uniquement si la `Person` liée a un compte de connexion.
+
+### ✅ Pivot design Mobile — thème clair
+À la demande explicite de l'utilisateur (avec images de référence), le thème Mobile est passé d'une palette navy/orange sombre à un thème clair calqué sur les tokens shadcn réels du Frontend (`constants/theme-app.ts`) : fond blanc, texte quasi-noir, accents neutres, cartes arrondies à coins généreux, pastilles de catégorie. Appliqué à l'ensemble des écrans (recherche, favoris, détail bien, missions, profil commissionnaire, biens interne, tous les écrans de collecte).
+
+### ✅ MOBILE-G04 — Collecte terrain offline-first
+Architecture en couches (UI → Repository → SQLite local / API distante / moteur de synchronisation), conforme à CLAUDE.md §8-9 : `expo-sqlite` pour le stockage local, uuid généré côté client pour l'idempotence, synchronisation FIFO à la reconnexion (`useSyncOnReconnect`), photos découplées de la ressource métier (compression + hash de déduplication + upload avec retry, suppression locale uniquement après confirmation serveur). Distinction stricte erreur réseau (retry, arrêt de la file) vs erreur de validation 4xx (échec marqué, la file continue). Testé par `__tests__/syncEngine.test.ts` (3/3) : reprise après coupure réseau sans recréer la ressource déjà synchronisée, ordre FIFO respecté, échec d'un brouillon n'empêche pas le traitement du suivant.
+
+### ✅ ADMIN-G05 — Écrans de pilotage commissionnaires/missions (Frontend)
+Liste et fiche détail des commissionnaires (score par dimension avec barres de progression, historique d'incidents, changement de statut avec avertissement explicite sur la révocation de session), écran de validation des missions (Valider / Corriger / Rejeter, motif obligatoire pour les deux derniers). Un bug backend a été trouvé et corrigé pendant la vérification en direct : les actions de transition de mission renvoyaient l'entité sans ses associations, faisant retomber l'affichage du nom du commissionnaire sur `Commissionnaire #<id>` après chaque action — corrigé par un `reload()` avec les mêmes `include` que la liste.
+
+### ✅ Passe de responsivité mobile (dashboard entier)
+Un bug de débordement horizontal a été repéré en testant ADMIN-G05 en viewport mobile (bouton d'action coupé hors écran) — le même défaut existait déjà sur la quasi-totalité des pages du dashboard (Bailleurs, Clients, Utilisateurs, Biens à louer/vendre, Accès consultants, et leurs fiches détail). Corrigé de façon systématique : les en-têtes `titre + bouton` et `retour + groupe d'actions` passent désormais de `flex items-center justify-between` à `flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between` (empilement vertical sous le breakpoint `sm`, bouton pleine largeur), et les groupes de boutons d'action passent en `flex flex-wrap` pour éviter tout débordement à largeur intermédiaire. Vérifié à la fois visuellement (mobile 375px) et via mesures DOM/CSS réelles (desktop 1280px : sidebar permanente, grille à 3 colonnes, en-tête en ligne) — la capture d'écran de l'outil de prévisualisation intégré s'est révélée limitée en résolution physique sur les grands viewports, d'où la vérification croisée par `getComputedStyle`/`getBoundingClientRect`.
+
+### Vérification — méthode
+Backend : `npm test` → **54/54**. Frontend : `npx tsc --noEmit` → 0 erreur (le lint n'est toujours pas configuré sur ce projet, gap préexistant noté mais non traité cette session). Mobile : `tsc --noEmit` + `expo lint` propres, `npm test` → 6/6.
+
+Parcours vérifiés en direct dans le navigateur (compte `qa.operations@nbn.test`, rôle operations) : création d'un commissionnaire (confirmée en base), évaluation du score (recalcul correct du niveau/classement), enregistrement d'un incident (impact correct sur `scoreDiscipline` et reclassement), changement de statut, et sur deux missions créées via l'API pour le test : validation, rejet avec motif obligatoire.
+
+**Non vérifié en direct** : le flux "Demander une correction" (`RejectMissionModal` en mode `CORRECTION`) n'a pas été exercé manuellement — il partage cependant exactement le même composant, la même validation de motif et le même contrôleur (`requestMissionCorrection`, symétrique à `rejectMission`) que le flux "Rejeter" déjà vérifié bout en bout.
+
+### Incident d'environnement (résolu par l'utilisateur)
+Le serveur de développement Frontend s'est retrouvé dans un état bloqué en cours de session (navigation vers `/auth/login` redirigeant silencieusement vers `/dashboard` vide) après une longue durée d'exécution continue — cohérent avec le problème de processus `node` orphelins déjà documenté aux sessions précédentes. Le redémarrage manuel du serveur par l'utilisateur a résolu le blocage immédiatement.
+
+### Décisions à documenter/valider par l'utilisateur
+- Les comptes/données QA créés pendant la vérification (`qa.operations@nbn.test`, commissionnaire "Jean Kabila" CMR-QA-001, missions #17/#18) ont été laissés en base de développement (jetable par décision CLAUDE.md §2.10) — à purger avant toute démonstration externe.
+- Le lint Frontend reste non configuré (ESLint absent malgré la présence du script `npm run lint`) — reporté, non bloquant pour ce milestone.
+
+*Milestone 3 terminé. Prochaine session suggérée : cadrage du Milestone 4 selon `plan.md`.*
