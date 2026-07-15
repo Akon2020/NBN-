@@ -25,6 +25,16 @@ import Matching from "./matching.model.js";
 import Commissionnaire from "./commissionnaire.model.js";
 import CommissionnaireIncident from "./commissionnaireIncident.model.js";
 import Mission from "./mission.model.js";
+import Currency from "./currency.model.js";
+import Caisse from "./caisse.model.js";
+import CaisseBalance from "./caisseBalance.model.js";
+import ExchangeRate from "./exchangeRate.model.js";
+import Requisition from "./requisition.model.js";
+import PaymentMethod from "./paymentMethod.model.js";
+import Payment from "./payment.model.js";
+import CashMovement from "./cashMovement.model.js";
+import LedgerEntry from "./ledgerEntry.model.js";
+import Commission from "./commission.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -187,6 +197,62 @@ Mission.belongsTo(Property, { foreignKey: "idProperty" });
 Mission.belongsTo(Client, { foreignKey: "idClient" });
 Mission.belongsTo(User, { foreignKey: "validatedBy", as: "validator" });
 
+// BACK-G12 — Caisses multiples et devises (CLAUDE.md §4). Un solde par
+// devise et par caisse (CaisseBalance), jamais mélangés ; ExchangeRate sert
+// uniquement au reporting consolidé.
+Caisse.belongsTo(User, { foreignKey: "responsableUserId", as: "responsable" });
+Caisse.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+Caisse.hasMany(CaisseBalance, { foreignKey: "idCaisse", as: "balances" });
+CaisseBalance.belongsTo(Caisse, { foreignKey: "idCaisse" });
+
+Currency.hasMany(CaisseBalance, { foreignKey: "currencyCode" });
+CaisseBalance.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+
+ExchangeRate.belongsTo(Currency, { foreignKey: "fromCurrency", as: "from" });
+ExchangeRate.belongsTo(Currency, { foreignKey: "toCurrency", as: "to" });
+ExchangeRate.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+// BACK-G13 — Réquisitions (info.md §6 : Saisie → Vérification →
+// Approbation → Génération → Archivage).
+Requisition.belongsTo(User, { foreignKey: "demandeurId", as: "demandeur" });
+Requisition.belongsTo(User, { foreignKey: "decidedBy", as: "decideur" });
+Requisition.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+Requisition.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+
+// BACK-G14 — Payment → CashMovement → LedgerEntry (CLAUDE.md §4, append-only).
+Payment.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+Payment.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+Payment.belongsTo(PaymentMethod, { foreignKey: "idPaymentMethod", as: "paymentMethod" });
+Payment.belongsTo(Requisition, { foreignKey: "idRequisition", as: "requisition" });
+Payment.belongsTo(User, { foreignKey: "recordedBy", as: "recorder" });
+Payment.belongsTo(Payment, { foreignKey: "reversalOfPaymentId", as: "reversalOf" });
+Payment.hasOne(Payment, { foreignKey: "reversalOfPaymentId", as: "reversedBy" });
+
+CashMovement.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+CashMovement.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+CashMovement.belongsTo(Payment, { foreignKey: "idPayment", as: "payment" });
+CashMovement.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+Payment.hasOne(CashMovement, { foreignKey: "idPayment", as: "cashMovement" });
+
+LedgerEntry.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+LedgerEntry.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+LedgerEntry.belongsTo(CashMovement, { foreignKey: "idCashMovement", as: "cashMovement" });
+LedgerEntry.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+CashMovement.hasOne(LedgerEntry, { foreignKey: "idCashMovement", as: "ledgerEntry" });
+
+// BACK-G15 — Commission calculée à partir d'une transaction conclue (CDC),
+// éligible à un Payment une fois marquée DUE (même circuit que Requisition).
+Commission.belongsTo(Client, { foreignKey: "idClient", as: "client" });
+Commission.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
+Commission.belongsTo(User, { foreignKey: "beneficiaireUserId", as: "beneficiaireUser" });
+Commission.belongsTo(Commissionnaire, { foreignKey: "idCommissionnaire", as: "commissionnaire" });
+Commission.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+Commission.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+Commission.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+Payment.belongsTo(Commission, { foreignKey: "idCommission", as: "commission" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -223,5 +289,15 @@ export {
   Commissionnaire,
   CommissionnaireIncident,
   Mission,
+  Currency,
+  Caisse,
+  CaisseBalance,
+  ExchangeRate,
+  Requisition,
+  PaymentMethod,
+  Payment,
+  CashMovement,
+  LedgerEntry,
+  Commission,
   syncModels,
 };

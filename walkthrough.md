@@ -330,3 +330,75 @@ Tous les goals de `plan.md` pour le Milestone 2 sont livrés et vérifiés : BAC
 6. Nouvel endpoint public (`/api/properties/public*`) à documenter plus formellement si la stratégie de documentation Swagger distingue un jour explicitement les routes publiques des routes authentifiées.
 
 *Prochaine session suggérée : Milestone 3 — Field Operations (Commissionnaires) + collecte terrain Mobile offline-first (BACK-G09 et suivants).*
+
+---
+
+## Session 5 — 2026-07-15 — Milestone 3 (Field Operations + collecte terrain offline-first)
+
+### ✅ BACK-G09 — Modèle Commissionnaire, scoring, grille d'évolution
+Nouveaux modèles `Commissionnaire` (rattaché à `Person`, code unique, zone, niveau JUNIOR/CONFIRME/SENIOR, statut ACTIF/OBSERVATION/SUSPENDU/EXCLU, 4 sous-scores 0-25 + `scoreGlobal` dérivé) et `CommissionnaireIncident` (type, gravité, impact sur `scoreDiscipline`). `utils/commissionnaireScoring.js` centralise le calcul du score global et la grille d'évolution (promotion JUNIOR→CONFIRME à ≥75, CONFIRME→SENIOR à ≥90 ; passage automatique en OBSERVATION si le score descend sous 60). `classement` (ELITE/TRES_PERFORMANT/MOYEN/RISQUE) toujours dérivé à la volée, jamais stocké.
+
+### ✅ BACK-G10 — Missions terrain et validation
+Modèle `Mission` (types COLLECTE_BIEN/APPORT_CLIENT/SUIVI, statuts SOUMISE/VALIDEE/REJETEE/CORRECTION_DEMANDEE), soumission idempotente via `uuid` généré côté client (`findOrCreate`) — une resoumission après coupure réseau ne crée jamais de doublon. Trois actions de transition (`valider`/`rejeter`/`demander-correction`), les deux dernières exigent un motif.
+
+### ✅ BACK-G11 — Suspension commissionnaire → révocation de session
+La suspension/exclusion d'un commissionnaire déclenche le même mécanisme que pour un `User` désactivé (incrément `securityVersion` + révocation de toutes les `Session` actives), uniquement si la `Person` liée a un compte de connexion.
+
+### ✅ Pivot design Mobile — thème clair
+À la demande explicite de l'utilisateur (avec images de référence), le thème Mobile est passé d'une palette navy/orange sombre à un thème clair calqué sur les tokens shadcn réels du Frontend (`constants/theme-app.ts`) : fond blanc, texte quasi-noir, accents neutres, cartes arrondies à coins généreux, pastilles de catégorie. Appliqué à l'ensemble des écrans (recherche, favoris, détail bien, missions, profil commissionnaire, biens interne, tous les écrans de collecte).
+
+### ✅ MOBILE-G04 — Collecte terrain offline-first
+Architecture en couches (UI → Repository → SQLite local / API distante / moteur de synchronisation), conforme à CLAUDE.md §8-9 : `expo-sqlite` pour le stockage local, uuid généré côté client pour l'idempotence, synchronisation FIFO à la reconnexion (`useSyncOnReconnect`), photos découplées de la ressource métier (compression + hash de déduplication + upload avec retry, suppression locale uniquement après confirmation serveur). Distinction stricte erreur réseau (retry, arrêt de la file) vs erreur de validation 4xx (échec marqué, la file continue). Testé par `__tests__/syncEngine.test.ts` (3/3) : reprise après coupure réseau sans recréer la ressource déjà synchronisée, ordre FIFO respecté, échec d'un brouillon n'empêche pas le traitement du suivant.
+
+### ✅ ADMIN-G05 — Écrans de pilotage commissionnaires/missions (Frontend)
+Liste et fiche détail des commissionnaires (score par dimension avec barres de progression, historique d'incidents, changement de statut avec avertissement explicite sur la révocation de session), écran de validation des missions (Valider / Corriger / Rejeter, motif obligatoire pour les deux derniers). Un bug backend a été trouvé et corrigé pendant la vérification en direct : les actions de transition de mission renvoyaient l'entité sans ses associations, faisant retomber l'affichage du nom du commissionnaire sur `Commissionnaire #<id>` après chaque action — corrigé par un `reload()` avec les mêmes `include` que la liste.
+
+### ✅ Passe de responsivité mobile (dashboard entier)
+Un bug de débordement horizontal a été repéré en testant ADMIN-G05 en viewport mobile (bouton d'action coupé hors écran) — le même défaut existait déjà sur la quasi-totalité des pages du dashboard (Bailleurs, Clients, Utilisateurs, Biens à louer/vendre, Accès consultants, et leurs fiches détail). Corrigé de façon systématique : les en-têtes `titre + bouton` et `retour + groupe d'actions` passent désormais de `flex items-center justify-between` à `flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between` (empilement vertical sous le breakpoint `sm`, bouton pleine largeur), et les groupes de boutons d'action passent en `flex flex-wrap` pour éviter tout débordement à largeur intermédiaire. Vérifié à la fois visuellement (mobile 375px) et via mesures DOM/CSS réelles (desktop 1280px : sidebar permanente, grille à 3 colonnes, en-tête en ligne) — la capture d'écran de l'outil de prévisualisation intégré s'est révélée limitée en résolution physique sur les grands viewports, d'où la vérification croisée par `getComputedStyle`/`getBoundingClientRect`.
+
+### Vérification — méthode
+Backend : `npm test` → **54/54**. Frontend : `npx tsc --noEmit` → 0 erreur (le lint n'est toujours pas configuré sur ce projet, gap préexistant noté mais non traité cette session). Mobile : `tsc --noEmit` + `expo lint` propres, `npm test` → 6/6.
+
+Parcours vérifiés en direct dans le navigateur (compte `qa.operations@nbn.test`, rôle operations) : création d'un commissionnaire (confirmée en base), évaluation du score (recalcul correct du niveau/classement), enregistrement d'un incident (impact correct sur `scoreDiscipline` et reclassement), changement de statut, et sur deux missions créées via l'API pour le test : validation, rejet avec motif obligatoire.
+
+**Non vérifié en direct** : le flux "Demander une correction" (`RejectMissionModal` en mode `CORRECTION`) n'a pas été exercé manuellement — il partage cependant exactement le même composant, la même validation de motif et le même contrôleur (`requestMissionCorrection`, symétrique à `rejectMission`) que le flux "Rejeter" déjà vérifié bout en bout.
+
+### Incident d'environnement (résolu par l'utilisateur)
+Le serveur de développement Frontend s'est retrouvé dans un état bloqué en cours de session (navigation vers `/auth/login` redirigeant silencieusement vers `/dashboard` vide) après une longue durée d'exécution continue — cohérent avec le problème de processus `node` orphelins déjà documenté aux sessions précédentes. Le redémarrage manuel du serveur par l'utilisateur a résolu le blocage immédiatement.
+
+### Décisions à documenter/valider par l'utilisateur
+- Les comptes/données QA créés pendant la vérification (`qa.operations@nbn.test`, commissionnaire "Jean Kabila" CMR-QA-001, missions #17/#18) ont été laissés en base de développement (jetable par décision CLAUDE.md §2.10) — à purger avant toute démonstration externe.
+- Le lint Frontend reste non configuré (ESLint absent malgré la présence du script `npm run lint`) — reporté, non bloquant pour ce milestone.
+
+*Milestone 3 terminé. Prochaine session suggérée : cadrage du Milestone 4 selon `plan.md`.*
+
+---
+
+## Session 6 — 2026-07-15 — Milestone 4 (Treasury + Payments niveau 1)
+
+### ✅ BACK-G12 — Caisses multiples et devises
+Modèles `Caisse` (statut ouverte/clôturée, responsable), `Currency` (catalogue configurable, USD/CDF pré-remplies par seeder), `CaisseBalance` (un solde par devise et par caisse, jamais mélangés — contrainte unique `(idCaisse, currencyCode)`), `ExchangeRate` (taux tracés, reporting consolidé uniquement, jamais de conversion implicite). La création d'une caisse initialise automatiquement un solde à zéro pour chaque devise active. Permissions `treasury:read`/`treasury:manage`.
+
+### ✅ BACK-G13 — Réquisitions de fonds
+Circuit complet décrit dans info.md §6 : Saisie → Vérification (contrôle synchrone des champs obligatoires + conformité budgétaire : la devise demandée doit être suivie par la caisse ciblée) → Approbation (génère un code de validation unique `REQ-<année>-<hex>`) / Rejet / Demande de complément (motif obligatoire pour ces deux derniers) → Génération (PDF via `pdf-lib`, rendu à la demande à partir des données figées à l'approbation, jamais stocké sur disque) → Archivage (aucune suppression, recherche par filtres statut/caisse/dates).
+
+### ✅ BACK-G14 — Payment → CashMovement → LedgerEntry (append-only)
+`Payment` découplé de `PaymentMethod` (catalogue CASH/VIREMENT/MOBILE_MONEY seedé) ; V1 n'utilise que le statut `recorded_manually`, les autres (initiated/provider_confirmed/...) existent dès le schéma pour une future intégration fournisseur, inertes. Un enregistrement de paiement crée dans une **transaction unique** : le `Payment`, un `CashMovement`, la mise à jour du `CaisseBalance`, et une `LedgerEntry` immuable (`balanceAfter` figé). Un décaissement qui dépasserait le solde disponible est refusé. Aucune route de modification n'existe sur le ledger — une correction crée uniquement une contre-écriture de sens opposé (`Payment.reversalOfPaymentId`) et marque l'original `cancelled`, sans jamais toucher l'historique déjà comptabilisé.
+
+### ✅ BACK-G15 — Commissions
+Calcul agence/agent/commissionnaire à partir d'une transaction client conclue (`Client.statutPipeline === "CONCLU"`), par taux appliqué au montant de la transaction ou montant direct. Le bénéficiaire `COMMISSIONNAIRE` est résolu depuis `Client.sourceCommissionnaireCode` ; `AGENT` exige un `beneficiaireUserId` explicite. Une commission calculée (`CALCULEE`) devient éligible à un paiement seulement après avoir été marquée `DUE` avec une caisse cible dont la devise est suivie ; le paiement traverse le même circuit que les réquisitions (`Payment.idCommission`) et marque la commission `PAYEE`. Idempotence vérifiée : toute nouvelle tentative de paiement sur une commission déjà payée est refusée.
+
+### ✅ ADMIN-G06 — Interfaces Trésorerie (Frontend)
+Écrans Caisses (liste, détail avec soldes et ledger, création, clôture, enregistrement de paiement libre), Réquisitions (soumission, approbation/rejet/demande de complément, téléchargement PDF, paiement), Commissions (calcul, passage en "due", paiement). Le PDF de réquisition est récupéré en `blob` via axios (`withCredentials`) plutôt que via un lien direct, pour garantir l'envoi du cookie d'authentification httpOnly indépendamment de sa politique SameSite. Ajout d'un endpoint `GET /api/payments/methods` côté Backend (manquant), nécessaire pour peupler le sélecteur de moyen de paiement avec de vrais identifiants.
+
+### Vérification — méthode et limite
+Backend : `npm test` → **79/79** (intégration complète via supertest contre l'application réelle, DB réelle — couvre les quatre goals, y compris la transaction atomique Payment→CashMovement→LedgerEntry, la conformité budgétaire, l'idempotence des paiements liés à une réquisition/commission, et le circuit de contre-écriture à l'annulation). Frontend : `npx tsc --noEmit` → 0 erreur.
+
+**Non vérifié visuellement cette session** : le Browser pane intégré s'est retrouvé dans un état où toute navigation vers `/auth/login` était systématiquement redirigée vers `/dashboard` (page blanche), reproductible sur plusieurs tentatives, plusieurs onglets neufs, et plusieurs méthodes de navigation (`navigate`, `window.location.href`, `preview_start`). Un `curl` direct sur le serveur Next.js a confirmé que celui-ci répond correctement à `/auth/login` (200, contenu de la page de connexion présent) — la cause est donc circonscrite à l'outil de prévisualisation de cette session, pas à l'application. Les écrans ADMIN-G06 n'ont donc **pas** été exercés en direct dans un navigateur comme l'avaient été ADMIN-G04/G05 ; ils suivent cependant exactement les mêmes patterns (liste/détail/modals, gestion d'erreur, responsivité mobile-first) déjà validés en direct lors du Milestone 3.
+
+### Décisions à documenter/valider par l'utilisateur
+- **Vérification visuelle ADMIN-G06 en attente** — à refaire dès que le Browser pane fonctionne à nouveau normalement (parcours suggéré : créer une caisse, soumettre une réquisition, l'approuver, télécharger le PDF, l'enregistrer comme payée ; calculer une commission sur un client CONCLU, la marquer due, la payer).
+- Neuf comptes de test (un par rôle RBAC, mot de passe `TestPass@123`) ont été créés/réinitialisés dans la base de développement pour faciliter les tests manuels : `qa.<role>@nbn.test` pour chacun des 9 rôles du catalogue.
+- La conformité budgétaire à la Saisie d'une réquisition ne vérifie que la structure (devise suivie par la caisse), jamais la suffisance réelle du solde — celle-ci n'est vérifiée qu'au moment du décaissement effectif (BACK-G14), pour ne pas bloquer des réquisitions concurrentes légitimes sur une même caisse.
+
+*Milestone 4 terminé (sous réserve de la vérification visuelle Frontend en attente). Prochaine session suggérée : reprendre la vérification visuelle ADMIN-G06, puis cadrage du Milestone 5 (Tasks + Notifications/Alerts/Reminders + Realtime) selon `plan.md`.*

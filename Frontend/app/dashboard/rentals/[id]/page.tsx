@@ -118,14 +118,14 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/dashboard/rentals">
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
           </Button>
         </Link>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={toggleFavorite}>
             <Heart className={`h-4 w-4 mr-2 ${isFavorite ? "fill-current text-red-500" : ""}`} />
             {isFavorite ? "Retiré des favoris" : "Ajouter aux favoris"}

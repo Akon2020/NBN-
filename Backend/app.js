@@ -20,6 +20,12 @@ import bailleurRouter from "./routes/bailleur.route.js";
 import matchingRouter from "./routes/matching.route.js";
 import commissionnaireRouter from "./routes/commissionnaire.route.js";
 import missionRouter from "./routes/mission.route.js";
+import currencyRouter from "./routes/currency.route.js";
+import caisseRouter from "./routes/caisse.route.js";
+import exchangeRateRouter from "./routes/exchangeRate.route.js";
+import requisitionRouter from "./routes/requisition.route.js";
+import paymentRouter from "./routes/payment.route.js";
+import commissionRouter from "./routes/commission.route.js";
 
 const app = express();
 
@@ -31,12 +37,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "1024mb" }));
 app.use(bodyParser.json({ limit: "1024mb" }));
 const PROD_ORIGINS = ["https://nbn-plus.vercel.app"];
-// Expo Metro choisit un port différent à chaque redémarrage si le port
-// par défaut (8081) est occupé — whitelister chaque port un par un n'est
-// pas praticable en développement. N'importe quel localhost/127.0.0.1 est
-// donc accepté en dev uniquement ; en production, seule la liste explicite
-// ci-dessus est autorisée.
-const isDevOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+// Expo Metro choisit un port différent à chaque redémarrage si le port par
+// défaut (8081) est occupé — whitelister chaque port un par un n'est pas
+// praticable en développement. N'importe quel localhost/127.0.0.1 est donc
+// accepté en dev, ainsi que les plages LAN privées (192.168.x.x, 10.x.x.x,
+// 172.16-31.x.x) : un appareil physique testé via Expo Go sur le même
+// Wi-Fi que la machine de dev envoie un Origin basé sur l'IP LAN de Metro,
+// jamais localhost. En production, seule la liste explicite ci-dessus est
+// autorisée.
+const isDevOrigin = (origin) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
+  /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}):\d+$/.test(
+    origin
+  );
 
 app.use(
   cors({
@@ -70,6 +83,12 @@ app.use("/api/bailleurs", bailleurRouter);
 app.use("/api/matchings", matchingRouter);
 app.use("/api/commissionnaires", commissionnaireRouter);
 app.use("/api/missions", missionRouter);
+app.use("/api/currencies", currencyRouter);
+app.use("/api/caisses", caisseRouter);
+app.use("/api/exchange-rates", exchangeRateRouter);
+app.use("/api/requisitions", requisitionRouter);
+app.use("/api/payments", paymentRouter);
+app.use("/api/commissions", commissionRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

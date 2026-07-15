@@ -43,7 +43,7 @@ export default function NouvelleCollecteScreen() {
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: 999,
-            backgroundColor: APP_COLORS.secondary,
+            backgroundColor: APP_COLORS.muted,
           }}
         >
           <MaterialIcons name="arrow-back" size={20} color={APP_COLORS.foreground} />
@@ -75,7 +75,7 @@ export default function NouvelleCollecteScreen() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: APP_RADIUS.md,
-                backgroundColor: APP_COLORS.secondary,
+                backgroundColor: APP_COLORS.muted,
               }}
             >
               <MaterialIcons name={option.icon} size={24} color={APP_COLORS.foreground} />

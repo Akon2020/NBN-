@@ -9,13 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { login, roleToHomeRoute } from '@/lib/auth';
 import { ROLES } from '@/constants/roles';
+import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
 
 // MOBILE-G02 — login réel contre l'API, présenté après l'onboarding de
 // marque. Un lien de démonstration reste disponible pour le profil
@@ -46,96 +46,127 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white dark:bg-neutral-900"
+      className="flex-1"
+      style={{ backgroundColor: APP_COLORS.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <LinearGradient
-          colors={['#14294A', '#1E3A63']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            paddingTop: insets.top + 32,
-            paddingBottom: 40,
-            borderBottomLeftRadius: 32,
-            borderBottomRightRadius: 32,
-            alignItems: 'center',
-          }}
+        <View
+          className="items-center px-8"
+          style={{ paddingTop: insets.top + 48, paddingBottom: 24 }}
         >
-          <View className="h-16 w-16 items-center justify-center rounded-2xl bg-white/15">
-            <MaterialIcons name="home" size={34} color="#fff" />
+          <View
+            className="h-16 w-16 items-center justify-center"
+            style={{ backgroundColor: `${APP_COLORS.primary}1A`, borderRadius: APP_RADIUS.lg }}
+          >
+            <MaterialIcons name="home" size={32} color={APP_COLORS.primary} />
           </View>
           <Text
-            className="mt-4 text-white"
-            style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 24 }}
+            className="mt-4"
+            style={{ fontFamily: 'Manrope_700Bold', fontSize: 26, color: APP_COLORS.foreground }}
           >
             NBN Express
           </Text>
           <Text
-            className="mt-1 text-white/70"
-            style={{ fontFamily: 'Inter_400Regular', fontSize: 14 }}
+            className="mt-1"
+            style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.mutedForeground }}
           >
             Connexion — agents et commissionnaires
           </Text>
-        </LinearGradient>
+        </View>
 
-        <View className="flex-1 justify-center gap-4 px-8 pt-10">
+        <View className="flex-1 gap-4 px-8 pt-6">
           {error && (
-            <View className="rounded-xl bg-error-500/10 px-4 py-3">
-              <Text style={{ fontFamily: 'Inter_500Medium', color: '#D92D20' }}>{error}</Text>
+            <View
+              className="px-4 py-3"
+              style={{ backgroundColor: `${APP_COLORS.destructive}14`, borderRadius: APP_RADIUS.md }}
+            >
+              <Text style={{ fontFamily: 'Inter_500Medium', color: APP_COLORS.destructive }}>
+                {error}
+              </Text>
             </View>
           )}
 
           <View className="gap-2">
             <Text
-              className="text-neutral-600 dark:text-neutral-300"
-              style={{ fontFamily: 'Inter_500Medium', fontSize: 13 }}
+              style={{
+                fontFamily: 'Inter_500Medium',
+                fontSize: 13,
+                color: APP_COLORS.mutedForeground,
+              }}
             >
               Email
             </Text>
             <TextInput
               placeholder="vous@nyumbaniexpress.com"
-              placeholderTextColor="#9AA1AC"
+              placeholderTextColor={APP_COLORS.mutedForeground}
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
-              className="rounded-xl border border-neutral-300 px-4 py-3 text-neutral-900 dark:border-neutral-700 dark:text-white"
-              style={{ fontFamily: 'Inter_400Regular', fontSize: 15 }}
+              className="px-4 py-3"
+              style={{
+                fontFamily: 'Inter_400Regular',
+                fontSize: 15,
+                borderWidth: 1,
+                borderColor: APP_COLORS.border,
+                borderRadius: APP_RADIUS.md,
+                color: APP_COLORS.foreground,
+              }}
             />
           </View>
 
           <View className="gap-2">
             <Text
-              className="text-neutral-600 dark:text-neutral-300"
-              style={{ fontFamily: 'Inter_500Medium', fontSize: 13 }}
+              style={{
+                fontFamily: 'Inter_500Medium',
+                fontSize: 13,
+                color: APP_COLORS.mutedForeground,
+              }}
             >
               Mot de passe
             </Text>
             <TextInput
               placeholder="••••••••"
-              placeholderTextColor="#9AA1AC"
+              placeholderTextColor={APP_COLORS.mutedForeground}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
-              className="rounded-xl border border-neutral-300 px-4 py-3 text-neutral-900 dark:border-neutral-700 dark:text-white"
-              style={{ fontFamily: 'Inter_400Regular', fontSize: 15 }}
+              className="px-4 py-3"
+              style={{
+                fontFamily: 'Inter_400Regular',
+                fontSize: 15,
+                borderWidth: 1,
+                borderColor: APP_COLORS.border,
+                borderRadius: APP_RADIUS.md,
+                color: APP_COLORS.foreground,
+              }}
             />
           </View>
 
           <TouchableOpacity
             onPress={handleLogin}
             disabled={submitting || !email || !password}
-            className="mt-2 items-center rounded-xl bg-accent-600 py-4"
-            style={{ opacity: submitting || !email || !password ? 0.6 : 1 }}
+            className="mt-2 items-center py-4"
+            style={{
+              backgroundColor: APP_COLORS.primary,
+              borderRadius: APP_RADIUS.xl,
+              opacity: submitting || !email || !password ? 0.6 : 1,
+            }}
           >
             {submitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={APP_COLORS.primaryForeground} />
             ) : (
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: '#fff' }}>
+              <Text
+                style={{
+                  fontFamily: 'Inter_600SemiBold',
+                  fontSize: 16,
+                  color: APP_COLORS.primaryForeground,
+                }}
+              >
                 Se connecter
               </Text>
             )}
@@ -147,7 +178,7 @@ export default function LoginScreen() {
               className="mt-2 items-center py-2"
             >
               <Text
-                style={{ fontFamily: 'Inter_500Medium', fontSize: 14, color: '#C13F0B' }}
+                style={{ fontFamily: 'Inter_500Medium', fontSize: 14, color: APP_COLORS.secondary }}
               >
                 Explorer comme client (démo)
               </Text>

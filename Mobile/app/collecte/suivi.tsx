@@ -33,7 +33,7 @@ export default function SuiviCollecteScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 16 }}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={{ height: 36, width: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: APP_COLORS.secondary }}
+          style={{ height: 36, width: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 999, backgroundColor: APP_COLORS.muted }}
         >
           <MaterialIcons name="arrow-back" size={20} color={APP_COLORS.foreground} />
         </TouchableOpacity>

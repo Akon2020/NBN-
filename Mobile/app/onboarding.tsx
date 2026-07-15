@@ -9,55 +9,60 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ONBOARDING_SLIDES, type OnboardingSlide } from '@/constants/onboarding';
 import { markOnboardingSeen } from '@/lib/onboardingStorage';
+import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(
   Animated.FlatList<OnboardingSlide>
 );
 
+// Traitement "hero photo" (image plein cadre + dégradé + texte en
+// surimpression), inspiré des références produit partagées par l'agence —
+// un vrai bien à l'écran dès la première seconde, pas une icône abstraite.
 function Slide({ item }: { item: OnboardingSlide }) {
-  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   return (
-    <View style={{ width: SCREEN_WIDTH }} className="flex-1 items-center px-8 pt-6">
+    <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}>
+      <Image
+        source={item.image}
+        style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, position: 'absolute' }}
+        contentFit="cover"
+      />
       <LinearGradient
-        colors={item.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        colors={['transparent', 'rgba(20,23,22,0.55)', 'rgba(20,23,22,0.92)']}
+        locations={[0, 0.55, 1]}
         style={{
-          width: 220,
-          height: 220,
-          borderRadius: 110,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: 24,
-          marginBottom: 40,
-          shadowColor: item.gradient[1],
-          shadowOpacity: 0.35,
-          shadowRadius: 24,
-          shadowOffset: { width: 0, height: 12 },
-          elevation: 8,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: SCREEN_HEIGHT * 0.55,
         }}
-      >
-        <MaterialIcons name={item.icon} size={92} color="#fff" />
-      </LinearGradient>
-
-      <Text
-        className="text-center text-neutral-900 dark:text-white"
-        style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 28, lineHeight: 36 }}
-      >
-        {item.title}
-      </Text>
-      <Text
-        className="mt-4 text-center text-neutral-600 dark:text-neutral-300"
-        style={{ fontFamily: 'Inter_400Regular', fontSize: 16, lineHeight: 24 }}
-      >
-        {item.description}
-      </Text>
+      />
+      <View className="absolute bottom-0 left-0 right-0 px-8" style={{ paddingBottom: 190 }}>
+        <Text
+          className="text-white"
+          style={{ fontFamily: 'Manrope_700Bold', fontSize: 30, lineHeight: 38 }}
+        >
+          {item.title}
+        </Text>
+        <Text
+          className="mt-3"
+          style={{
+            fontFamily: 'Inter_400Regular',
+            fontSize: 15,
+            lineHeight: 22,
+            color: 'rgba(255,255,255,0.85)',
+          }}
+        >
+          {item.description}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -79,7 +84,7 @@ function Dot({ index, scrollX }: { index: number; scrollX: SharedValue<number> }
     const opacity = interpolate(
       scrollX.value,
       inputRange,
-      [0.3, 1, 0.3],
+      [0.4, 1, 0.4],
       Extrapolation.CLAMP
     );
     return { width: dotWidth, opacity };
@@ -87,8 +92,8 @@ function Dot({ index, scrollX }: { index: number; scrollX: SharedValue<number> }
 
   return (
     <Animated.View
-      style={style}
-      className="mx-1 h-2 rounded-full bg-primary-900 dark:bg-white"
+      style={[style, { backgroundColor: APP_COLORS.primary }]}
+      className="mx-1 h-2 rounded-full"
     />
   );
 }
@@ -126,17 +131,14 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white dark:bg-neutral-900" style={{ paddingTop: insets.top }}>
+    <View className="flex-1" style={{ backgroundColor: APP_COLORS.foreground }}>
       {!isLastSlide && (
         <TouchableOpacity
           onPress={finishOnboarding}
-          className="absolute right-6 z-10"
-          style={{ top: insets.top + 12 }}
+          className="absolute right-6 z-10 rounded-full px-4 py-2"
+          style={{ top: insets.top + 12, backgroundColor: 'rgba(255,255,255,0.18)' }}
         >
-          <Text
-            className="text-neutral-600 dark:text-neutral-300"
-            style={{ fontFamily: 'Inter_500Medium', fontSize: 15 }}
-          >
+          <Text className="text-white" style={{ fontFamily: 'Inter_500Medium', fontSize: 14 }}>
             Passer
           </Text>
         </TouchableOpacity>
@@ -158,20 +160,23 @@ export default function OnboardingScreen() {
         }}
       />
 
-      <View className="flex-row justify-center py-6">
-        {ONBOARDING_SLIDES.map((slide, index) => (
-          <Dot key={slide.key} index={index} scrollX={scrollX} />
-        ))}
-      </View>
+      <View
+        className="absolute bottom-0 left-0 right-0 px-8"
+        style={{ paddingBottom: insets.bottom + 24 }}
+      >
+        <View className="flex-row justify-center mb-6">
+          {ONBOARDING_SLIDES.map((slide, index) => (
+            <Dot key={slide.key} index={index} scrollX={scrollX} />
+          ))}
+        </View>
 
-      <View className="px-8" style={{ paddingBottom: insets.bottom + 20 }}>
         <TouchableOpacity
           onPress={goNext}
-          className="items-center rounded-2xl bg-primary-900 py-4"
+          className="items-center py-4"
+          style={{ backgroundColor: APP_COLORS.primary, borderRadius: APP_RADIUS.xl }}
         >
           <Text
-            className="text-white"
-            style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16 }}
+            style={{ fontFamily: 'Inter_600SemiBold', fontSize: 16, color: APP_COLORS.primaryForeground }}
           >
             {isLastSlide ? 'Commencer' : 'Suivant'}
           </Text>

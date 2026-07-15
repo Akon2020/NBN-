@@ -5,11 +5,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { PROPERTY_TYPE_LABELS, type Property } from '@/lib/properties';
 import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
 
-// DESIGN-G02 — carte propriété, thème clair aligné sur
-// Frontend/styles/globals.css : fond blanc, rayons généreux, ombre douce,
-// badge catégorie discret, prix en accent fort (noir), favoris en overlay
-// circulaire — inspiré des patterns de listing immobilier (image + pills +
-// prix visible immédiatement).
+// DESIGN-G02 — carte propriété, thème clair aligné sur la palette de
+// marque réelle du Frontend (Frontend/app/globals.css) : fond blanc,
+// rayons généreux, ombre douce, badge catégorie discret, prix en accent
+// fort, favoris en overlay circulaire — inspiré des patterns de listing
+// immobilier (image + pills + prix visible immédiatement).
 interface PropertyCardProps {
   property: Property;
   onPress: () => void;
@@ -38,7 +38,7 @@ export function PropertyCard({ property, onPress, isFavorite, onToggleFavorite }
         borderColor: APP_COLORS.border,
       }}
     >
-      <View style={{ position: 'relative', height: 176, width: '100%', backgroundColor: APP_COLORS.secondary }}>
+      <View style={{ position: 'relative', height: 176, width: '100%', backgroundColor: APP_COLORS.muted }}>
         {imageUrl ? (
           <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         ) : (

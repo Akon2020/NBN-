@@ -1,12 +1,23 @@
+import Constants from 'expo-constants';
 import axios from 'axios';
 
 import { clearTokens, getAccessToken, getRefreshToken, saveTokens } from './secureStore';
 
+const BACKEND_PORT = 5500;
+
 // En dev, `localhost` ne pointe pas vers la machine hôte depuis un appareil
-// physique/émulateur — utiliser l'IP LAN de la machine de dev ou un tunnel
-// Expo. EXPO_PUBLIC_API_URL est lu depuis .env (préfixe requis par Expo
-// pour exposer une variable au bundle client).
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5500';
+// physique/émulateur — c'est l'appareil lui-même. `Constants.expoConfig.hostUri`
+// contient déjà l'adresse LAN que Metro utilise pour servir le bundle à
+// l'appareil (ex. "192.168.1.42:8081") ; on réutilise le même hôte pour
+// joindre le Backend, en changeant seulement le port. EXPO_PUBLIC_API_URL
+// (si défini via .env) garde toujours la priorité pour un override explicite.
+const resolveDevApiUrl = (): string => {
+  const hostUri = Constants.expoConfig?.hostUri;
+  const host = hostUri?.split(':')[0];
+  return host ? `http://${host}:${BACKEND_PORT}` : `http://localhost:${BACKEND_PORT}`;
+};
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || resolveDevApiUrl();
 
 export const api = axios.create({ baseURL: API_URL });
 

@@ -73,14 +73,14 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/dashboard/clients">
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
           </Button>
         </Link>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Modifier
