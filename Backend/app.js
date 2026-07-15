@@ -23,6 +23,7 @@ import missionRouter from "./routes/mission.route.js";
 import currencyRouter from "./routes/currency.route.js";
 import caisseRouter from "./routes/caisse.route.js";
 import exchangeRateRouter from "./routes/exchangeRate.route.js";
+import requisitionRouter from "./routes/requisition.route.js";
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use("/api/missions", missionRouter);
 app.use("/api/currencies", currencyRouter);
 app.use("/api/caisses", caisseRouter);
 app.use("/api/exchange-rates", exchangeRateRouter);
+app.use("/api/requisitions", requisitionRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

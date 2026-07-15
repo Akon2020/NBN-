@@ -29,6 +29,7 @@ import Currency from "./currency.model.js";
 import Caisse from "./caisse.model.js";
 import CaisseBalance from "./caisseBalance.model.js";
 import ExchangeRate from "./exchangeRate.model.js";
+import Requisition from "./requisition.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -207,6 +208,13 @@ ExchangeRate.belongsTo(Currency, { foreignKey: "fromCurrency", as: "from" });
 ExchangeRate.belongsTo(Currency, { foreignKey: "toCurrency", as: "to" });
 ExchangeRate.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
+// BACK-G13 — Réquisitions (info.md §6 : Saisie → Vérification →
+// Approbation → Génération → Archivage).
+Requisition.belongsTo(User, { foreignKey: "demandeurId", as: "demandeur" });
+Requisition.belongsTo(User, { foreignKey: "decidedBy", as: "decideur" });
+Requisition.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+Requisition.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -247,5 +255,6 @@ export {
   Caisse,
   CaisseBalance,
   ExchangeRate,
+  Requisition,
   syncModels,
 };
