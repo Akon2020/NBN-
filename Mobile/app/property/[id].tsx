@@ -22,10 +22,14 @@ import {
 import { addFavorite, getMyFavorites, removeFavorite } from '@/lib/favorites';
 import { getLocalFavoriteIds, toggleLocalFavorite } from '@/lib/localFavorites';
 import { getAccessToken } from '@/lib/secureStore';
+import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
+
+const WHATSAPP_GREEN = '#25D366'; // Couleur de marque WhatsApp — exception délibérée, pas une couleur de thème.
 
 // DESIGN-G02 — fiche bien partagée entre le profil "client final" (lecture
 // publique, favoris locaux) et "interne" (lecture authentifiée, favoris
 // serveur) : un seul écran, la source de données change selon la session.
+// Thème clair aligné sur Frontend/styles/globals.css.
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -101,23 +105,23 @@ export default function PropertyDetailScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white dark:bg-neutral-900">
-        <ActivityIndicator color="#C13F0B" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: APP_COLORS.background }}>
+        <ActivityIndicator color={APP_COLORS.primary} />
       </View>
     );
   }
 
   if (!property) {
     return (
-      <View className="flex-1 items-center justify-center gap-3 bg-white px-6 dark:bg-neutral-900">
-        <Text
-          style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 18 }}
-          className="text-neutral-900 dark:text-white"
-        >
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: APP_COLORS.background, paddingHorizontal: 24 }}>
+        <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 18, color: APP_COLORS.foreground }}>
           Bien introuvable
         </Text>
-        <TouchableOpacity onPress={() => router.back()} className="rounded-xl bg-primary-900 px-5 py-3">
-          <Text style={{ fontFamily: 'Inter_600SemiBold', color: '#fff' }}>Retour</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ borderRadius: APP_RADIUS.md, backgroundColor: APP_COLORS.primary, paddingHorizontal: 20, paddingVertical: 12 }}
+        >
+          <Text style={{ fontFamily: 'Inter_600SemiBold', color: APP_COLORS.primaryForeground }}>Retour</Text>
         </TouchableOpacity>
       </View>
     );
@@ -125,130 +129,151 @@ export default function PropertyDetailScreen() {
 
   const imageUrl = property.images?.[0]?.image;
   const phone = property.phones?.[0]?.phoneNumber;
+  const amenities = [
+    property.bedrooms != null && { icon: 'bed' as const, value: property.bedrooms, label: 'Chambres' },
+    property.livingRooms != null && { icon: 'weekend' as const, value: property.livingRooms, label: 'Salons' },
+    property.toilets != null && { icon: 'bathtub' as const, value: property.toilets, label: 'Douches' },
+  ].filter(Boolean) as { icon: keyof typeof MaterialIcons.glyphMap; value: number; label: string }[];
 
   return (
-    <View className="flex-1 bg-white dark:bg-neutral-900">
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-        <View className="relative h-72 w-full bg-neutral-200 dark:bg-neutral-700">
+    <View style={{ flex: 1, backgroundColor: APP_COLORS.background }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 130 }}>
+        <View
+          style={{
+            position: 'relative',
+            height: 300,
+            width: '100%',
+            backgroundColor: APP_COLORS.secondary,
+            borderBottomLeftRadius: APP_RADIUS.xl,
+            borderBottomRightRadius: APP_RADIUS.xl,
+            overflow: 'hidden',
+          }}
+        >
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
           ) : (
-            <View className="flex-1 items-center justify-center">
-              <MaterialIcons name="home" size={56} color="#9AA1AC" />
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialIcons name="home" size={56} color={APP_COLORS.mutedForeground} />
             </View>
           )}
 
           <TouchableOpacity
             onPress={() => router.back()}
-            className="absolute h-10 w-10 items-center justify-center rounded-full bg-white/90"
-            style={{ top: insets.top + 8, left: 16 }}
+            style={{
+              position: 'absolute',
+              height: 40,
+              width: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 999,
+              backgroundColor: 'rgba(255,255,255,0.92)',
+              top: insets.top + 8,
+              left: 16,
+            }}
           >
-            <MaterialIcons name="arrow-back" size={22} color="#16181D" />
+            <MaterialIcons name="arrow-back" size={22} color={APP_COLORS.foreground} />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={toggleFavorite}
-            className="absolute h-10 w-10 items-center justify-center rounded-full bg-white/90"
-            style={{ top: insets.top + 8, right: 16 }}
+            style={{
+              position: 'absolute',
+              height: 40,
+              width: 40,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 999,
+              backgroundColor: 'rgba(255,255,255,0.92)',
+              top: insets.top + 8,
+              right: 16,
+            }}
           >
             <MaterialIcons
               name={isFavorite ? 'favorite' : 'favorite-border'}
               size={22}
-              color={isFavorite ? '#D92D20' : '#16181D'}
+              color={isFavorite ? APP_COLORS.destructive : APP_COLORS.foreground}
             />
           </TouchableOpacity>
         </View>
 
-        <View className="gap-4 p-5">
-          <View className="flex-row items-start justify-between gap-3">
-            <View className="flex-1">
-              <Text
-                style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 22 }}
-                className="text-neutral-900 dark:text-white"
-              >
+        <View style={{ gap: 18, padding: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 22, color: APP_COLORS.foreground }}>
                 {property.avenue || PROPERTY_TYPE_LABELS[property.propertyType]}
               </Text>
-              <View className="mt-1 flex-row items-center gap-1">
-                <MaterialIcons name="place" size={16} color="#5B6472" />
-                <Text
-                  style={{ fontFamily: 'Inter_400Regular', fontSize: 14 }}
-                  className="text-neutral-600 dark:text-neutral-300"
-                >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <MaterialIcons name="place" size={16} color={APP_COLORS.mutedForeground} />
+                <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.mutedForeground }}>
                   {property.quartier ? `${property.quartier}, ` : ''}Bukavu
                 </Text>
               </View>
             </View>
-            <View className="rounded-full bg-secondary-600/10 px-3 py-1.5">
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#245640' }}>
+            <View style={{ borderRadius: 999, backgroundColor: APP_COLORS.secondary, paddingHorizontal: 12, paddingVertical: 7 }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: APP_COLORS.secondaryForeground }}>
                 {PROPERTY_TYPE_LABELS[property.propertyType]}
               </Text>
             </View>
           </View>
 
-          <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 26, color: '#C13F0B' }}>
-            ${property.price}
+          <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 28, color: APP_COLORS.foreground }}>
+            ${property.price.toLocaleString()}
             {property.category === 'RENT' ? (
-              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14 }} className="text-neutral-600">
-                {' '}
-                /mois
-              </Text>
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 15, color: APP_COLORS.mutedForeground }}> /mois</Text>
             ) : null}
           </Text>
 
-          {!!(property.bedrooms || property.livingRooms || property.toilets) && (
-            <View className="flex-row gap-3">
-              {property.bedrooms != null && (
-                <View className="flex-1 items-center gap-1 rounded-2xl bg-neutral-100 py-3 dark:bg-neutral-800">
-                  <MaterialIcons name="bed" size={20} color="#14294A" />
-                  <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14 }} className="text-neutral-900 dark:text-white">
-                    {property.bedrooms}
+          {amenities.length > 0 && (
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {amenities.map((amenity) => (
+                <View
+                  key={amenity.label}
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    gap: 4,
+                    borderRadius: APP_RADIUS.md,
+                    backgroundColor: APP_COLORS.secondary,
+                    paddingVertical: 14,
+                  }}
+                >
+                  <MaterialIcons name={amenity.icon} size={20} color={APP_COLORS.foreground} />
+                  <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: APP_COLORS.foreground }}>
+                    {amenity.value}
                   </Text>
-                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11 }} className="text-neutral-600 dark:text-neutral-300">
-                    Chambres
-                  </Text>
-                </View>
-              )}
-              {property.livingRooms != null && (
-                <View className="flex-1 items-center gap-1 rounded-2xl bg-neutral-100 py-3 dark:bg-neutral-800">
-                  <MaterialIcons name="weekend" size={20} color="#14294A" />
-                  <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14 }} className="text-neutral-900 dark:text-white">
-                    {property.livingRooms}
-                  </Text>
-                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11 }} className="text-neutral-600 dark:text-neutral-300">
-                    Salons
-                  </Text>
-                </View>
-              )}
-              {property.toilets != null && (
-                <View className="flex-1 items-center gap-1 rounded-2xl bg-neutral-100 py-3 dark:bg-neutral-800">
-                  <MaterialIcons name="bathtub" size={20} color="#14294A" />
-                  <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14 }} className="text-neutral-900 dark:text-white">
-                    {property.toilets}
-                  </Text>
-                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11 }} className="text-neutral-600 dark:text-neutral-300">
-                    Douches
+                  <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11, color: APP_COLORS.mutedForeground }}>
+                    {amenity.label}
                   </Text>
                 </View>
-              )}
+              ))}
             </View>
           )}
 
           {property.rentalDetails && (
-            <View className="flex-row items-center gap-2 rounded-2xl bg-neutral-100 px-4 py-3 dark:bg-neutral-800">
-              <MaterialIcons name="account-balance-wallet" size={18} color="#245640" />
-              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13 }} className="text-neutral-700 dark:text-neutral-200">
-                Garantie : {property.rentalDetails.guarantee ?? 0}{' '}
-                {RENTAL_UNIT_LABELS[property.rentalDetails.unit]}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                borderRadius: APP_RADIUS.md,
+                backgroundColor: APP_COLORS.secondary,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+              }}
+            >
+              <MaterialIcons name="account-balance-wallet" size={18} color={APP_COLORS.foreground} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: APP_COLORS.foreground }}>
+                Garantie : {property.rentalDetails.guarantee ?? 0} {RENTAL_UNIT_LABELS[property.rentalDetails.unit]}
               </Text>
             </View>
           )}
 
           {property.description && (
-            <View className="gap-1">
-              <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 15 }} className="text-neutral-900 dark:text-white">
+            <View style={{ gap: 4 }}>
+              <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 15, color: APP_COLORS.foreground }}>
                 Description
               </Text>
-              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21 }} className="text-neutral-600 dark:text-neutral-300">
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, color: APP_COLORS.mutedForeground }}>
                 {property.description}
               </Text>
             </View>
@@ -258,19 +283,50 @@ export default function PropertyDetailScreen() {
 
       {phone && (
         <View
-          className="absolute bottom-0 left-0 right-0 flex-row gap-3 border-t border-neutral-200 bg-white/95 px-5 pt-3 dark:border-neutral-800 dark:bg-neutral-900/95"
-          style={{ paddingBottom: insets.bottom + 12 }}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            flexDirection: 'row',
+            gap: 12,
+            borderTopWidth: 1,
+            borderTopColor: APP_COLORS.border,
+            backgroundColor: 'rgba(255,255,255,0.97)',
+            paddingHorizontal: 20,
+            paddingTop: 14,
+            paddingBottom: insets.bottom + 14,
+          }}
         >
           <TouchableOpacity
             onPress={callPhone}
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border border-primary-900 py-3.5"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              borderRadius: APP_RADIUS.md,
+              borderWidth: 1.5,
+              borderColor: APP_COLORS.primary,
+              paddingVertical: 14,
+            }}
           >
-            <MaterialIcons name="call" size={18} color="#14294A" />
-            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#14294A' }}>Appeler</Text>
+            <MaterialIcons name="call" size={18} color={APP_COLORS.foreground} />
+            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: APP_COLORS.foreground }}>Appeler</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={openWhatsApp}
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-secondary-600 py-3.5"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              borderRadius: APP_RADIUS.md,
+              backgroundColor: WHATSAPP_GREEN,
+              paddingVertical: 14,
+            }}
           >
             <MaterialIcons name="chat" size={18} color="#fff" />
             <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#fff' }}>WhatsApp</Text>

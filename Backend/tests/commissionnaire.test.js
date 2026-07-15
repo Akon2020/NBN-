@@ -125,6 +125,23 @@ describe("BACK-G09 - Commissionnaire (fiche digitale, scoring, grille d'évoluti
     createdCommissionnaireIds.push(res.body.data.idCommissionnaire);
   });
 
+  it("/commissionnaires/me résout la fiche du compte terrain connecté (MOBILE-G04)", async () => {
+    const { headers } = await loginAs(fieldCommissionnaireEmail);
+    const res = await request(app)
+      .get("/api/commissionnaires/me")
+      .set("Cookie", headers["set-cookie"]);
+    expect(res.status).toBe(200);
+    expect(res.body.idCommissionnaire).toBe(createdCommissionnaireIds[0]);
+  });
+
+  it("/commissionnaires/me renvoie 404 pour un compte sans fiche liée", async () => {
+    const { headers } = await loginAs(operationsEmail);
+    const res = await request(app)
+      .get("/api/commissionnaires/me")
+      .set("Cookie", headers["set-cookie"]);
+    expect(res.status).toBe(404);
+  });
+
   it("juridique ne peut pas créer de commissionnaire (commissionnaires:manage manquant)", async () => {
     const { headers } = await loginAs(juridiqueEmail);
     const res = await request(app)

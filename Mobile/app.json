@@ -39,7 +39,26 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "NBN Express Plus a besoin d'accéder à l'appareil photo pour photographier les biens collectés sur le terrain."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "NBN Express Plus a besoin d'accéder à vos photos pour ajouter des images aux biens collectés."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "NBN Express Plus utilise votre position pour géolocaliser les biens collectés sur le terrain."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

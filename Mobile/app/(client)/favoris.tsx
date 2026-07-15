@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useFocusEffect } from 'expo-router';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PropertyCard } from '@/components/property-card';
 import { getPublicProperties, type Property } from '@/lib/properties';
 import { getLocalFavoriteIds, toggleLocalFavorite } from '@/lib/localFavorites';
+import { APP_COLORS } from '@/constants/theme-app';
 
 // MOBILE-G03 — favoris "client final" : classification offline-readable
 // (CLAUDE.md §8) via stockage local (aucun compte serveur pour ce profil).
@@ -42,19 +43,19 @@ export default function FavorisScreen() {
   };
 
   return (
-    <View className="flex-1 bg-neutral-100 dark:bg-neutral-900" style={{ paddingTop: insets.top }}>
-      <View className="bg-white px-5 pb-4 pt-4 dark:bg-neutral-900">
-        <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 20 }} className="text-neutral-900 dark:text-white">
+    <View style={{ flex: 1, backgroundColor: APP_COLORS.background, paddingTop: insets.top }}>
+      <View style={{ paddingHorizontal: 20, paddingBottom: 12, paddingTop: 16 }}>
+        <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 24, color: APP_COLORS.foreground }}>
           Mes favoris
         </Text>
-        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13 }} className="mt-1 text-neutral-600 dark:text-neutral-300">
+        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.mutedForeground, marginTop: 2 }}>
           Enregistrés sur cet appareil
         </Text>
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#C13F0B" />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={APP_COLORS.primary} />
         </View>
       ) : (
         <FlatList
@@ -70,9 +71,9 @@ export default function FavorisScreen() {
             />
           )}
           ListEmptyComponent={
-            <View className="items-center gap-2 py-16">
-              <MaterialIcons name="favorite-border" size={40} color="#9AA1AC" />
-              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14 }} className="text-neutral-600 dark:text-neutral-300">
+            <View style={{ alignItems: 'center', gap: 8, paddingVertical: 64 }}>
+              <MaterialIcons name="favorite-border" size={40} color={APP_COLORS.mutedForeground} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.mutedForeground }}>
                 Aucun favori pour le moment
               </Text>
             </View>

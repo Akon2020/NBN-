@@ -4,6 +4,7 @@ import {
   createIncident,
   deleteCommissionnaire,
   getAllCommissionnaires,
+  getMyCommissionnaireProfile,
   getSingleCommissionnaire,
   updateCommissionnaire,
   updateCommissionnaireScore,
@@ -12,6 +13,25 @@ import { authMiddlware } from "../middlewares/auth.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
 
 const commissionnaireRouter = Router();
+
+/**
+ * @swagger
+ * /api/commissionnaires/me:
+ *   get:
+ *     summary: Récupère la fiche commissionnaire du compte connecté (MOBILE-G04)
+ *     tags: [Commissionnaires]
+ *     responses:
+ *       200:
+ *         description: Fiche trouvée
+ *       404:
+ *         description: Aucune fiche commissionnaire liée à ce compte
+ */
+commissionnaireRouter.get(
+  "/me",
+  authMiddlware,
+  requirePermission("commissionnaires:read"),
+  getMyCommissionnaireProfile
+);
 
 /**
  * @swagger

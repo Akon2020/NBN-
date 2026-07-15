@@ -2,18 +2,17 @@ import { Tabs } from 'expo-router';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { APP_COLORS } from '@/constants/theme-app';
 
-// Arborescence "Client final" — recherche de biens et favoris. Écrans
-// placeholders pour l'instant (contenu réel : Milestone 2, MOBILE-G03).
+// Arborescence "Client final" — recherche de biens et favoris.
 export default function ClientLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
-        tabBarActiveTintColor: colorScheme === 'dark' ? '#F25414' : '#C13F0B',
+        headerShown: false,
+        tabBarActiveTintColor: APP_COLORS.primary,
+        tabBarInactiveTintColor: APP_COLORS.mutedForeground,
+        tabBarStyle: { backgroundColor: APP_COLORS.background, borderTopColor: APP_COLORS.border },
         tabBarButton: HapticTab,
       }}
     >

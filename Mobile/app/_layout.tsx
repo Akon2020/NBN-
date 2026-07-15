@@ -49,6 +49,10 @@ export default function RootLayout() {
         <Stack.Screen name="(client)" />
         <Stack.Screen name="(interne)" />
         <Stack.Screen name="property/[id]" />
+        <Stack.Screen name="collecte/nouveau" />
+        <Stack.Screen name="collecte/bien" />
+        <Stack.Screen name="collecte/client" />
+        <Stack.Screen name="collecte/suivi" />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

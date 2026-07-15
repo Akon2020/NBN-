@@ -24,6 +24,31 @@ const withClassement = (commissionnaire) => {
   return plain;
 };
 
+// MOBILE-G04 — le Mobile a besoin de résoudre "ma propre fiche
+// commissionnaire" à partir du compte connecté, sans avoir à récupérer
+// (ni filtrer côté client) la liste complète de tous les commissionnaires.
+export const getMyCommissionnaireProfile = async (req, res, next) => {
+  try {
+    const person = await Person.findOne({ where: { idUser: req.user.idUser } });
+    if (!person) {
+      return res.status(404).json({ message: "Aucune fiche commissionnaire liée à ce compte." });
+    }
+
+    const commissionnaire = await Commissionnaire.findOne({
+      where: { idPerson: person.idPerson },
+      include: [{ model: Person, as: "person" }],
+    });
+    if (!commissionnaire) {
+      return res.status(404).json({ message: "Aucune fiche commissionnaire liée à ce compte." });
+    }
+
+    return res.status(200).json(withClassement(commissionnaire));
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
 export const getAllCommissionnaires = async (req, res, next) => {
   try {
     const commissionnaires = await Commissionnaire.findAll({

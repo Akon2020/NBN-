@@ -3,9 +3,13 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { PROPERTY_TYPE_LABELS, type Property } from '@/lib/properties';
+import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
 
-// DESIGN-G02 — carte propriété : rayons de bordure généreux, badge statut,
-// favoris, cohérente avec la palette de marque (CLAUDE.md §10).
+// DESIGN-G02 — carte propriété, thème clair aligné sur
+// Frontend/styles/globals.css : fond blanc, rayons généreux, ombre douce,
+// badge catégorie discret, prix en accent fort (noir), favoris en overlay
+// circulaire — inspiré des patterns de listing immobilier (image + pills +
+// prix visible immédiatement).
 interface PropertyCardProps {
   property: Property;
   onPress: () => void;
@@ -20,26 +24,41 @@ export function PropertyCard({ property, onPress, isFavorite, onToggleFavorite }
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.85}
-      className="mb-4 overflow-hidden rounded-3xl bg-white dark:bg-neutral-800"
       style={{
+        marginBottom: 16,
+        borderRadius: APP_RADIUS.xl,
+        backgroundColor: APP_COLORS.card,
+        overflow: 'hidden',
         shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 3,
+        shadowOpacity: 0.06,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: APP_COLORS.border,
       }}
     >
-      <View className="relative h-44 w-full bg-neutral-200 dark:bg-neutral-700">
+      <View style={{ position: 'relative', height: 176, width: '100%', backgroundColor: APP_COLORS.secondary }}>
         {imageUrl ? (
           <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         ) : (
-          <View className="flex-1 items-center justify-center">
-            <MaterialIcons name="home" size={40} color="#9AA1AC" />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <MaterialIcons name="home" size={36} color={APP_COLORS.mutedForeground} />
           </View>
         )}
 
-        <View className="absolute left-3 top-3 rounded-full bg-primary-900/90 px-3 py-1.5">
-          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: '#fff' }}>
+        <View
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: 12,
+            borderRadius: 999,
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+          }}
+        >
+          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: APP_COLORS.foreground }}>
             {property.category === 'RENT' ? 'À louer' : 'À vendre'}
           </Text>
         </View>
@@ -47,37 +66,54 @@ export function PropertyCard({ property, onPress, isFavorite, onToggleFavorite }
         {onToggleFavorite && (
           <TouchableOpacity
             onPress={onToggleFavorite}
-            className="absolute right-3 top-3 h-9 w-9 items-center justify-center rounded-full bg-white/90"
+            style={{
+              position: 'absolute',
+              right: 12,
+              top: 12,
+              height: 34,
+              width: 34,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 999,
+              backgroundColor: 'rgba(255,255,255,0.92)',
+            }}
           >
             <MaterialIcons
               name={isFavorite ? 'favorite' : 'favorite-border'}
-              size={20}
-              color={isFavorite ? '#D92D20' : '#16181D'}
+              size={18}
+              color={isFavorite ? APP_COLORS.destructive : APP_COLORS.foreground}
             />
           </TouchableOpacity>
         )}
       </View>
 
-      <View className="gap-1 p-4">
+      <View style={{ padding: 16, gap: 4 }}>
         <Text
           numberOfLines={1}
-          style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 16 }}
-          className="text-neutral-900 dark:text-white"
+          style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 16, color: APP_COLORS.foreground }}
         >
           {property.avenue || PROPERTY_TYPE_LABELS[property.propertyType]}
         </Text>
-        <Text
-          numberOfLines={1}
-          style={{ fontFamily: 'Inter_400Regular', fontSize: 13 }}
-          className="text-neutral-600 dark:text-neutral-300"
-        >
-          {property.quartier ? `${property.quartier} · ` : ''}
-          {PROPERTY_TYPE_LABELS[property.propertyType]}
-        </Text>
-        <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: '#C13F0B' }} className="mt-1">
-          ${property.price}
-          {property.category === 'RENT' ? '/mois' : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <MaterialIcons name="place" size={13} color={APP_COLORS.mutedForeground} />
+          <Text
+            numberOfLines={1}
+            style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: APP_COLORS.mutedForeground }}
+          >
+            {property.quartier ? `${property.quartier} · ` : ''}
+            {PROPERTY_TYPE_LABELS[property.propertyType]}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+          <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 19, color: APP_COLORS.foreground }}>
+            ${property.price.toLocaleString()}
+          </Text>
+          {property.category === 'RENT' && (
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: APP_COLORS.mutedForeground }}>
+              /mois
+            </Text>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
