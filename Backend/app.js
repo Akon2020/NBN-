@@ -20,6 +20,9 @@ import bailleurRouter from "./routes/bailleur.route.js";
 import matchingRouter from "./routes/matching.route.js";
 import commissionnaireRouter from "./routes/commissionnaire.route.js";
 import missionRouter from "./routes/mission.route.js";
+import currencyRouter from "./routes/currency.route.js";
+import caisseRouter from "./routes/caisse.route.js";
+import exchangeRateRouter from "./routes/exchangeRate.route.js";
 
 const app = express();
 
@@ -70,6 +73,9 @@ app.use("/api/bailleurs", bailleurRouter);
 app.use("/api/matchings", matchingRouter);
 app.use("/api/commissionnaires", commissionnaireRouter);
 app.use("/api/missions", missionRouter);
+app.use("/api/currencies", currencyRouter);
+app.use("/api/caisses", caisseRouter);
+app.use("/api/exchange-rates", exchangeRateRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

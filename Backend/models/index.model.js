@@ -25,6 +25,10 @@ import Matching from "./matching.model.js";
 import Commissionnaire from "./commissionnaire.model.js";
 import CommissionnaireIncident from "./commissionnaireIncident.model.js";
 import Mission from "./mission.model.js";
+import Currency from "./currency.model.js";
+import Caisse from "./caisse.model.js";
+import CaisseBalance from "./caisseBalance.model.js";
+import ExchangeRate from "./exchangeRate.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -187,6 +191,22 @@ Mission.belongsTo(Property, { foreignKey: "idProperty" });
 Mission.belongsTo(Client, { foreignKey: "idClient" });
 Mission.belongsTo(User, { foreignKey: "validatedBy", as: "validator" });
 
+// BACK-G12 — Caisses multiples et devises (CLAUDE.md §4). Un solde par
+// devise et par caisse (CaisseBalance), jamais mélangés ; ExchangeRate sert
+// uniquement au reporting consolidé.
+Caisse.belongsTo(User, { foreignKey: "responsableUserId", as: "responsable" });
+Caisse.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+Caisse.hasMany(CaisseBalance, { foreignKey: "idCaisse", as: "balances" });
+CaisseBalance.belongsTo(Caisse, { foreignKey: "idCaisse" });
+
+Currency.hasMany(CaisseBalance, { foreignKey: "currencyCode" });
+CaisseBalance.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+
+ExchangeRate.belongsTo(Currency, { foreignKey: "fromCurrency", as: "from" });
+ExchangeRate.belongsTo(Currency, { foreignKey: "toCurrency", as: "to" });
+ExchangeRate.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -223,5 +243,9 @@ export {
   Commissionnaire,
   CommissionnaireIncident,
   Mission,
+  Currency,
+  Caisse,
+  CaisseBalance,
+  ExchangeRate,
   syncModels,
 };
