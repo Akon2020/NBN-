@@ -128,7 +128,7 @@ export default function AccessGrantsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">
             Accès consultants
@@ -140,7 +140,7 @@ export default function AccessGrantsPage() {
         </div>
         <Button
           onClick={() => setShowModal(true)}
-          className="bg-primary text-primary-foreground"
+          className="w-full sm:w-auto bg-primary text-primary-foreground"
         >
           <Plus className="mr-2 h-4 w-4" />
           Nouvel accès

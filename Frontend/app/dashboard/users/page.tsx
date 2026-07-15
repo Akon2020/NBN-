@@ -107,12 +107,12 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Utilisateurs</h1>
           <p className="text-muted-foreground mt-2">Gérez les accès et les rôles des membres de l'équipe</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="bg-primary text-primary-foreground">
+        <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto bg-primary text-primary-foreground">
           <Plus className="mr-2 h-4 w-4" />
           Ajouter un utilisateur
         </Button>

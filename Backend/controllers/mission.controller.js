@@ -89,6 +89,7 @@ const transitionMission = async (req, res, next, { statut, requireMotif }) => {
       validatedBy: req.user.idUser,
       validatedAt: new Date(),
     });
+    await mission.reload({ include: MISSION_INCLUDES });
 
     return res.status(200).json({ message: "Mission mise à jour", data: mission });
   } catch (error) {

@@ -315,3 +315,136 @@ export interface BailleurUpdatePayload {
   statutRelation?: BailleurStatutRelation
   valeurBailleur?: BailleurValeur
 }
+
+// --- Field Operations (BACK-G09/G10/G11) ----------------------------------
+
+export type CommissionnaireNiveau = "JUNIOR" | "CONFIRME" | "SENIOR"
+export type CommissionnaireStatut = "ACTIF" | "OBSERVATION" | "SUSPENDU" | "EXCLU"
+export type CommissionnaireClassement = "ELITE" | "TRES_PERFORMANT" | "MOYEN" | "RISQUE"
+export type IncidentType = "RETARD" | "DONNEES_INCOMPLETES" | "NON_RESPECT_REGLES" | "AUTRE"
+export type IncidentGravite = "MINEUR" | "MODERE" | "MAJEUR"
+
+export const NIVEAU_LABELS: Record<CommissionnaireNiveau, string> = {
+  JUNIOR: "Junior",
+  CONFIRME: "Confirmé",
+  SENIOR: "Senior",
+}
+
+export const STATUT_COMMISSIONNAIRE_LABELS: Record<CommissionnaireStatut, string> = {
+  ACTIF: "Actif",
+  OBSERVATION: "Observation",
+  SUSPENDU: "Suspendu",
+  EXCLU: "Exclu",
+}
+
+export const CLASSEMENT_LABELS: Record<CommissionnaireClassement, string> = {
+  ELITE: "Élite",
+  TRES_PERFORMANT: "Très performant",
+  MOYEN: "Moyen",
+  RISQUE: "Risque",
+}
+
+export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
+  RETARD: "Retard",
+  DONNEES_INCOMPLETES: "Données incomplètes",
+  NON_RESPECT_REGLES: "Non-respect des règles",
+  AUTRE: "Autre",
+}
+
+export interface CommissionnaireIncident {
+  idIncident: number
+  idCommissionnaire: number
+  type: IncidentType
+  gravite: IncidentGravite
+  description?: string | null
+  impactDiscipline: number
+  dateIncident: string
+  createdBy?: number | null
+  createdAt: string
+}
+
+export interface Commissionnaire {
+  idCommissionnaire: number
+  idPerson: number
+  code: string
+  zone?: string | null
+  niveau: CommissionnaireNiveau
+  statut: CommissionnaireStatut
+  scorePerformance: number
+  scoreQualite: number
+  scoreDiscipline: number
+  scoreEngagement: number
+  scoreGlobal: number
+  classement: CommissionnaireClassement
+  dateDebutActivite?: string | null
+  createdBy?: number | null
+  person?: Person
+  incidents?: CommissionnaireIncident[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CommissionnaireCreatePayload {
+  idPerson?: number
+  fullName?: string
+  phone?: string
+  email?: string
+  code: string
+  zone?: string
+  dateDebutActivite?: string
+}
+
+export interface CommissionnaireUpdatePayload {
+  zone?: string
+  dateDebutActivite?: string
+  statut?: CommissionnaireStatut
+}
+
+export interface CommissionnaireScorePayload {
+  scorePerformance?: number
+  scoreQualite?: number
+  scoreDiscipline?: number
+  scoreEngagement?: number
+}
+
+export interface IncidentCreatePayload {
+  type: IncidentType
+  gravite?: IncidentGravite
+  description?: string
+  impactDiscipline?: number
+}
+
+export type MissionType = "COLLECTE_BIEN" | "APPORT_CLIENT" | "SUIVI"
+export type MissionStatut = "SOUMISE" | "VALIDEE" | "REJETEE" | "CORRECTION_DEMANDEE"
+
+export const MISSION_TYPE_LABELS: Record<MissionType, string> = {
+  COLLECTE_BIEN: "Collecte de bien",
+  APPORT_CLIENT: "Apport client",
+  SUIVI: "Suivi",
+}
+
+export const MISSION_STATUT_LABELS: Record<MissionStatut, string> = {
+  SOUMISE: "Soumise",
+  VALIDEE: "Validée",
+  REJETEE: "Rejetée",
+  CORRECTION_DEMANDEE: "Correction demandée",
+}
+
+export interface Mission {
+  idMission: number
+  uuid: string
+  idCommissionnaire: number
+  type: MissionType
+  statut: MissionStatut
+  idProperty?: number | null
+  idClient?: number | null
+  notes?: string | null
+  motifRejet?: string | null
+  validatedBy?: number | null
+  validatedAt?: string | null
+  commissionnaire?: Commissionnaire
+  property?: Property
+  client?: Client
+  createdAt: string
+  updatedAt: string
+}

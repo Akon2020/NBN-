@@ -22,6 +22,8 @@ import {
   Users,
   UserRound,
   Handshake,
+  ClipboardCheck,
+  Compass,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -64,6 +66,8 @@ export default function DashboardLayout({
     { name: "Biens à vendre", href: "/dashboard/sales", icon: Building2 },
     { name: "Clients", href: "/dashboard/clients", icon: UserRound },
     { name: "Bailleurs", href: "/dashboard/bailleurs", icon: Handshake },
+    { name: "Commissionnaires", href: "/dashboard/commissionnaires", icon: Compass },
+    { name: "Missions", href: "/dashboard/missions", icon: ClipboardCheck },
     { name: "Galerie", href: "/dashboard/gallery", icon: ImageIcon },
     { name: "Favoris", href: "/dashboard/favorites", icon: Star },
     { name: "Recherche", href: "/dashboard/search", icon: Search },
