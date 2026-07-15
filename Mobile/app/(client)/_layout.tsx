@@ -24,6 +24,13 @@ export default function ClientLayout() {
         }}
       />
       <Tabs.Screen
+        name="carte"
+        options={{
+          title: 'Carte',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="favoris"
         options={{
           title: 'Favoris',
