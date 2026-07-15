@@ -1,28 +1,32 @@
-// Palette "app" — alignée sur Frontend/styles/globals.css (thème shadcn
-// neutre) pour que le Mobile et le Frontend Admin partagent le même
-// langage visuel sur les écrans de consultation/collecte biens. Valeurs
-// hex converties depuis les oklch du Frontend (RN ne supporte pas oklch()
-// nativement). Distincte de la palette de marque (`primary-900` navy,
-// `accent-600` orange, CLAUDE.md §10) conservée pour l'onboarding/login,
-// qui restent des écrans d'identité de marque, pas des écrans de listing.
+// Palette "app" — alignée sur la palette de marque réellement utilisée par
+// le Frontend Admin (Frontend/app/globals.css, le fichier effectivement
+// importé par app/layout.tsx — Frontend/styles/globals.css est un résidu
+// de scaffold inutilisé, jamais importé nulle part, à ne plus utiliser
+// comme référence). Orange chaud en primaire, vert profond en secondaire,
+// rouge en accent/destructif : c'est la vraie identité visuelle du site,
+// pas un thème shadcn neutre générique.
 export const APP_COLORS = {
   background: '#FFFFFF',
-  foreground: '#171717',
+  foreground: '#141716',
   card: '#FFFFFF',
-  cardForeground: '#171717',
-  primary: '#1A1A1A',
-  primaryForeground: '#FAFAFA',
-  secondary: '#F5F5F5',
-  secondaryForeground: '#1A1A1A',
+  cardForeground: '#141716',
+  primary: '#FC963C',
+  primaryForeground: '#FFFFFF',
+  secondary: '#2C6F5D',
+  secondaryForeground: '#FFFFFF',
   muted: '#F5F5F5',
-  mutedForeground: '#8C8C8C',
-  accent: '#F5F5F5',
-  accentForeground: '#1A1A1A',
-  destructive: '#DC2626',
-  border: '#EBEBEB',
-  ring: '#B5B5B5',
-  success: '#16A34A',
-  warning: '#D97706',
+  mutedForeground: '#6B7280',
+  accent: '#FE3F3F',
+  accentForeground: '#FFFFFF',
+  destructive: '#FE3F3F',
+  destructiveForeground: '#FFFFFF',
+  border: '#E5E7EB',
+  ring: '#FC963C',
+  // Sémantique distincte de la palette décorative — un succès n'est pas
+  // "secondary" par coïncidence, il doit rester lisible même si la marque
+  // change de vert un jour.
+  success: '#2F7350',
+  warning: '#F59E0B',
 } as const;
 
 export const APP_RADIUS = {

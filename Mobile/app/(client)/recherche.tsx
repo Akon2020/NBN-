@@ -82,7 +82,7 @@ export default function RechercheScreen() {
             alignItems: 'center',
             gap: 8,
             borderRadius: 999,
-            backgroundColor: APP_COLORS.secondary,
+            backgroundColor: APP_COLORS.muted,
             paddingHorizontal: 16,
             paddingVertical: 12,
           }}
@@ -108,7 +108,7 @@ export default function RechercheScreen() {
                   borderRadius: 999,
                   paddingHorizontal: 16,
                   paddingVertical: 9,
-                  backgroundColor: active ? APP_COLORS.primary : APP_COLORS.secondary,
+                  backgroundColor: active ? APP_COLORS.primary : APP_COLORS.muted,
                 }}
               >
                 <Text

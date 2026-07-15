@@ -143,7 +143,7 @@ export default function PropertyDetailScreen() {
             position: 'relative',
             height: 300,
             width: '100%',
-            backgroundColor: APP_COLORS.secondary,
+            backgroundColor: APP_COLORS.muted,
             borderBottomLeftRadius: APP_RADIUS.xl,
             borderBottomRightRadius: APP_RADIUS.xl,
             overflow: 'hidden',
@@ -209,8 +209,8 @@ export default function PropertyDetailScreen() {
                 </Text>
               </View>
             </View>
-            <View style={{ borderRadius: 999, backgroundColor: APP_COLORS.secondary, paddingHorizontal: 12, paddingVertical: 7 }}>
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: APP_COLORS.secondaryForeground }}>
+            <View style={{ borderRadius: 999, backgroundColor: APP_COLORS.muted, paddingHorizontal: 12, paddingVertical: 7 }}>
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: APP_COLORS.foreground }}>
                 {PROPERTY_TYPE_LABELS[property.propertyType]}
               </Text>
             </View>
@@ -233,7 +233,7 @@ export default function PropertyDetailScreen() {
                     alignItems: 'center',
                     gap: 4,
                     borderRadius: APP_RADIUS.md,
-                    backgroundColor: APP_COLORS.secondary,
+                    backgroundColor: APP_COLORS.muted,
                     paddingVertical: 14,
                   }}
                 >
@@ -256,7 +256,7 @@ export default function PropertyDetailScreen() {
                 alignItems: 'center',
                 gap: 8,
                 borderRadius: APP_RADIUS.md,
-                backgroundColor: APP_COLORS.secondary,
+                backgroundColor: APP_COLORS.muted,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
               }}
