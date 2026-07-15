@@ -30,6 +30,10 @@ import Caisse from "./caisse.model.js";
 import CaisseBalance from "./caisseBalance.model.js";
 import ExchangeRate from "./exchangeRate.model.js";
 import Requisition from "./requisition.model.js";
+import PaymentMethod from "./paymentMethod.model.js";
+import Payment from "./payment.model.js";
+import CashMovement from "./cashMovement.model.js";
+import LedgerEntry from "./ledgerEntry.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -215,6 +219,27 @@ Requisition.belongsTo(User, { foreignKey: "decidedBy", as: "decideur" });
 Requisition.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
 Requisition.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
 
+// BACK-G14 — Payment → CashMovement → LedgerEntry (CLAUDE.md §4, append-only).
+Payment.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+Payment.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+Payment.belongsTo(PaymentMethod, { foreignKey: "idPaymentMethod", as: "paymentMethod" });
+Payment.belongsTo(Requisition, { foreignKey: "idRequisition", as: "requisition" });
+Payment.belongsTo(User, { foreignKey: "recordedBy", as: "recorder" });
+Payment.belongsTo(Payment, { foreignKey: "reversalOfPaymentId", as: "reversalOf" });
+Payment.hasOne(Payment, { foreignKey: "reversalOfPaymentId", as: "reversedBy" });
+
+CashMovement.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+CashMovement.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+CashMovement.belongsTo(Payment, { foreignKey: "idPayment", as: "payment" });
+CashMovement.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+Payment.hasOne(CashMovement, { foreignKey: "idPayment", as: "cashMovement" });
+
+LedgerEntry.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
+LedgerEntry.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
+LedgerEntry.belongsTo(CashMovement, { foreignKey: "idCashMovement", as: "cashMovement" });
+LedgerEntry.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+CashMovement.hasOne(LedgerEntry, { foreignKey: "idCashMovement", as: "ledgerEntry" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -256,5 +281,9 @@ export {
   CaisseBalance,
   ExchangeRate,
   Requisition,
+  PaymentMethod,
+  Payment,
+  CashMovement,
+  LedgerEntry,
   syncModels,
 };
