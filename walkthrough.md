@@ -371,3 +371,34 @@ Le serveur de développement Frontend s'est retrouvé dans un état bloqué en c
 - Le lint Frontend reste non configuré (ESLint absent malgré la présence du script `npm run lint`) — reporté, non bloquant pour ce milestone.
 
 *Milestone 3 terminé. Prochaine session suggérée : cadrage du Milestone 4 selon `plan.md`.*
+
+---
+
+## Session 6 — 2026-07-15 — Milestone 4 (Treasury + Payments niveau 1)
+
+### ✅ BACK-G12 — Caisses multiples et devises
+Modèles `Caisse` (statut ouverte/clôturée, responsable), `Currency` (catalogue configurable, USD/CDF pré-remplies par seeder), `CaisseBalance` (un solde par devise et par caisse, jamais mélangés — contrainte unique `(idCaisse, currencyCode)`), `ExchangeRate` (taux tracés, reporting consolidé uniquement, jamais de conversion implicite). La création d'une caisse initialise automatiquement un solde à zéro pour chaque devise active. Permissions `treasury:read`/`treasury:manage`.
+
+### ✅ BACK-G13 — Réquisitions de fonds
+Circuit complet décrit dans info.md §6 : Saisie → Vérification (contrôle synchrone des champs obligatoires + conformité budgétaire : la devise demandée doit être suivie par la caisse ciblée) → Approbation (génère un code de validation unique `REQ-<année>-<hex>`) / Rejet / Demande de complément (motif obligatoire pour ces deux derniers) → Génération (PDF via `pdf-lib`, rendu à la demande à partir des données figées à l'approbation, jamais stocké sur disque) → Archivage (aucune suppression, recherche par filtres statut/caisse/dates).
+
+### ✅ BACK-G14 — Payment → CashMovement → LedgerEntry (append-only)
+`Payment` découplé de `PaymentMethod` (catalogue CASH/VIREMENT/MOBILE_MONEY seedé) ; V1 n'utilise que le statut `recorded_manually`, les autres (initiated/provider_confirmed/...) existent dès le schéma pour une future intégration fournisseur, inertes. Un enregistrement de paiement crée dans une **transaction unique** : le `Payment`, un `CashMovement`, la mise à jour du `CaisseBalance`, et une `LedgerEntry` immuable (`balanceAfter` figé). Un décaissement qui dépasserait le solde disponible est refusé. Aucune route de modification n'existe sur le ledger — une correction crée uniquement une contre-écriture de sens opposé (`Payment.reversalOfPaymentId`) et marque l'original `cancelled`, sans jamais toucher l'historique déjà comptabilisé.
+
+### ✅ BACK-G15 — Commissions
+Calcul agence/agent/commissionnaire à partir d'une transaction client conclue (`Client.statutPipeline === "CONCLU"`), par taux appliqué au montant de la transaction ou montant direct. Le bénéficiaire `COMMISSIONNAIRE` est résolu depuis `Client.sourceCommissionnaireCode` ; `AGENT` exige un `beneficiaireUserId` explicite. Une commission calculée (`CALCULEE`) devient éligible à un paiement seulement après avoir été marquée `DUE` avec une caisse cible dont la devise est suivie ; le paiement traverse le même circuit que les réquisitions (`Payment.idCommission`) et marque la commission `PAYEE`. Idempotence vérifiée : toute nouvelle tentative de paiement sur une commission déjà payée est refusée.
+
+### ✅ ADMIN-G06 — Interfaces Trésorerie (Frontend)
+Écrans Caisses (liste, détail avec soldes et ledger, création, clôture, enregistrement de paiement libre), Réquisitions (soumission, approbation/rejet/demande de complément, téléchargement PDF, paiement), Commissions (calcul, passage en "due", paiement). Le PDF de réquisition est récupéré en `blob` via axios (`withCredentials`) plutôt que via un lien direct, pour garantir l'envoi du cookie d'authentification httpOnly indépendamment de sa politique SameSite. Ajout d'un endpoint `GET /api/payments/methods` côté Backend (manquant), nécessaire pour peupler le sélecteur de moyen de paiement avec de vrais identifiants.
+
+### Vérification — méthode et limite
+Backend : `npm test` → **79/79** (intégration complète via supertest contre l'application réelle, DB réelle — couvre les quatre goals, y compris la transaction atomique Payment→CashMovement→LedgerEntry, la conformité budgétaire, l'idempotence des paiements liés à une réquisition/commission, et le circuit de contre-écriture à l'annulation). Frontend : `npx tsc --noEmit` → 0 erreur.
+
+**Non vérifié visuellement cette session** : le Browser pane intégré s'est retrouvé dans un état où toute navigation vers `/auth/login` était systématiquement redirigée vers `/dashboard` (page blanche), reproductible sur plusieurs tentatives, plusieurs onglets neufs, et plusieurs méthodes de navigation (`navigate`, `window.location.href`, `preview_start`). Un `curl` direct sur le serveur Next.js a confirmé que celui-ci répond correctement à `/auth/login` (200, contenu de la page de connexion présent) — la cause est donc circonscrite à l'outil de prévisualisation de cette session, pas à l'application. Les écrans ADMIN-G06 n'ont donc **pas** été exercés en direct dans un navigateur comme l'avaient été ADMIN-G04/G05 ; ils suivent cependant exactement les mêmes patterns (liste/détail/modals, gestion d'erreur, responsivité mobile-first) déjà validés en direct lors du Milestone 3.
+
+### Décisions à documenter/valider par l'utilisateur
+- **Vérification visuelle ADMIN-G06 en attente** — à refaire dès que le Browser pane fonctionne à nouveau normalement (parcours suggéré : créer une caisse, soumettre une réquisition, l'approuver, télécharger le PDF, l'enregistrer comme payée ; calculer une commission sur un client CONCLU, la marquer due, la payer).
+- Neuf comptes de test (un par rôle RBAC, mot de passe `TestPass@123`) ont été créés/réinitialisés dans la base de développement pour faciliter les tests manuels : `qa.<role>@nbn.test` pour chacun des 9 rôles du catalogue.
+- La conformité budgétaire à la Saisie d'une réquisition ne vérifie que la structure (devise suivie par la caisse), jamais la suffisance réelle du solde — celle-ci n'est vérifiée qu'au moment du décaissement effectif (BACK-G14), pour ne pas bloquer des réquisitions concurrentes légitimes sur une même caisse.
+
+*Milestone 4 terminé (sous réserve de la vérification visuelle Frontend en attente). Prochaine session suggérée : reprendre la vérification visuelle ADMIN-G06, puis cadrage du Milestone 5 (Tasks + Notifications/Alerts/Reminders + Realtime) selon `plan.md`.*
