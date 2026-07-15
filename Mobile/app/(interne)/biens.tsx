@@ -22,6 +22,12 @@ import {
 } from '@/lib/properties';
 import { addFavorite, getMyFavorites, removeFavorite } from '@/lib/favorites';
 import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
+import {
+  countActiveFilters,
+  EMPTY_FILTERS,
+  PropertyFilterModal,
+  type PropertyFilters,
+} from '@/components/property-filter-modal';
 
 type CategoryFilter = 'all' | PropertyCategory;
 type TypeFilter = 'all' | PropertyType;
@@ -50,6 +56,8 @@ export default function BiensInterneScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [propertyType, setPropertyType] = useState<TypeFilter>('all');
+  const [filters, setFilters] = useState<PropertyFilters>(EMPTY_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -89,9 +97,16 @@ export default function BiensInterneScreen() {
   );
 
   const filtered = useMemo(() => {
+    const minPrice = filters.minPrice ? Number(filters.minPrice) : null;
+    const maxPrice = filters.maxPrice ? Number(filters.maxPrice) : null;
+
     return properties.filter((property) => {
       if (category !== 'all' && property.category !== category) return false;
       if (propertyType !== 'all' && property.propertyType !== propertyType) return false;
+      if (filters.minBedrooms !== null && (property.bedrooms ?? 0) < filters.minBedrooms) return false;
+      if (filters.minToilets !== null && (property.toilets ?? 0) < filters.minToilets) return false;
+      if (minPrice !== null && property.price < minPrice) return false;
+      if (maxPrice !== null && property.price > maxPrice) return false;
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         const matches =
@@ -101,30 +116,73 @@ export default function BiensInterneScreen() {
       }
       return true;
     });
-  }, [properties, category, propertyType, searchTerm]);
+  }, [properties, category, propertyType, filters, searchTerm]);
+
+  const activeFilterCount = countActiveFilters(filters);
 
   return (
     <View style={{ flex: 1, backgroundColor: APP_COLORS.background }}>
       <View style={{ gap: 16, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            borderRadius: 999,
-            backgroundColor: APP_COLORS.muted,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-          }}
-        >
-          <MaterialIcons name="search" size={20} color={APP_COLORS.mutedForeground} />
-          <TextInput
-            placeholder="Quartier, avenue..."
-            placeholderTextColor={APP_COLORS.mutedForeground}
-            value={searchTerm}
-            onChangeText={setSearchTerm}
-            style={{ flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.foreground }}
-          />
+        <View className="flex-row items-center" style={{ gap: 10 }}>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              borderRadius: 999,
+              backgroundColor: APP_COLORS.muted,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+            }}
+          >
+            <MaterialIcons name="search" size={20} color={APP_COLORS.mutedForeground} />
+            <TextInput
+              placeholder="Quartier, avenue..."
+              placeholderTextColor={APP_COLORS.mutedForeground}
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              style={{ flex: 1, fontFamily: 'Inter_400Regular', fontSize: 14, color: APP_COLORS.foreground }}
+            />
+          </View>
+          <TouchableOpacity
+            onPress={() => setShowFilters(true)}
+            style={{
+              height: 46,
+              width: 46,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 999,
+              backgroundColor: activeFilterCount > 0 ? APP_COLORS.primary : APP_COLORS.muted,
+            }}
+          >
+            <MaterialIcons
+              name="tune"
+              size={20}
+              color={activeFilterCount > 0 ? APP_COLORS.primaryForeground : APP_COLORS.foreground}
+            />
+            {activeFilterCount > 0 && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  height: 16,
+                  width: 16,
+                  borderRadius: 999,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: APP_COLORS.destructive,
+                  borderWidth: 1.5,
+                  borderColor: APP_COLORS.background,
+                }}
+              >
+                <Text style={{ fontSize: 9, fontFamily: 'Inter_600SemiBold', color: '#fff' }}>
+                  {activeFilterCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -224,6 +282,14 @@ export default function BiensInterneScreen() {
           }
         />
       )}
+
+      <PropertyFilterModal
+        visible={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filters}
+        onApply={setFilters}
+        resultCount={filtered.length}
+      />
     </View>
   );
 }
