@@ -27,6 +27,16 @@ import requisitionRouter from "./routes/requisition.route.js";
 import paymentRouter from "./routes/payment.route.js";
 import commissionRouter from "./routes/commission.route.js";
 import taskRouter from "./routes/task.route.js";
+import notificationRouter from "./routes/notification.route.js";
+import alertRouter from "./routes/alert.route.js";
+import reminderRouter from "./routes/reminder.route.js";
+import { registerEventListeners } from "./shared/eventListeners.js";
+
+// BACK-G17 — enregistré ici (pas server.js) pour que les tests qui
+// importent `app.js` directement (supertest, jamais via un vrai
+// `listen()`) exercent aussi la conséquence réelle des événements
+// métier, pas seulement la route HTTP isolée.
+registerEventListeners();
 
 const app = express();
 
@@ -91,6 +101,9 @@ app.use("/api/requisitions", requisitionRouter);
 app.use("/api/payments", paymentRouter);
 app.use("/api/commissions", commissionRouter);
 app.use("/api/tasks", taskRouter);
+app.use("/api/notifications", notificationRouter);
+app.use("/api/alerts", alertRouter);
+app.use("/api/reminders", reminderRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

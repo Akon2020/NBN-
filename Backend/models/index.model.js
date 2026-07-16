@@ -41,6 +41,10 @@ import TaskPropertyLink from "./taskPropertyLink.model.js";
 import TaskClientLink from "./taskClientLink.model.js";
 import TaskBailleurLink from "./taskBailleurLink.model.js";
 import TaskCommissionnaireLink from "./taskCommissionnaireLink.model.js";
+import Notification from "./notification.model.js";
+import Alert from "./alert.model.js";
+import Reminder from "./reminder.model.js";
+import OutboxEvent from "./outboxEvent.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -287,6 +291,17 @@ TaskCommissionnaireLink.belongsTo(Commissionnaire, {
   as: "commissionnaire",
 });
 
+// BACK-G17 — Notifications/Alerts/Reminders (CLAUDE.md §4/§7).
+Notification.belongsTo(User, { foreignKey: "idUser", as: "user" });
+User.hasMany(Notification, { foreignKey: "idUser" });
+
+Alert.belongsTo(User, { foreignKey: "assignedTo", as: "assignee" });
+Alert.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+Alert.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
+
+Reminder.belongsTo(User, { foreignKey: "idUser", as: "user" });
+Reminder.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -339,5 +354,9 @@ export {
   TaskClientLink,
   TaskBailleurLink,
   TaskCommissionnaireLink,
+  Notification,
+  Alert,
+  Reminder,
+  OutboxEvent,
   syncModels,
 };

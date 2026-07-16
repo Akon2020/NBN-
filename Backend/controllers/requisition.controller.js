@@ -8,6 +8,7 @@ import {
   User,
 } from "../models/index.model.js";
 import { generateRequisitionPdf } from "../utils/requisitionPdf.js";
+import { eventBus } from "../shared/eventBus.js";
 
 const REQUISITION_INCLUDES = [
   { model: User, as: "demandeur", attributes: ["idUser", "fullName", "email"] },
@@ -143,6 +144,16 @@ const decideRequisition = async (req, res, next, { statut, requireMotif, generat
     const updated = await Requisition.findByPk(requisition.idRequisition, {
       include: REQUISITION_INCLUDES,
     });
+
+    // BACK-G17 — événement métier, jamais un envoi de notification en
+    // dur ici : le listener (shared/eventListeners.js) décide de la
+    // conséquence, ce contrôleur ne fait qu'annoncer le fait.
+    if (statut === "APPROUVEE") {
+      eventBus.emit("requisition:approved", { requisition: updated });
+    } else if (statut === "REJETEE") {
+      eventBus.emit("requisition:rejected", { requisition: updated });
+    }
+
     return res.status(200).json({ message: "Réquisition mise à jour", data: updated });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });

@@ -11,6 +11,16 @@ import {
 } from "../utils/commissionnaireScoring.js";
 import { revokeAllUserSessions } from "../utils/session.utils.js";
 import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
+import { eventBus } from "../shared/eventBus.js";
+
+// BACK-G17 — n'émet l'alerte que sur la transition réelle vers
+// OBSERVATION (jamais à chaque recalcul de score qui laisse le statut
+// inchangé), pour ne pas spammer une alerte identique en boucle.
+const emitScoreLowIfNewlyObserved = (commissionnaire, previousStatut) => {
+  if (previousStatut !== "OBSERVATION" && commissionnaire.statut === "OBSERVATION") {
+    eventBus.emit("commissionnaire:score_low", { commissionnaire });
+  }
+};
 
 const COMMISSIONNAIRE_INCLUDES = [
   { model: Person, as: "person" },
@@ -198,8 +208,10 @@ export const updateCommissionnaireScore = async (req, res, next) => {
       }
     });
 
+    const previousStatut = commissionnaire.statut;
     applyEvolutionGrid(commissionnaire);
     await commissionnaire.save();
+    emitScoreLowIfNewlyObserved(commissionnaire, previousStatut);
 
     const updated = await Commissionnaire.findByPk(id, {
       include: [{ model: Person, as: "person" }],
@@ -255,8 +267,10 @@ export const createIncident = async (req, res, next) => {
     commissionnaire.scoreDiscipline = clampSubScore(
       Number(commissionnaire.scoreDiscipline) - Number(impactDiscipline ?? 0)
     );
+    const previousStatut = commissionnaire.statut;
     applyEvolutionGrid(commissionnaire);
     await commissionnaire.save();
+    emitScoreLowIfNewlyObserved(commissionnaire, previousStatut);
 
     return res.status(201).json({
       message: "Incident enregistré",

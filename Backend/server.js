@@ -1,10 +1,12 @@
 import app from "./app.js";
 import { PORT, HOST_URL } from "./config/env.js";
 import { syncModels } from "./models/index.model.js";
+import { startOutboxCron } from "./services/outbox.worker.js";
 
 const server = app.listen(PORT, async () => {
   try {
     await syncModels();
+    startOutboxCron();
     console.log(`Le serveur est lancé au http://localhost:${PORT}/`);
     console.log(`Documentation Swagger sur ${HOST_URL}/api-docs/`);
   } catch (error) {
