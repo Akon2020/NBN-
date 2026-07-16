@@ -524,3 +524,16 @@ Audit systématique des 28 pages du Frontend (landing publique, 3 pages auth, 24
 
 ### Vérification
 `npx tsc --noEmit` → 0 erreur après les deux correctifs.
+
+---
+
+## Bilan de session — Milestones 6 et 7 (partiel)
+
+État final de `plan.md` à la clôture de cette session :
+- **Milestone 6 (Calendar + Reporting + Archivage formalisé)** : **terminé** — BACK-G19, BACK-G20, BACK-G21, ADMIN-G08 tous livrés et testés.
+- **Milestone 7 (RH avancé + Paiements fournisseur externe)** : **partiel** — BACK-G22 livré (V1 minimale, cadrée avec l'utilisateur avant développement) ; BACK-G23 explicitement reporté par l'utilisateur (pas d'identifiants marchand Mobile Money disponibles), reste un goal ouvert dans `plan.md`.
+- **Audit de responsivité Frontend** : terminé par lecture de code sur les 28 pages — 2 dépassements horizontaux mobile corrigés (missions, favoris). **Non confirmé visuellement en navigateur** (prévisualisation automatisée bloquée par une boucle de redirection d'authentification pré-existante cette session, sans lien avec le code applicatif) — vérification manuelle recommandée avant clôture définitive.
+
+**Vérification finale** : Backend `npm test` → 115/118 (3 échecs isolés à un bug pré-existant et déjà signalé séparément : l'envoi d'email de bienvenue lors de la création d'utilisateur bloque la requête de façon synchrone sur un SMTP lent/inaccessible — sans lien avec les changements de cette session, confirmé par exclusion : 103/103 en dehors de ces deux fichiers). Frontend `npx tsc --noEmit` → 0 erreur.
+
+**Reste ouvert pour une session future** : BACK-G23 (dès identifiants Mobile Money disponibles), correctif du bug SMTP synchrone (tâche déjà signalée séparément), vérification visuelle manuelle de la responsivité et des deux nouveaux écrans ADMIN-G08 dans un vrai navigateur.
