@@ -66,6 +66,24 @@ const connect = (token) =>
     socket.on("connect_error", (err) => reject(err));
   });
 
+// Le Frontend web n'a pas accès à `auth.token` (cookie httpOnly,
+// ADMIN-G01) — la gateway doit aussi accepter le jeton via le cookie
+// `token`, exactement comme `authMiddlware` pour le REST.
+const connectViaCookie = (token) =>
+  new Promise((resolve, reject) => {
+    // La poignée de main initiale (polling HTTP) transporte fiablement des
+    // en-têtes personnalisés côté Node — le websocket pur n'est pas garanti
+    // ici selon les couches sous-jacentes, seule la première requête HTTP
+    // du handshake Engine.IO compte pour l'authentification côté serveur.
+    const socket = ioClient(`http://localhost:${port}`, {
+      extraHeaders: { Cookie: `token=${token}` },
+      reconnection: false,
+      forceNew: true,
+    });
+    socket.on("connect", () => resolve(socket));
+    socket.on("connect_error", (err) => reject(err));
+  });
+
 describe("BACK-G18 - Realtime (Socket.IO) avec audiences calculées côté serveur", () => {
   it("refuse une connexion sans token", async () => {
     await expect(connect(undefined)).rejects.toThrow();
@@ -73,6 +91,15 @@ describe("BACK-G18 - Realtime (Socket.IO) avec audiences calculées côté serve
 
   it("refuse une connexion avec un token invalide", async () => {
     await expect(connect("un.jeton.invalide")).rejects.toThrow();
+  });
+
+  it("accepte une connexion authentifiée par cookie (Frontend web, cookie httpOnly)", async () => {
+    const socket = await connectViaCookie(operationsToken);
+    try {
+      expect(socket.connected).toBe(true);
+    } finally {
+      socket.disconnect();
+    }
   });
 
   it("accepte une connexion avec un token valide et rejoint sa room personnelle calculée côté serveur", async () => {

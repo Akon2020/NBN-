@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
+import { parseCookie } from "cookie";
 import { JWT_SECRET } from "../config/env.js";
 import { User } from "../models/index.model.js";
 import { getSecurityVersion } from "../utils/securityVersionCache.js";
@@ -17,9 +18,26 @@ let io = null;
 const userRoom = (idUser) => `user:${idUser}`;
 const roleRoom = (role) => `role:${role}`;
 
+// Le Mobile (expo-secure-store) peut lire son propre jeton et le passer
+// via `auth.token` ; le Frontend web le stocke dans un cookie httpOnly
+// (ADMIN-G01, illisible en JS par conception) — la poignée de main
+// Socket.IO transporte déjà ce cookie automatiquement (même origine,
+// `withCredentials`), il suffit de le lire ici comme le fait
+// `authMiddlware` pour le REST (double lecture, jamais une divergence de
+// source de vérité entre les deux canaux).
+const extractToken = (socket) => {
+  if (socket.handshake.auth?.token) {
+    return socket.handshake.auth.token;
+  }
+  const rawCookie = socket.handshake.headers?.cookie;
+  if (!rawCookie) return null;
+  const parsed = parseCookie(rawCookie);
+  return parsed.token || null;
+};
+
 const authenticateSocket = async (socket, next) => {
   try {
-    const token = socket.handshake.auth?.token;
+    const token = extractToken(socket);
     if (!token) {
       return next(new Error("Authentification requise."));
     }
