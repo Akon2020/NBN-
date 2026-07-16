@@ -48,6 +48,15 @@ const User = db.define("users", {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  // BACK-G17 — jeton Expo Push enregistré par le Mobile (MOBILE-G05).
+  // Nullable : un compte peut n'avoir jamais ouvert l'app mobile, ou avoir
+  // refusé les notifications — dans ce cas la Notification reste
+  // consultable en base (source de vérité), seule la tentative de push
+  // est ignorée (PushProvider renvoie "SKIPPED").
+  expoPushToken: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
