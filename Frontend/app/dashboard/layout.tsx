@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "@/components/notification-bell";
 import {
   Building2,
   Home,
@@ -27,6 +28,7 @@ import {
   Wallet,
   FileText,
   Percent,
+  Bell,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -74,6 +76,7 @@ export default function DashboardLayout({
     { name: "Caisses", href: "/dashboard/caisses", icon: Wallet },
     { name: "Réquisitions", href: "/dashboard/requisitions", icon: FileText },
     { name: "Commissions", href: "/dashboard/commissions", icon: Percent },
+    { name: "Alertes", href: "/dashboard/alertes", icon: Bell },
     { name: "Galerie", href: "/dashboard/gallery", icon: ImageIcon },
     { name: "Favoris", href: "/dashboard/favorites", icon: Star },
     { name: "Recherche", href: "/dashboard/search", icon: Search },
@@ -200,6 +203,7 @@ export default function DashboardLayout({
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex-1" />
+          <NotificationBell />
           <ThemeToggle />
         </header>
 

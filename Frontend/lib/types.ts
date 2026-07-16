@@ -651,3 +651,51 @@ export interface CommissionCreatePayload {
   tauxCommission?: number
   montantCommission?: number
 }
+
+// --- Milestone 5 : Notifications/Alerts/Realtime (ADMIN-G07 — BACK-G17/G18) ---
+
+export interface Notification {
+  idNotification: number
+  idUser: number
+  type: string
+  title: string
+  message?: string | null
+  relatedEntityType?: string | null
+  relatedEntityId?: number | null
+  isRead: boolean
+  readAt?: string | null
+  pushStatus: "PENDING" | "SENT" | "FAILED" | "SKIPPED"
+  createdAt: string
+}
+
+export type AlertStatut = "OUVERTE" | "RECONNUE" | "ASSIGNEE" | "EN_COURS" | "RESOLUE" | "CLOTUREE"
+export type AlertSeverite = "INFO" | "AVERTISSEMENT" | "CRITIQUE"
+
+export const ALERT_STATUT_LABELS: Record<AlertStatut, string> = {
+  OUVERTE: "Ouverte",
+  RECONNUE: "Reconnue",
+  ASSIGNEE: "Assignée",
+  EN_COURS: "En cours",
+  RESOLUE: "Résolue",
+  CLOTUREE: "Clôturée",
+}
+
+export const ALERT_SEVERITE_LABELS: Record<AlertSeverite, string> = {
+  INFO: "Info",
+  AVERTISSEMENT: "Avertissement",
+  CRITIQUE: "Critique",
+}
+
+export interface Alert {
+  idAlert: number
+  type: string
+  title: string
+  description?: string | null
+  severite: AlertSeverite
+  statut: AlertStatut
+  assignee?: { idUser: number; fullName: string } | null
+  creator?: { idUser: number; fullName: string } | null
+  resolver?: { idUser: number; fullName: string } | null
+  createdAt: string
+  resolvedAt?: string | null
+}
