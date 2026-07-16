@@ -29,7 +29,8 @@ const WHATSAPP_GREEN = '#25D366'; // Couleur de marque WhatsApp — exception d�
 // DESIGN-G02 — fiche bien partagée entre le profil "client final" (lecture
 // publique, favoris locaux) et "interne" (lecture authentifiée, favoris
 // serveur) : un seul écran, la source de données change selon la session.
-// Thème clair aligné sur Frontend/styles/globals.css.
+// Thème clair aligné sur la vraie palette de marque du Frontend
+// (Frontend/app/globals.css).
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -157,22 +158,42 @@ export default function PropertyDetailScreen() {
             </View>
           )}
 
-          <TouchableOpacity
-            onPress={() => router.back()}
+          <View
             style={{
               position: 'absolute',
-              height: 40,
-              width: 40,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 999,
-              backgroundColor: 'rgba(255,255,255,0.92)',
               top: insets.top + 8,
               left: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
             }}
           >
-            <MaterialIcons name="arrow-back" size={22} color={APP_COLORS.foreground} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{
+                height: 40,
+                width: 40,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 999,
+                backgroundColor: 'rgba(255,255,255,0.92)',
+              }}
+            >
+              <MaterialIcons name="arrow-back" size={22} color={APP_COLORS.foreground} />
+            </TouchableOpacity>
+            <View
+              style={{
+                borderRadius: 999,
+                backgroundColor: property.category === 'RENT' ? APP_COLORS.secondary : APP_COLORS.primary,
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#fff' }}>
+                {property.category === 'RENT' ? 'À louer' : 'À vendre'}
+              </Text>
+            </View>
+          </View>
 
           <TouchableOpacity
             onPress={toggleFavorite}
@@ -209,8 +230,15 @@ export default function PropertyDetailScreen() {
                 </Text>
               </View>
             </View>
-            <View style={{ borderRadius: 999, backgroundColor: APP_COLORS.muted, paddingHorizontal: 12, paddingVertical: 7 }}>
-              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: APP_COLORS.foreground }}>
+            <View
+              style={{
+                borderRadius: 999,
+                backgroundColor: `${APP_COLORS.primary}1A`,
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: APP_COLORS.primary }}>
                 {PROPERTY_TYPE_LABELS[property.propertyType]}
               </Text>
             </View>

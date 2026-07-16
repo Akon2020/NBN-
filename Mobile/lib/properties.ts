@@ -66,6 +66,8 @@ export interface Property {
   livingRooms?: number | null;
   toilets?: number | null;
   kitchens?: number | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   price: number;
   margin?: number;
   statut: PropertyStatut;

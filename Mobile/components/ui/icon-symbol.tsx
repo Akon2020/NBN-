@@ -24,6 +24,7 @@ const MAPPING = {
   'star.fill': 'star',
   'chart.bar.fill': 'dashboard',
   'checklist': 'assignment',
+  'map.fill': 'map',
 } as IconMapping;
 
 /**

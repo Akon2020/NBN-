@@ -24,10 +24,24 @@ export default function ClientLayout() {
         }}
       />
       <Tabs.Screen
+        name="carte"
+        options={{
+          title: 'Carte',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="map.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="favoris"
         options={{
           title: 'Favoris',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="star.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profil"
+        options={{
+          title: 'Profil',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
         }}
       />
     </Tabs>
