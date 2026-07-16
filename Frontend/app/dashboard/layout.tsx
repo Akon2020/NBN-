@@ -30,6 +30,8 @@ import {
   Percent,
   Bell,
   X,
+  CalendarDays,
+  FileBarChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -77,6 +79,8 @@ export default function DashboardLayout({
     { name: "Réquisitions", href: "/dashboard/requisitions", icon: FileText },
     { name: "Commissions", href: "/dashboard/commissions", icon: Percent },
     { name: "Alertes", href: "/dashboard/alertes", icon: Bell },
+    { name: "Calendrier", href: "/dashboard/calendrier", icon: CalendarDays },
+    { name: "Rapports", href: "/dashboard/rapports", icon: FileBarChart },
     { name: "Galerie", href: "/dashboard/gallery", icon: ImageIcon },
     { name: "Favoris", href: "/dashboard/favorites", icon: Star },
     { name: "Recherche", href: "/dashboard/search", icon: Search },

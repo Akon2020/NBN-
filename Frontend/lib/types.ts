@@ -699,3 +699,27 @@ export interface Alert {
   createdAt: string
   resolvedAt?: string | null
 }
+
+// --- Milestone 6 : Calendrier agrégé (ADMIN-G08 — BACK-G19) ---
+// Vue agrégée uniquement (CLAUDE.md §4) : chaque entrée référence sa
+// source d'origine, jamais une copie de son statut.
+export type CalendarSource = "TASK" | "REMINDER" | "RELANCE_CLIENT" | "EVENT"
+
+export interface CalendarEntry {
+  source: CalendarSource
+  id: number
+  title: string
+  description?: string | null
+  date: string
+  endDate?: string | null
+  statut?: string | null
+  priorite?: string | null
+  creator?: string | null
+}
+
+export const CALENDAR_SOURCE_LABELS: Record<CalendarSource, string> = {
+  TASK: "Tâche",
+  REMINDER: "Rappel",
+  RELANCE_CLIENT: "Relance client",
+  EVENT: "Rendez-vous",
+}
