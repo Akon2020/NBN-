@@ -45,6 +45,7 @@ import Notification from "./notification.model.js";
 import Alert from "./alert.model.js";
 import Reminder from "./reminder.model.js";
 import OutboxEvent from "./outboxEvent.model.js";
+import CalendarEvent from "./calendarEvent.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -302,6 +303,11 @@ Alert.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
 Reminder.belongsTo(User, { foreignKey: "idUser", as: "user" });
 Reminder.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
+// BACK-G19 — Calendrier agrégé (vue seulement ; CalendarEvent propre
+// uniquement pour un rendez-vous sans source ailleurs, CLAUDE.md §4).
+CalendarEvent.belongsTo(User, { foreignKey: "idUser", as: "owner" });
+CalendarEvent.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -358,5 +364,6 @@ export {
   Alert,
   Reminder,
   OutboxEvent,
+  CalendarEvent,
   syncModels,
 };
