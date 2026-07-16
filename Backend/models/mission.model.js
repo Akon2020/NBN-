@@ -57,8 +57,19 @@ const Mission = db.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    // BACK-G21 — mêmes principes que Requisition ci-dessus : archivage
+    // métier orthogonal au `statut` de la mission, `deletedAt` (paranoid)
+    // réservé à l'erreur de saisie.
+    archivedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    archiveReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true, paranoid: true }
 );
 
 export default Mission;

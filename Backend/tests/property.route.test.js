@@ -49,7 +49,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (createdPropertyIds.length) {
-    await Property.destroy({ where: { idProperty: createdPropertyIds } });
+    await Property.destroy({ where: { idProperty: createdPropertyIds }, force: true });
   }
   if (createdUserIds.length) {
     await User.destroy({ where: { idUser: createdUserIds } });

@@ -92,6 +92,24 @@ const Property = db.define("properties", {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  // BACK-G21 — soft delete (paranoid). Distinct de l'archivage métier
+  // ci-dessous (CLAUDE.md §11) : `deletedAt` reste invisible en usage
+  // normal et réversible à court terme (erreur de saisie), jamais un
+  // aboutissement de cycle de vie métier.
+  deletedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  archivedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  archiveReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+}, {
+  paranoid: true,
 });
 
 export default Property;

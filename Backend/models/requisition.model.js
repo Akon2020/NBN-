@@ -74,8 +74,23 @@ const Requisition = db.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    // BACK-G21 — archivage métier (CLAUDE.md §11) : une réquisition
+    // approuvée/rejetée ancienne devient archivable pour désencombrer les
+    // listes actives, sans jamais être supprimée (le commentaire
+    // précédent de ce fichier, "l'archivage n'est pas un statut distinct",
+    // reste vrai pour `statut` — l'archivage est une couche orthogonale,
+    // pas un nouveau statut de workflow). `deletedAt` (paranoid) reste un
+    // filet de sécurité distinct pour une erreur de saisie pure.
+    archivedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    archiveReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true, paranoid: true }
 );
 
 export default Requisition;

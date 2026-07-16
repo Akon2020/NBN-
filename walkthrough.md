@@ -449,3 +449,27 @@ Backend : `npm test` → **97/97** (deux runs consécutifs sous charge système 
 
 ### Vérification
 Backend : `npm test` → 97/97. Frontend : `npx tsc --noEmit` → 0 erreur. Mobile : `tsc --noEmit` + `expo lint` propres, `npm test` → 6/6.
+
+---
+
+## Session 9 — 2026-07-16 — Milestone 6 (Backend) : Calendrier, Reporting, Archivage
+
+### ✅ BACK-G19 — Calendrier agrégé
+`CalendarEvent` (`Backend/models/calendarEvent.model.js`) réservé aux seuls rendez-vous ponctuels sans autre source — conformément à CLAUDE.md §4, jamais de duplication systématique. `GET /api/calendar` (`calendar.controller.js`) agrège à la volée `Task.dateEcheance`, `Reminder.dueAt`, `Client.prochaineRelance` et les `CalendarEvent` propres sur une plage `from`/`to`, fusionnés/triés avec un champ `source` discriminant (`TASK`/`REMINDER`/`RELANCE_CLIENT`/`EVENT`) — jamais de copie de statut, la source d'origine reste seule autorité. `POST`/`DELETE` uniquement pour les `CalendarEvent` propres.
+
+### ✅ BACK-G20 — Reporting (PDF/Excel/CSV)
+Trois formats, un moteur par format (CLAUDE.md §12) : `pdf-lib` pour l'état de caisse stylisé (`utils/reports/caisseStatementPdf.js`, réutilise le patron déjà établi par `requisitionPdf.js`), `exceljs` pour l'Excel et génération CSV native (`utils/reports/tabularExport.js`). Export des biens et des commissions au choix `?format=csv|xlsx`. Le champ `margin` respecte le **même** serializer que l'API REST (`serializeProperties(properties, req.user)`) — jamais une règle de masquage réimplémentée localement, vérifié explicitement par test (le rôle trésorerie le voit, un rôle sans `property:margin:read` ne le verrait pas).
+
+### ✅ BACK-G21 — Archivage formalisé
+Scope `plan.md` : biens, clients, réquisitions, missions terrain (jamais Bailleur/Commissionnaire). Trois concepts distincts, jamais confondus (CLAUDE.md §11) :
+- **Soft delete** (`deletedAt`, mode `paranoid: true` Sequelize) sur les quatre modèles — réversible à court terme, invisible en usage normal. `deleteProperty`/`deleteClient` existants deviennent transparemment des soft deletes ; ajout de `restoreProperty`/`restoreClient`.
+- **Archivage métier** (`archivedAt` + `archiveReason`, motif obligatoire) — cycle de vie métier terminé mais toujours consultable individuellement. Factorisé une seule fois (`utils/archivable.js`, `createArchiveHandlers(Model, pkField, message)`) car la forme est strictement identique pour les quatre ressources ; endpoints `POST /:id/archive` et `POST /:id/unarchive` ajoutés aux quatre routers, réutilisant chacun la permission `:manage`/`:validate` déjà existante de la ressource (aucune nouvelle permission RBAC créée).
+- Les listes actives (`getAllProperties`/`getAllClients`/`getAllRequisitions`/`getAllMissions`) excluent les ressources archivées par défaut, réintégrables via `?includeArchived=true`.
+- Réquisitions et missions n'ayant aucun endpoint de suppression existant (traçabilité indéfinie assumée, info.md §6 / CDC §7), seul l'archivage s'y applique — pas de soft delete pour ces deux ressources en pratique, même si `paranoid: true` reste activé au niveau modèle par cohérence.
+
+**Décision de conception notable** : `deleteProperty` supprimait auparavant en cascade les lignes enfants (images, téléphones, scores, détails location/vente) avant de supprimer le bien lui-même. Avec le passage en mode paranoid, une restauration doit rendre un bien intact — la cascade de suppression physique des enfants a donc été retirée du chemin de suppression interactif ; seule la ligne `Property` elle-même devient soft-deleted, ses enfants restent intacts en base (invisibles via l'association tant que le parent n'est pas restauré). La purge physique définitive (fichiers + lignes enfants) reste hors-scope V1 (rétention légale, CLAUDE.md §16 point 3).
+
+### Vérification
+Migration `20260718000000-add-archivage-columns` appliquée (`npm run db:migrate`). Nouveau fichier `tests/archive.test.js` (8/8 : soft delete + restore sur bien et client, archivage/désarchivage avec motif obligatoire sur les quatre ressources, désencombrement des listes actives par défaut + `includeArchived=true`, 403 pour un rôle sans permission). Le passage en mode paranoid a cassé le nettoyage (`afterAll`) de plusieurs suites existantes qui détruisaient des `User` référencés par des `Property`/`Client`/`Requisition`/`Mission` non réellement supprimés (contrainte FK) — corrigé en ajoutant `{ force: true }` aux destructions de ces quatre modèles dans `crm.test.js`, `property.route.test.js`, `report.test.js`, `task.test.js`, `commission.test.js`, `calendar.test.js`, `notification.test.js`, `commissionnaire.test.js`, `requisition.test.js`. Suite complète : **113/113**.
+
+*Prochaine étape : ADMIN-G08 (écrans calendrier et rapports côté Frontend), puis BACK-G22 (RH avancé) et BACK-G23 (intégration fournisseur de paiement externe) avant l'audit de responsivité complet du Frontend.*

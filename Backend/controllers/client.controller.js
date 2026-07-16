@@ -1,8 +1,13 @@
 import { Client, Person } from "../models/index.model.js";
+import { createArchiveHandlers } from "../utils/archivable.js";
 
+// BACK-G21 — clients archivés désencombrés des listes actives par défaut,
+// réintégrables via `?includeArchived=true` (voir property.controller.js).
 export const getAllClients = async (req, res, next) => {
   try {
+    const where = req.query.includeArchived === "true" ? {} : { archivedAt: null };
     const clients = await Client.findAll({
+      where,
       include: [{ model: Person, as: "person" }],
       order: [["createdAt", "DESC"]],
     });
@@ -116,6 +121,8 @@ export const updateClient = async (req, res, next) => {
   }
 };
 
+// BACK-G21 — `client.destroy()` est désormais un soft delete (paranoid) :
+// réversible via `restoreClient`, invisible en usage normal.
 export const deleteClient = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -130,3 +137,24 @@ export const deleteClient = async (req, res, next) => {
     next(error);
   }
 };
+
+export const restoreClient = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const client = await Client.findByPk(id, { paranoid: false });
+    if (!client) {
+      return res.status(404).json({ message: "Client non trouvé" });
+    }
+    if (!client.deletedAt) {
+      return res.status(400).json({ message: "Ce client n'est pas supprimé" });
+    }
+    await client.restore();
+    return res.status(200).json({ message: "Client restauré avec succès", data: client });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const { archiveResource: archiveClient, unarchiveResource: unarchiveClient } =
+  createArchiveHandlers(Client, "idClient", "Client non trouvé");

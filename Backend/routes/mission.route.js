@@ -1,10 +1,12 @@
 import { Router } from "express";
 import {
+  archiveMission,
   createMission,
   getAllMissions,
   getMissionsByCommissionnaire,
   rejectMission,
   requestMissionCorrection,
+  unarchiveMission,
   validateMission,
 } from "../controllers/mission.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
@@ -164,6 +166,58 @@ missionRouter.patch(
   authMiddlware,
   requirePermission("missions:validate"),
   requestMissionCorrection
+);
+
+/**
+ * @swagger
+ * /api/missions/{id}/archive:
+ *   post:
+ *     summary: Archive une mission terrain (archivage métier, BACK-G21) — reste consultable
+ *     tags: [Missions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Mission archivée
+ *       400:
+ *         description: Motif manquant ou déjà archivée
+ *       404:
+ *         description: Mission non trouvée
+ */
+missionRouter.post(
+  "/:id/archive",
+  authMiddlware,
+  requirePermission("missions:validate"),
+  archiveMission
+);
+
+/**
+ * @swagger
+ * /api/missions/{id}/unarchive:
+ *   post:
+ *     summary: Désarchive une mission terrain (BACK-G21)
+ *     tags: [Missions]
+ *     responses:
+ *       200:
+ *         description: Mission désarchivée
+ *       400:
+ *         description: N'est pas archivée
+ *       404:
+ *         description: Mission non trouvée
+ */
+missionRouter.post(
+  "/:id/unarchive",
+  authMiddlware,
+  requirePermission("missions:validate"),
+  unarchiveMission
 );
 
 export default missionRouter;

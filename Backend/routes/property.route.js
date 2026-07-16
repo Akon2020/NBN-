@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   addPropertyImages,
+  archiveProperty,
   createProperty,
   deleteProperty,
   getAllProperties,
@@ -8,6 +9,8 @@ import {
   getPublicProperties,
   getPublicProperty,
   getSingleProperty,
+  restoreProperty,
+  unarchiveProperty,
   updateProperty,
 } from "../controllers/property.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
@@ -218,6 +221,97 @@ propertyRouter.delete(
   authMiddlware,
   requirePermission("property:manage"),
   deleteProperty
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/restore:
+ *   post:
+ *     summary: Restaure un bien supprimé (soft delete, BACK-G21)
+ *     tags: [Properties]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Propriété restaurée
+ *       400:
+ *         description: Ce bien n'est pas supprimé
+ *       404:
+ *         description: Propriété non trouvée
+ */
+propertyRouter.post(
+  "/:id/restore",
+  authMiddlware,
+  requirePermission("property:manage"),
+  restoreProperty
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/archive:
+ *   post:
+ *     summary: Archive un bien (archivage métier, BACK-G21) — distinct de la suppression
+ *     tags: [Properties]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Bien archivé
+ *       400:
+ *         description: Motif manquant ou déjà archivé
+ *       404:
+ *         description: Propriété non trouvée
+ */
+propertyRouter.post(
+  "/:id/archive",
+  authMiddlware,
+  requirePermission("property:manage"),
+  archiveProperty
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/unarchive:
+ *   post:
+ *     summary: Désarchive un bien (BACK-G21)
+ *     tags: [Properties]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Bien désarchivé
+ *       400:
+ *         description: N'est pas archivé
+ *       404:
+ *         description: Propriété non trouvée
+ */
+propertyRouter.post(
+  "/:id/unarchive",
+  authMiddlware,
+  requirePermission("property:manage"),
+  unarchiveProperty
 );
 
 export default propertyRouter;

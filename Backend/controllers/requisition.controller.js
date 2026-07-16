@@ -9,6 +9,7 @@ import {
 } from "../models/index.model.js";
 import { generateRequisitionPdf } from "../utils/requisitionPdf.js";
 import { eventBus } from "../shared/eventBus.js";
+import { createArchiveHandlers } from "../utils/archivable.js";
 
 const REQUISITION_INCLUDES = [
   { model: User, as: "demandeur", attributes: ["idUser", "fullName", "email"] },
@@ -82,7 +83,7 @@ export const createRequisition = async (req, res, next) => {
 // consultable.
 export const getAllRequisitions = async (req, res, next) => {
   try {
-    const { statut, idCaisse, from, to } = req.query;
+    const { statut, idCaisse, from, to, includeArchived } = req.query;
     const where = {};
     if (statut) where.statut = statut;
     if (idCaisse) where.idCaisse = idCaisse;
@@ -91,6 +92,9 @@ export const getAllRequisitions = async (req, res, next) => {
       if (from) where.createdAt[Op.gte] = new Date(from);
       if (to) where.createdAt[Op.lte] = new Date(to);
     }
+    // BACK-G21 — désencombre les listes actives par défaut sans jamais
+    // supprimer la traçabilité (info.md §6).
+    if (includeArchived !== "true") where.archivedAt = null;
 
     const requisitions = await Requisition.findAll({
       where,
@@ -214,3 +218,11 @@ export const getRequisitionPdf = async (req, res, next) => {
     next(error);
   }
 };
+
+// BACK-G21 — archivage métier (une réquisition approuvée/rejetée ancienne
+// se désencombre des listes actives sans jamais être supprimée, voir le
+// commentaire du modèle). Aucun endpoint de suppression n'existe pour les
+// réquisitions (traçabilité indéfinie, info.md §6) — seul l'archivage
+// s'applique ici, pas de soft delete.
+export const { archiveResource: archiveRequisition, unarchiveResource: unarchiveRequisition } =
+  createArchiveHandlers(Requisition, "idRequisition", "Réquisition non trouvée");

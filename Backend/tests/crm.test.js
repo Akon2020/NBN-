@@ -64,13 +64,13 @@ afterAll(async () => {
   if (createdClientIds.length) {
     await Proposal.destroy({ where: { idClient: createdClientIds } });
     await Matching.destroy({ where: { idClient: createdClientIds } });
-    await Client.destroy({ where: { idClient: createdClientIds } });
+    await Client.destroy({ where: { idClient: createdClientIds }, force: true });
   }
   if (createdBailleurIds.length) {
     await Bailleur.destroy({ where: { idBailleur: createdBailleurIds } });
   }
   if (createdPropertyIds.length) {
-    await Property.destroy({ where: { idProperty: createdPropertyIds } });
+    await Property.destroy({ where: { idProperty: createdPropertyIds }, force: true });
   }
   if (createdPersonIds.length) {
     await Person.destroy({ where: { idPerson: createdPersonIds } });

@@ -1,12 +1,14 @@
 import { Router } from "express";
 import {
   approveRequisition,
+  archiveRequisition,
   createRequisition,
   getAllRequisitions,
   getMyRequisitions,
   getRequisitionPdf,
   rejectRequisition,
   requestRequisitionComplement,
+  unarchiveRequisition,
 } from "../controllers/requisition.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
@@ -162,6 +164,58 @@ requisitionRouter.get(
   authMiddlware,
   requirePermission("requisitions:read"),
   getRequisitionPdf
+);
+
+/**
+ * @swagger
+ * /api/requisitions/{id}/archive:
+ *   post:
+ *     summary: Archive une réquisition (archivage métier, BACK-G21) — reste consultable
+ *     tags: [Treasury]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Réquisition archivée
+ *       400:
+ *         description: Motif manquant ou déjà archivée
+ *       404:
+ *         description: Réquisition non trouvée
+ */
+requisitionRouter.post(
+  "/:id/archive",
+  authMiddlware,
+  requirePermission("requisitions:validate"),
+  archiveRequisition
+);
+
+/**
+ * @swagger
+ * /api/requisitions/{id}/unarchive:
+ *   post:
+ *     summary: Désarchive une réquisition (BACK-G21)
+ *     tags: [Treasury]
+ *     responses:
+ *       200:
+ *         description: Réquisition désarchivée
+ *       400:
+ *         description: N'est pas archivée
+ *       404:
+ *         description: Réquisition non trouvée
+ */
+requisitionRouter.post(
+  "/:id/unarchive",
+  authMiddlware,
+  requirePermission("requisitions:validate"),
+  unarchiveRequisition
 );
 
 export default requisitionRouter;

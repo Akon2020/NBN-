@@ -1,4 +1,5 @@
 import { Mission, Commissionnaire, Person, Property, Client } from "../models/index.model.js";
+import { createArchiveHandlers } from "../utils/archivable.js";
 
 const MISSION_INCLUDES = [
   { model: Commissionnaire, as: "commissionnaire", include: [{ model: Person, as: "person" }] },
@@ -6,9 +7,13 @@ const MISSION_INCLUDES = [
   { model: Client },
 ];
 
+// BACK-G21 — missions archivées désencombrées des listes actives par
+// défaut, réintégrables via `?includeArchived=true`.
 export const getAllMissions = async (req, res, next) => {
   try {
+    const where = req.query.includeArchived === "true" ? {} : { archivedAt: null };
     const missions = await Mission.findAll({
+      where,
       include: MISSION_INCLUDES,
       order: [["createdAt", "DESC"]],
     });
@@ -107,3 +112,9 @@ export const rejectMission = (req, res, next) =>
 
 export const requestMissionCorrection = (req, res, next) =>
   transitionMission(req, res, next, { statut: "CORRECTION_DEMANDEE", requireMotif: true });
+
+// BACK-G21 — archivage métier, orthogonal au `statut` de la mission. Aucun
+// endpoint de suppression n'existe pour les missions (historique terrain,
+// CDC §7) — seul l'archivage s'applique ici, pas de soft delete.
+export const { archiveResource: archiveMission, unarchiveResource: unarchiveMission } =
+  createArchiveHandlers(Mission, "idMission", "Mission non trouvée");

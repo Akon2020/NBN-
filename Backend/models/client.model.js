@@ -77,8 +77,20 @@ const Client = db.define(
       type: DataTypes.BIGINT,
       allowNull: true,
     },
+    // BACK-G21 — soft delete (paranoid) et archivage métier, deux concepts
+    // distincts (CLAUDE.md §11) : `deletedAt` = erreur de saisie,
+    // réversible à court terme ; `archivedAt`/`archiveReason` = pipeline
+    // clôturé (CONCLU/PERDU ancien) mais toujours consultable.
+    archivedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    archiveReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true, paranoid: true }
 );
 
 export default Client;

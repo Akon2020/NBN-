@@ -6,12 +6,12 @@ import {
   PropertyPhone,
   PropertyScore,
 } from "../models/index.model.js";
-import { deleteFile } from "../utils/deletefile.js";
 import db from "../database/db.js";
 import {
   serializeProperties,
   serializeProperty,
 } from "../utils/serializers/property.serializer.js";
+import { createArchiveHandlers } from "../utils/archivable.js";
 
 const PROPERTY_INCLUDES = [
   { model: RentalProperty, as: "rentalDetails" },
@@ -61,9 +61,14 @@ export const getPublicProperty = async (req, res, next) => {
   }
 };
 
+// BACK-G21 — les biens archivés (archivage métier) restent en base et
+// consultables mais se désencombrent des listes actives par défaut ;
+// `?includeArchived=true` les réintègre explicitement (jamais confondu
+// avec `deletedAt`, exclu automatiquement par Sequelize en mode paranoid).
 export const getAllProperties = async (req, res, next) => {
   try {
-    const properties = await Property.findAll({ include: PROPERTY_INCLUDES });
+    const where = req.query.includeArchived === "true" ? {} : { archivedAt: null };
+    const properties = await Property.findAll({ where, include: PROPERTY_INCLUDES });
     const propertiesInfo = await serializeProperties(properties, req.user);
     return res.status(200).json({
       nombre: propertiesInfo.length,
@@ -261,63 +266,51 @@ export const addPropertyImages = async (req, res, next) => {
   }
 };
 
+// BACK-G21 — soft delete (paranoid) uniquement : `property.destroy()` pose
+// désormais `deletedAt` au lieu de supprimer la ligne (CLAUDE.md §11,
+// "réversible à court terme"). Les lignes enfants (images/téléphones/
+// scores/détails location-vente) ne sont plus supprimées en cascade ici —
+// une restauration doit rendre un bien intact, pas une coquille vide.
+// La suppression définitive des fichiers physiques et des lignes enfants
+// reste hors-scope V1 (rétention légale, CLAUDE.md §16 point 3).
 export const deleteProperty = async (req, res, next) => {
-  const transaction = await db.transaction();
-
   try {
     const { id } = req.params;
 
-    const property = await Property.findByPk(id, {
-      include: [
-        { model: PropertyImage, as: "images" },
-        { model: PropertyPhone, as: "phones" },
-        { model: PropertyScore, as: "scores" },
-      ],
-      transaction,
-    });
-
+    const property = await Property.findByPk(id);
     if (!property) {
-      await transaction.rollback();
       return res.status(404).json({ message: "Propriété non trouvée" });
     }
 
-    if (property.images?.length) {
-      for (const image of property.images) {
-        await deleteFile(image.path);
-      }
-    }
-
-    await PropertyImage.destroy({
-      where: { idProperty: id },
-      transaction,
-    });
-
-    await PropertyPhone.destroy({
-      where: { idProperty: id },
-      transaction,
-    });
-
-    await PropertyScore.destroy({
-      where: { idProperty: id },
-      transaction,
-    });
-
-    await RentalProperty.destroy({ where: { idProperty: id }, transaction });
-    await SaleProperty.destroy({ where: { idProperty: id }, transaction });
-
-    // 4️⃣ Supprimer la propriété
-    await property.destroy({ transaction });
-
-    // 5️⃣ Commit
-    await transaction.commit();
+    await property.destroy();
 
     return res.status(200).json({
       message: "Propriété supprimée avec succès",
     });
   } catch (error) {
-    await transaction.rollback();
-    console.error("Erreur suppression propriété :", error);
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }
 };
+
+export const restoreProperty = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const property = await Property.findByPk(id, { paranoid: false });
+    if (!property) {
+      return res.status(404).json({ message: "Propriété non trouvée" });
+    }
+    if (!property.deletedAt) {
+      return res.status(400).json({ message: "Ce bien n'est pas supprimé" });
+    }
+
+    await property.restore();
+    return res.status(200).json({ message: "Propriété restaurée avec succès", data: property });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const { archiveResource: archiveProperty, unarchiveResource: unarchiveProperty } =
+  createArchiveHandlers(Property, "idProperty", "Propriété non trouvée");

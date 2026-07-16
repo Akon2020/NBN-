@@ -1,9 +1,12 @@
 import { Router } from "express";
 import {
+  archiveClient,
   createClient,
   deleteClient,
   getAllClients,
   getSingleClient,
+  restoreClient,
+  unarchiveClient,
   updateClient,
 } from "../controllers/client.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
@@ -125,6 +128,97 @@ clientRouter.delete(
   authMiddlware,
   requirePermission("clients:manage"),
   deleteClient
+);
+
+/**
+ * @swagger
+ * /api/clients/{id}/restore:
+ *   post:
+ *     summary: Restaure un client supprimé (soft delete, BACK-G21)
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Client restauré
+ *       400:
+ *         description: Ce client n'est pas supprimé
+ *       404:
+ *         description: Client non trouvé
+ */
+clientRouter.post(
+  "/:id/restore",
+  authMiddlware,
+  requirePermission("clients:manage"),
+  restoreClient
+);
+
+/**
+ * @swagger
+ * /api/clients/{id}/archive:
+ *   post:
+ *     summary: Archive un client (archivage métier, BACK-G21) — distinct de la suppression
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Client archivé
+ *       400:
+ *         description: Motif manquant ou déjà archivé
+ *       404:
+ *         description: Client non trouvé
+ */
+clientRouter.post(
+  "/:id/archive",
+  authMiddlware,
+  requirePermission("clients:manage"),
+  archiveClient
+);
+
+/**
+ * @swagger
+ * /api/clients/{id}/unarchive:
+ *   post:
+ *     summary: Désarchive un client (BACK-G21)
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Client désarchivé
+ *       400:
+ *         description: N'est pas archivé
+ *       404:
+ *         description: Client non trouvé
+ */
+clientRouter.post(
+  "/:id/unarchive",
+  authMiddlware,
+  requirePermission("clients:manage"),
+  unarchiveClient
 );
 
 export default clientRouter;

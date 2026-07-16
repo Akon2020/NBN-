@@ -72,7 +72,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (createdPropertyIds.length) {
-    await Property.destroy({ where: { idProperty: createdPropertyIds } });
+    await Property.destroy({ where: { idProperty: createdPropertyIds }, force: true });
   }
   if (createdCaisseIds.length) {
     await CaisseBalance.destroy({ where: { idCaisse: createdCaisseIds } });

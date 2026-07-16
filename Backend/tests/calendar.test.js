@@ -65,7 +65,7 @@ afterAll(async () => {
     await Reminder.destroy({ where: { idReminder: createdReminderIds } });
   }
   if (createdClientIds.length) {
-    await Client.destroy({ where: { idClient: createdClientIds } });
+    await Client.destroy({ where: { idClient: createdClientIds }, force: true });
   }
   if (createdPersonIds.length) {
     await Person.destroy({ where: { idPerson: createdPersonIds } });

@@ -89,7 +89,7 @@ afterAll(async () => {
     await Alert.destroy({ where: { idAlert: createdAlertIds } });
   }
   if (createdRequisitionIds.length) {
-    await Requisition.destroy({ where: { idRequisition: createdRequisitionIds } });
+    await Requisition.destroy({ where: { idRequisition: createdRequisitionIds }, force: true });
   }
   if (createdCommissionnaireIds.length) {
     await Commissionnaire.destroy({ where: { idCommissionnaire: createdCommissionnaireIds } });

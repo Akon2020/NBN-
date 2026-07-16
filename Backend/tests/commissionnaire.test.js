@@ -71,7 +71,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (createdMissionIds.length) {
-    await Mission.destroy({ where: { idMission: createdMissionIds } });
+    await Mission.destroy({ where: { idMission: createdMissionIds }, force: true });
   }
   if (createdCommissionnaireIds.length) {
     await CommissionnaireIncident.destroy({
