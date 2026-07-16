@@ -119,7 +119,7 @@ export default function MissionsPage() {
                 </div>
 
                 {mission.statut === "SOUMISE" && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button size="sm" variant="outline" onClick={() => handleValidate(mission)}>
                       <Check className="h-4 w-4 mr-1" />
                       Valider

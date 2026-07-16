@@ -509,3 +509,18 @@ La création d'utilisateur (`POST /api/users/add`) attend (`await`) l'envoi d'un
 Avant de coder, question posée sur la portée réaliste sans identifiants marchand réels (Airtel Money/Orange Money/M-Pesa) : construire un squelette `ProviderTransaction` + abstraction sans appel HTTP réel testable, fournir des identifiants sandbox, ou reporter. Décision : **reporté** — pas d'identifiants disponibles actuellement, priorité donnée à l'audit de responsivité du Frontend (impact plus direct et visible). Reste dans `plan.md` comme goal ouvert, à reprendre dès que le fournisseur Mobile Money cible et ses identifiants sandbox seront connus.
 
 *Prochaine étape : audit de responsivité complet du Frontend (toutes les pages).*
+
+---
+
+## Session 11 — 2026-07-16 — Audit de responsivité complet (Frontend)
+
+Audit systématique des 28 pages du Frontend (landing publique, 3 pages auth, 24 pages dashboard dont les 2 nouvelles ADMIN-G08) recherchant : tables non enveloppées dans un conteneur `overflow-x-auto`, grilles multi-colonnes sans préfixes responsives (`sm:`/`md:`/`lg:`), largeurs fixes en pixels risquant un dépassement sur 375px, groupes de boutons/texte en `flex` sans `flex-wrap` pouvant déborder horizontalement sur mobile.
+
+**Constat** : le codebase était déjà tailwind mobile-first sur l'essentiel — `components/ui/table.tsx` enveloppe déjà tout `<Table>` dans `overflow-x-auto` par construction, `components/ui/dialog.tsx` plafonne déjà `DialogContent` à `max-w-[calc(100%-2rem)]`, et la quasi-totalité des grilles/groupes d'actions utilisaient déjà `sm:grid-cols-`/`flex-wrap`. Seuls deux dépassements horizontaux réels trouvés :
+1. `app/dashboard/missions/page.tsx` (groupe de 3 boutons Valider/Correction/Rejeter, `flex gap-2` sans `flex-wrap`) — corrigé.
+2. `app/dashboard/favorites/page.tsx` (badge + bouton "Envoyer proposition groupée" au texte long, `flex items-center gap-2` sans `flex-wrap`) — corrigé (`flex-wrap` + bouton `w-full sm:w-auto`).
+
+**Méthode** : audit par lecture de code (via un sous-agent d'exploration dédié), pas par vérification visuelle en navigateur — la prévisualisation automatisée de cette session était bloquée dans une boucle de redirection d'authentification pré-existante (voir Session 9/ADMIN-G08 plus haut), donc aucune capture d'écran réelle n'a pu être produite. L'utilisateur devrait confirmer visuellement sur mobile/tablette réels avant de considérer cet audit pleinement clos.
+
+### Vérification
+`npx tsc --noEmit` → 0 erreur après les deux correctifs.

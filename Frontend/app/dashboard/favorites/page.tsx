@@ -94,9 +94,12 @@ export default function FavoritesPage() {
           <p className="text-muted-foreground mt-2">Biens sauvegardés pour référence rapide</p>
         </div>
         {selectedForGroup.size > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{selectedForGroup.size} sélectionnés</Badge>
-            <Button onClick={sendGroupProposal} className="bg-secondary text-secondary-foreground">
+            <Button
+              onClick={sendGroupProposal}
+              className="bg-secondary text-secondary-foreground w-full sm:w-auto"
+            >
               <Share2 className="mr-2 h-4 w-4" />
               Envoyer proposition groupée
             </Button>
