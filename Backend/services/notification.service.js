@@ -1,5 +1,6 @@
 import { Notification, Alert, OutboxEvent, User } from "../models/index.model.js";
 import { sendPushNotification } from "../utils/pushProvider.js";
+import { eventBus } from "../shared/eventBus.js";
 
 // CLAUDE.md §7 — un événement métier peut produire, indépendamment : une
 // Notification (information), une Alert (suivi), un Reminder (échéance
@@ -31,6 +32,12 @@ export const createNotification = async ({
     eventType: "notification:push",
     payload: JSON.stringify({ idNotification: notification.idNotification }),
   });
+
+  // BACK-G18 — canal temps réel, additif : un client déconnecté de
+  // Socket.IO ne perd rien (la Notification et sa tentative de push
+  // existent déjà indépendamment de cette émission, `emitToUser` est un
+  // no-op silencieux si Socket.IO n'est pas initialisé).
+  eventBus.emit("notification:created", { notification });
 
   return notification;
 };
@@ -67,6 +74,8 @@ export const createAlert = async ({
     });
   }
 
+  eventBus.emit("alert:created", { alert });
+
   return alert;
 };
 
@@ -93,6 +102,8 @@ export const transitionAlert = async (alert, { statut, resolvedBy }) => {
       relatedEntityId: alert.idAlert,
     });
   }
+
+  eventBus.emit("alert:transitioned", { alert });
 
   return alert;
 };

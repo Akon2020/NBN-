@@ -31,12 +31,16 @@ import notificationRouter from "./routes/notification.route.js";
 import alertRouter from "./routes/alert.route.js";
 import reminderRouter from "./routes/reminder.route.js";
 import { registerEventListeners } from "./shared/eventListeners.js";
+import { registerRealtimeListeners } from "./shared/socketGateway.js";
 
-// BACK-G17 — enregistré ici (pas server.js) pour que les tests qui
+// BACK-G17/G18 — enregistré ici (pas server.js) pour que les tests qui
 // importent `app.js` directement (supertest, jamais via un vrai
 // `listen()`) exercent aussi la conséquence réelle des événements
-// métier, pas seulement la route HTTP isolée.
+// métier, pas seulement la route HTTP isolée. `registerRealtimeListeners`
+// est sans effet tant que `initSocketGateway` (server.js uniquement) n'a
+// pas initialisé `io` — les émissions restent des no-op silencieux.
 registerEventListeners();
+registerRealtimeListeners();
 
 const app = express();
 
