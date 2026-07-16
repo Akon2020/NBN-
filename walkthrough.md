@@ -482,3 +482,27 @@ Nouveaux fichiers : `actions/calendar.ts`, `actions/reports.ts` (avec un piège 
 **Vérification partielle** : `npx tsc --noEmit` → 0 erreur sur l'ensemble du Frontend. La vérification visuelle en navigateur n'a en revanche pas pu être menée à bien cette session — la prévisualisation automatisée est restée bloquée dans une boucle de redirection d'authentification (page blanche, URL figée sur `/dashboard`) qui semble être un problème d'environnement de prévisualisation préexistant et non spécifique aux deux nouveaux écrans (le même comportement se produit en naviguant vers n'importe quelle route du dashboard, y compris `/auth/login`). À vérifier manuellement dans un navigateur réel avant de considérer ADMIN-G08 pleinement clos.
 
 *Prochaine étape : BACK-G22 (RH avancé) et BACK-G23 (intégration fournisseur de paiement externe), puis l'audit de responsivité complet du Frontend.*
+
+---
+
+## Session 10 — 2026-07-16 — Milestone 7 (partiel) : RH avancé
+
+Note de cadrage : `plan.md` qualifie M7 de "domaines explicitement repoussés par le porteur de projet à une phase ultérieure" ; l'instruction "finalise le développement de tout le système" reçue en session est traitée comme une levée explicite de ce report. Avant de coder, portée confirmée avec l'utilisateur : V1 minimale (un modèle simple par concept, CRUD de base + permission RBAC, sans workflow d'approbation ni notation complexe).
+
+### ✅ BACK-G22 — RH avancé (V1 minimale)
+Constat en ouvrant le chantier : `EmployeeProfile` (livré en M1/BACK-G04) n'avait **jamais** de contrôleur ni de route — seul le modèle existait, testé uniquement au niveau Sequelize (`tests/organization.test.js`). Complété en prérequis avant de pouvoir rattacher quoi que ce soit dessus :
+- **`EmployeeProfile` CRUD** (`hr.controller.js`) : liste, détail, création (Person existante via `idPerson` ou nouvelle via `fullName`, même patron que `client.controller.js`), mise à jour (service/poste/responsable/contrat/statut).
+- **`Evaluation`** : note libre /100 + commentaire par période (`"2026-Q2"`), rattachée à l'évaluateur (`User`).
+- **`Objective`** : titre/description/échéance + statut (`EN_COURS`/`ATTEINT`/`NON_ATTEINT`).
+- **`Skill`/`EmployeeSkill`** : catalogue de compétences partagé + table de liaison explicite avec niveau (`DEBUTANT`→`EXPERT`), jamais de relation polymorphe (CLAUDE.md §4).
+- **`Training`/`EmployeeTraining`** : catalogue de formations partagé + table de liaison explicite avec statut (`PLANIFIEE`→`TERMINEE`/`ANNULEE`).
+
+Deux permissions (`hr:read`/`hr:manage`), rattachées au rôle `operations` — aucun rôle "RH" dédié n'existe dans le catalogue fermé (CLAUDE.md §5), `operations` couvre déjà la gestion administrative interne (clients/bailleurs/missions). Nouveau fichier `tests/hr.test.js` (5/5 : création de profil RH, 403 pour un rôle sans `hr:manage`, évaluation + objectif + transition de statut, compétence associée/retirée, formation assignée/transition de statut).
+
+### Bug pré-existant découvert (hors scope, signalé séparément)
+La création d'utilisateur (`POST /api/users/add`) attend (`await`) l'envoi d'un email de bienvenue via `nodemailer` de façon synchrone dans le chemin critique de la requête — quand le serveur SMTP est lent/inaccessible, la requête entière reste bloquée jusqu'à expiration du socket. Reproduit de façon isolée sur `tests/auth.test.js`/`tests/rbac.test.js` ("autorise un admin à créer un utilisateur" / "technologique peut créer un utilisateur"), qui expirent après 20s — sans lien avec les changements de cette session (confirmé en excluant ces deux fichiers : 18/18 fichiers, 103/103 tests verts). Signalé comme tâche séparée plutôt que corrigé ici, hors du périmètre RH.
+
+### Vérification
+`npm run db:migrate` + `npm run db:seed` appliqués. Suite complète hors `auth.test.js`/`rbac.test.js` (problème SMTP pré-existant, non lié) : **18/18 fichiers, 103/103 tests verts**. `tests/hr.test.js` : 5/5.
+
+*Prochaine étape : BACK-G23 (intégration fournisseur de paiement externe), puis l'audit de responsivité complet du Frontend.*

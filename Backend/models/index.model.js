@@ -46,6 +46,12 @@ import Alert from "./alert.model.js";
 import Reminder from "./reminder.model.js";
 import OutboxEvent from "./outboxEvent.model.js";
 import CalendarEvent from "./calendarEvent.model.js";
+import Evaluation from "./evaluation.model.js";
+import Objective from "./objective.model.js";
+import Skill from "./skill.model.js";
+import EmployeeSkill from "./employeeSkill.model.js";
+import Training from "./training.model.js";
+import EmployeeTraining from "./employeeTraining.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -135,16 +141,16 @@ Person.belongsTo(User, { foreignKey: "idUser" });
 User.hasOne(Person, { foreignKey: "idUser" });
 
 Person.hasOne(EmployeeProfile, { foreignKey: "idPerson" });
-EmployeeProfile.belongsTo(Person, { foreignKey: "idPerson" });
+EmployeeProfile.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 
 Service.hasMany(Poste, { foreignKey: "idService" });
 Poste.belongsTo(Service, { foreignKey: "idService" });
 
 Service.hasMany(EmployeeProfile, { foreignKey: "idService" });
-EmployeeProfile.belongsTo(Service, { foreignKey: "idService" });
+EmployeeProfile.belongsTo(Service, { foreignKey: "idService", as: "service" });
 
 Poste.hasMany(EmployeeProfile, { foreignKey: "idPoste" });
-EmployeeProfile.belongsTo(Poste, { foreignKey: "idPoste" });
+EmployeeProfile.belongsTo(Poste, { foreignKey: "idPoste", as: "poste" });
 
 EmployeeProfile.belongsTo(EmployeeProfile, {
   foreignKey: "idResponsable",
@@ -308,6 +314,27 @@ Reminder.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 CalendarEvent.belongsTo(User, { foreignKey: "idUser", as: "owner" });
 CalendarEvent.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
+// BACK-G22 — RH avancé (évaluations, objectifs, compétences, formations),
+// tout rattaché à EmployeeProfile (jamais à User directement, CLAUDE.md §4
+// — un employé peut ne pas avoir de compte de connexion).
+Evaluation.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
+EmployeeProfile.hasMany(Evaluation, { foreignKey: "idEmployeeProfile" });
+Evaluation.belongsTo(User, { foreignKey: "evaluatorUserId", as: "evaluator" });
+
+Objective.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
+EmployeeProfile.hasMany(Objective, { foreignKey: "idEmployeeProfile" });
+Objective.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+EmployeeSkill.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
+EmployeeProfile.hasMany(EmployeeSkill, { foreignKey: "idEmployeeProfile", as: "employeeSkills" });
+EmployeeSkill.belongsTo(Skill, { foreignKey: "idSkill", as: "skill" });
+Skill.hasMany(EmployeeSkill, { foreignKey: "idSkill" });
+
+EmployeeTraining.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
+EmployeeProfile.hasMany(EmployeeTraining, { foreignKey: "idEmployeeProfile", as: "employeeTrainings" });
+EmployeeTraining.belongsTo(Training, { foreignKey: "idTraining", as: "training" });
+Training.hasMany(EmployeeTraining, { foreignKey: "idTraining" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -365,5 +392,11 @@ export {
   Reminder,
   OutboxEvent,
   CalendarEvent,
+  Evaluation,
+  Objective,
+  Skill,
+  EmployeeSkill,
+  Training,
+  EmployeeTraining,
   syncModels,
 };
