@@ -7,9 +7,10 @@ import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
 
 // DESIGN-G02 — carte propriété, thème clair aligné sur la palette de
 // marque réelle du Frontend (Frontend/app/globals.css) : fond blanc,
-// rayons généreux, ombre douce, badge catégorie discret, prix en accent
-// fort, favoris en overlay circulaire — inspiré des patterns de listing
-// immobilier (image + pills + prix visible immédiatement).
+// rayons généreux, ombre douce, badge catégorie coloré (vert location /
+// orange vente), prix en accent fort, favoris en overlay circulaire —
+// inspiré des patterns de listing immobilier (image + pills + prix
+// visible immédiatement).
 interface PropertyCardProps {
   property: Property;
   onPress: () => void;
@@ -53,12 +54,12 @@ export function PropertyCard({ property, onPress, isFavorite, onToggleFavorite }
             left: 12,
             top: 12,
             borderRadius: 999,
-            backgroundColor: 'rgba(255,255,255,0.92)',
+            backgroundColor: property.category === 'RENT' ? APP_COLORS.secondary : APP_COLORS.primary,
             paddingHorizontal: 10,
             paddingVertical: 5,
           }}
         >
-          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: APP_COLORS.foreground }}>
+          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 11, color: '#fff' }}>
             {property.category === 'RENT' ? 'À louer' : 'À vendre'}
           </Text>
         </View>
