@@ -437,3 +437,15 @@ Backend : `npm test` → **97/97** (deux runs consécutifs sous charge système 
 - Le module Tasks (BACK-G16) n'a volontairement pas reçu d'écran Kanban Frontend/Mobile cette session — `plan.md` ne liste que "ADMIN-G07/MOBILE-G05 : Intégration notifications + realtime" comme goal client du Milestone 5, une UI Kanban dédiée serait un goal séparé non spécifié.
 
 *Milestone 5 terminé. Prochaine session suggérée : vérification visuelle ADMIN-G06 + ADMIN-G07 en attente, puis cadrage du Milestone 6 (Calendar + Reporting + Archivage formalisé) selon `plan.md`.*
+
+---
+
+## Session 8 — 2026-07-16 — Correctifs post-M5 (Mobile + Frontend)
+
+### Bugs réels trouvés et corrigés
+1. **Crash `expo-notifications` systématique sur Expo Go** — depuis le SDK 53, Expo Go ne supporte plus du tout les notifications push distantes ; le simple `import` du module déclenche un effet de bord d'enregistrement automatique qui plante, avant même qu'un `try/catch` local ne puisse l'intercepter. Corrigé en détectant l'environnement d'exécution (`Constants.executionEnvironment === ExecutionEnvironment.StoreClient`, API recommandée — `appOwnership` est dépréciée) et en n'important `expo-notifications` que dynamiquement, uniquement hors Expo Go. Fonctionnera sans changement dès qu'un build de développement (EAS) sera utilisé.
+2. **Images de biens jamais réellement servies** — `PropertyImage.image` stockait le chemin relatif retourné par multer ("uploads/images/xxx.jpg") mais aucune route Express ne servait jamais ce dossier statiquement ; `next/image` refusait ce `src` (ni absolu ni préfixé d'un slash). Ajout de `express.static("/uploads", ...)` côté Backend (avec `Cross-Origin-Resource-Policy: cross-origin`, sans quoi `helmet()` bloque le chargement cross-origine par le Frontend) et d'un helper `Frontend/lib/imageUrl.ts` appliqué aux 7 écrans concernés (rentals, sales, favorites, gallery, search). `next.config.mjs` déclare désormais `images.remotePatterns` pour l'hôte Backend de dev.
+3. **Clé React manquante sur `dashboard/page.tsx`** — posée sur le `<Card>` interne plutôt que sur le `<Link>` réellement mappé par `stats.map()`.
+
+### Vérification
+Backend : `npm test` → 97/97. Frontend : `npx tsc --noEmit` → 0 erreur. Mobile : `tsc --noEmit` + `expo lint` propres, `npm test` → 6/6.
