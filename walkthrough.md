@@ -402,3 +402,38 @@ Backend : `npm test` → **79/79** (intégration complète via supertest contre 
 - La conformité budgétaire à la Saisie d'une réquisition ne vérifie que la structure (devise suivie par la caisse), jamais la suffisance réelle du solde — celle-ci n'est vérifiée qu'au moment du décaissement effectif (BACK-G14), pour ne pas bloquer des réquisitions concurrentes légitimes sur une même caisse.
 
 *Milestone 4 terminé (sous réserve de la vérification visuelle Frontend en attente). Prochaine session suggérée : reprendre la vérification visuelle ADMIN-G06, puis cadrage du Milestone 5 (Tasks + Notifications/Alerts/Reminders + Realtime) selon `plan.md`.*
+
+---
+
+## Session 7 — 2026-07-16 — Milestone 5 (Tasks + Notifications/Alerts/Reminders + Realtime)
+
+### ✅ BACK-G16 — Module Tasks (Kanban)
+`Task` (statut A_FAIRE/EN_COURS/EN_REVISION/TERMINEE, priorité, échéance) avec assignation multi-collaborateurs (`TaskAssignee`) et quatre tables de liaison explicites par type de ressource (`TaskPropertyLink`, `TaskClientLink`, `TaskBailleurLink`, `TaskCommissionnaireLink`) — jamais de relation polymorphe générique, conformément à CLAUDE.md §4. Règle stricte testée : déplacer une tâche sur le Kanban ne modifie jamais le statut de la ressource liée. La mise à jour remplace intégralement les assignés/liens à partir des tableaux fournis (plus simple qu'un diff incrémental côté Kanban).
+
+### ✅ BACK-G17 — Notifications/Alerts/Reminders + event bus interne
+Event bus interne (`shared/eventBus.js`, EventEmitter natif) avec abonnement centralisé (`shared/eventListeners.js`). Modèles `Notification` (historisable, statut de lecture et de push), `Alert` (cycle de vie ouverte→reconnue→assignée→en cours→résolue→clôturée, notifie son responsable à chaque transition), `Reminder` (échéance programmée). Deux événements métier réels câblés : une réquisition approuvée/rejetée notifie son demandeur ; un commissionnaire qui bascule en OBSERVATION génère une alerte "score bas" (uniquement sur la transition réelle, jamais à chaque recalcul de score).
+
+Outbox pattern (`OutboxEvent` + worker cron toutes les 30s, `node-cron`) pour la tentative de push : une Notification existe toujours en base indépendamment du sort de sa tentative de livraison, retentée jusqu'à 5 fois en cas d'échec, jamais perdue. `PushProvider` Expo implémenté via un simple appel `fetch` (pas de SDK serveur dédié, cohérent avec la contrainte "application légère").
+
+### ✅ BACK-G18 — Realtime (Socket.IO) avec fallback
+Gateway Socket.IO (`shared/socketGateway.js`) attachée au même serveur HTTP que l'API REST. Audiences calculées côté serveur à la connexion (room personnelle `user:<id>` + room de rôle `role:<nom>`) — jamais fournies par le client, aucun événement "join" n'est même exposé. Testé avec un vrai client `socket.io-client` (port éphémère dédié) : connexion refusée sans token/avec token invalide, isolation stricte des audiences, et confirmation explicite que le REST reste intégralement fonctionnel sans connexion Socket.IO active.
+
+### ✅ ADMIN-G07/MOBILE-G05 — Intégration client
+**Frontend** : cloche de notifications dans l'en-tête (compteur non lues, marquage lu, repli sur intervalle 60s), écran Alertes (cycle de vie, mise à jour en direct). Le client Socket.IO web se connecte via le cookie httpOnly existant (`withCredentials`), sans dupliquer la gestion de jeton.
+
+**Mobile** : enregistrement du token Expo Push après connexion, dégradé proprement en no-op silencieux tant qu'aucun projet EAS n'est lié (point ouvert CLAUDE.md §16). Écran Notifications partagé entre (interne) et (commissionnaire), connecté en direct via Socket.IO (`auth.token` depuis expo-secure-store) avec repli sur refetch au focus d'écran.
+
+### Bugs réels trouvés et corrigés pendant cette session
+1. **Frontend web incompatible avec l'auth Socket.IO par défaut** — la gateway ne lisait le jeton que via `auth.token`, inutilisable par le Frontend web (jeton en cookie httpOnly, illisible en JS par conception ADMIN-G01). Ajout d'une lecture du cookie `token`, symétrique à `authMiddlware` côté REST.
+2. **Import ESM cassé du paquet `cookie` v2** — `import cookie from "cookie"` puis `import { parse } from "cookie"` échouaient tous deux silencieusement dans le contexte de test (le paquet est ESM pur avec un export nommé `parseCookie`, pas `parse`/`default`). L'erreur était capturée par un `catch` générique et se manifestait uniquement comme "Jeton invalide" sans aucune trace exploitable — diagnostiqué via un script Node autonome hors Vitest (dont le reporter masquait la sortie console du middleware asynchrone Socket.IO).
+3. **Course dans les tests outbox** — `ORDER BY createdAt DESC LIMIT 1` pour retrouver "la dernière écriture" produisait un résultat indéterminé quand deux tests créaient une `OutboxEvent` dans la même seconde (résolution de `createdAt` en secondes). Corrigé en matchant par `payload` (contenu exact, `idNotification`) plutôt que par ordre chronologique approximatif.
+
+### Vérification — méthode
+Backend : `npm test` → **97/97** (deux runs consécutifs sous charge système ont montré 2-3 échecs transitoires, confirmés comme de la friture environnementale — non reproductibles sur un run isolé, cohérent avec le problème de contention déjà documenté dans ce journal). Frontend : `npx tsc --noEmit` → 0 erreur. Mobile : `tsc --noEmit` + `expo lint` propres, `npm test` → 6/6.
+
+### Décisions à documenter/valider par l'utilisateur
+- **Aucun projet EAS lié** (`Mobile/app.json` sans `extra.eas.projectId`) — le token Expo Push ne peut pas être généré tant que ce point n'est pas résolu ; le pipeline de notification reste fonctionnel de bout en bout (Notification persistée, consultable via REST/Socket.IO), seul le push mobile réel est actuellement toujours "SKIPPED".
+- **Vérification visuelle ADMIN-G06 (Milestone 4) toujours en attente** — reportée d'une session à l'autre, à refaire dès que possible.
+- Le module Tasks (BACK-G16) n'a volontairement pas reçu d'écran Kanban Frontend/Mobile cette session — `plan.md` ne liste que "ADMIN-G07/MOBILE-G05 : Intégration notifications + realtime" comme goal client du Milestone 5, une UI Kanban dédiée serait un goal séparé non spécifié.
+
+*Milestone 5 terminé. Prochaine session suggérée : vérification visuelle ADMIN-G06 + ADMIN-G07 en attente, puis cadrage du Milestone 6 (Calendar + Reporting + Archivage formalisé) selon `plan.md`.*
