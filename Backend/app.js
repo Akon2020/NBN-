@@ -31,6 +31,7 @@ import notificationRouter from "./routes/notification.route.js";
 import alertRouter from "./routes/alert.route.js";
 import reminderRouter from "./routes/reminder.route.js";
 import calendarRouter from "./routes/calendar.route.js";
+import reportRouter from "./routes/report.route.js";
 import { registerEventListeners } from "./shared/eventListeners.js";
 import { registerRealtimeListeners } from "./shared/socketGateway.js";
 
@@ -127,6 +128,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/alerts", alertRouter);
 app.use("/api/reminders", reminderRouter);
 app.use("/api/calendar", calendarRouter);
+app.use("/api/reports", reportRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);
