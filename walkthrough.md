@@ -505,4 +505,7 @@ La création d'utilisateur (`POST /api/users/add`) attend (`await`) l'envoi d'un
 ### Vérification
 `npm run db:migrate` + `npm run db:seed` appliqués. Suite complète hors `auth.test.js`/`rbac.test.js` (problème SMTP pré-existant, non lié) : **18/18 fichiers, 103/103 tests verts**. `tests/hr.test.js` : 5/5.
 
-*Prochaine étape : BACK-G23 (intégration fournisseur de paiement externe), puis l'audit de responsivité complet du Frontend.*
+### BACK-G23 — reporté (décision utilisateur)
+Avant de coder, question posée sur la portée réaliste sans identifiants marchand réels (Airtel Money/Orange Money/M-Pesa) : construire un squelette `ProviderTransaction` + abstraction sans appel HTTP réel testable, fournir des identifiants sandbox, ou reporter. Décision : **reporté** — pas d'identifiants disponibles actuellement, priorité donnée à l'audit de responsivité du Frontend (impact plus direct et visible). Reste dans `plan.md` comme goal ouvert, à reprendre dès que le fournisseur Mobile Money cible et ses identifiants sandbox seront connus.
+
+*Prochaine étape : audit de responsivité complet du Frontend (toutes les pages).*
