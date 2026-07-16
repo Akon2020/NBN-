@@ -35,6 +35,12 @@ import Payment from "./payment.model.js";
 import CashMovement from "./cashMovement.model.js";
 import LedgerEntry from "./ledgerEntry.model.js";
 import Commission from "./commission.model.js";
+import Task from "./task.model.js";
+import TaskAssignee from "./taskAssignee.model.js";
+import TaskPropertyLink from "./taskPropertyLink.model.js";
+import TaskClientLink from "./taskClientLink.model.js";
+import TaskBailleurLink from "./taskBailleurLink.model.js";
+import TaskCommissionnaireLink from "./taskCommissionnaireLink.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -253,6 +259,34 @@ Commission.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
 Payment.belongsTo(Commission, { foreignKey: "idCommission", as: "commission" });
 
+// BACK-G16 — module Tasks générique (Kanban). Tables de liaison explicites
+// par type (CLAUDE.md §4), jamais de relation polymorphe. Le statut d'une
+// Task ne pilote jamais l'état métier d'une ressource liée.
+Task.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+Task.hasMany(TaskAssignee, { foreignKey: "idTask", as: "assignees" });
+TaskAssignee.belongsTo(Task, { foreignKey: "idTask" });
+TaskAssignee.belongsTo(User, { foreignKey: "idUser", as: "user" });
+
+Task.hasMany(TaskPropertyLink, { foreignKey: "idTask", as: "propertyLinks" });
+TaskPropertyLink.belongsTo(Task, { foreignKey: "idTask" });
+TaskPropertyLink.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
+
+Task.hasMany(TaskClientLink, { foreignKey: "idTask", as: "clientLinks" });
+TaskClientLink.belongsTo(Task, { foreignKey: "idTask" });
+TaskClientLink.belongsTo(Client, { foreignKey: "idClient", as: "client" });
+
+Task.hasMany(TaskBailleurLink, { foreignKey: "idTask", as: "bailleurLinks" });
+TaskBailleurLink.belongsTo(Task, { foreignKey: "idTask" });
+TaskBailleurLink.belongsTo(Bailleur, { foreignKey: "idBailleur", as: "bailleur" });
+
+Task.hasMany(TaskCommissionnaireLink, { foreignKey: "idTask", as: "commissionnaireLinks" });
+TaskCommissionnaireLink.belongsTo(Task, { foreignKey: "idTask" });
+TaskCommissionnaireLink.belongsTo(Commissionnaire, {
+  foreignKey: "idCommissionnaire",
+  as: "commissionnaire",
+});
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -299,5 +333,11 @@ export {
   CashMovement,
   LedgerEntry,
   Commission,
+  Task,
+  TaskAssignee,
+  TaskPropertyLink,
+  TaskClientLink,
+  TaskBailleurLink,
+  TaskCommissionnaireLink,
   syncModels,
 };
