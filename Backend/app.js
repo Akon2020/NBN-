@@ -78,6 +78,23 @@ app.use(
   })
 );
 
+// SEC-G06 (complément) — les fichiers uploadés (multer, `file.path` =
+// "uploads/images/xxx.jpg") n'étaient jamais servis statiquement : la
+// route existait en théorie via PropertyImage.image mais aucune requête
+// HTTP ne pouvait jamais les atteindre. `Cross-Origin-Resource-Policy`
+// explicitement relâché ici (contrairement au reste de l'API) : Frontend
+// et Backend tournent sur des origines différentes en dev, et
+// `helmet()` pose `same-origin` par défaut, ce qui bloquerait le
+// chargement de ces images par <Image> / <img> côté Frontend sinon.
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+  },
+  express.static(path.join(process.cwd(), "uploads"))
+);
+
 setupSwagger(app);
 
 app.get("/", (req, res) => {

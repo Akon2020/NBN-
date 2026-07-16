@@ -9,6 +9,7 @@ import { Heart, Home, Building2, MapPin, Share2, X, Check, Loader2 } from "lucid
 import { getAllProperties } from "@/actions/properties"
 import { getMyFavorites, removeFavorite } from "@/actions/favorites"
 import { PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
+import { getImageUrl } from "@/lib/imageUrl"
 import Image from "next/image"
 import { toast } from "sonner"
 
@@ -151,7 +152,7 @@ export default function FavoritesPage() {
                 </Button>
                 <div className="relative aspect-video overflow-hidden">
                   <Image
-                    src={property.images?.[0]?.image || "/placeholder.svg"}
+                    src={getImageUrl(property.images?.[0]?.image)}
                     alt={`Property in ${property.quartier || ""}`}
                     fill
                     className="object-cover transition-transform group-hover:scale-105"

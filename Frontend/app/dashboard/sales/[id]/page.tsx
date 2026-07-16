@@ -29,6 +29,7 @@ import { DeleteSaleModal } from "@/components/property-modals/delete-sale-modal"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import { LAND_PROPERTY_TYPES, PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
+import { getImageUrl } from "@/lib/imageUrl"
 import { toast } from "sonner"
 
 export default function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -156,7 +157,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
             <div className="relative aspect-video bg-muted">
               {images.length > 0 ? (
                 <Image
-                  src={images[currentImageIndex]?.image || "/placeholder.svg"}
+                  src={getImageUrl(images[currentImageIndex]?.image)}
                   alt={`Image ${currentImageIndex + 1} du bien`}
                   fill
                   className="object-cover"
@@ -178,7 +179,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
                     }`}
                   >
                     <Image
-                      src={image.image || "/placeholder.svg"}
+                      src={getImageUrl(image.image)}
                       alt={`Miniature ${index + 1}`}
                       fill
                       className="object-cover"

@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_LABELS, type Property } from "@/lib/types";
+import { getImageUrl } from "@/lib/imageUrl";
 import { getAllProperties } from "@/actions/properties";
 import { AddRentalModal } from "@/components/property-modals/add-rental-modal";
 import { EditRentalModal } from "@/components/property-modals/edit-rental-modal";
@@ -113,7 +114,7 @@ export default function RentalsPage() {
               <Link href={`/dashboard/rentals/${property.idProperty}`}>
                 <div className="relative aspect-video overflow-hidden">
                   <Image
-                    src={property.images?.[0]?.image || "/placeholder.svg"}
+                    src={getImageUrl(property.images?.[0]?.image)}
                     alt={`${PROPERTY_TYPE_LABELS[property.propertyType]} à ${property.quartier || ""}`}
                     fill
                     className="object-cover transition-transform group-hover:scale-105"

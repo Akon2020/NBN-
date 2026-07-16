@@ -9,6 +9,7 @@ import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2 } from "lucide-
 import { getAllProperties } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import type { Property } from "@/lib/types"
+import { getImageUrl } from "@/lib/imageUrl"
 import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -93,7 +94,7 @@ export default function GalleryPage() {
             <Card key={property.idProperty} className="border-border overflow-hidden group relative">
               <div className="relative aspect-square overflow-hidden">
                 <Image
-                  src={property.images?.[0]?.image || "/placeholder.svg"}
+                  src={getImageUrl(property.images?.[0]?.image)}
                   alt={`Property in ${property.quartier || ""}`}
                   fill
                   className="object-cover transition-transform group-hover:scale-105"

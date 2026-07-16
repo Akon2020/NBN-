@@ -21,6 +21,7 @@ import {
   PROPERTY_TYPE_LABELS,
   type Property,
 } from "@/lib/types";
+import { getImageUrl } from "@/lib/imageUrl";
 import { getAllProperties } from "@/actions/properties";
 import { AddSaleModal } from "@/components/property-modals/add-sale-modal";
 import { EditSaleModal } from "@/components/property-modals/edit-sale-modal";
@@ -120,7 +121,7 @@ export default function SalesPage() {
               <Link href={`/dashboard/sales/${property.idProperty}`}>
                 <div className="relative aspect-video overflow-hidden">
                   <Image
-                    src={property.images?.[0]?.image || "/placeholder.svg"}
+                    src={getImageUrl(property.images?.[0]?.image)}
                     alt={`${PROPERTY_TYPE_LABELS[property.propertyType]} à ${property.quartier || ""}`}
                     fill
                     className="object-cover transition-transform group-hover:scale-105"

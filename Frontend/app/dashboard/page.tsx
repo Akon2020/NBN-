@@ -93,8 +93,8 @@ export default function DashboardPage() {
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
-          <Link href={stat.link}>
-            <Card key={stat.title} className="border-border">
+          <Link key={stat.title} href={stat.link}>
+            <Card className="border-border">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}

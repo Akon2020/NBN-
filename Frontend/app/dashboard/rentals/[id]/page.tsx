@@ -28,6 +28,7 @@ import { DeleteRentalModal } from "@/components/property-modals/delete-rental-mo
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_LABELS, type Property } from "@/lib/types"
+import { getImageUrl } from "@/lib/imageUrl"
 import { toast } from "sonner"
 
 export default function RentalDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -156,7 +157,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
             <div className="relative aspect-video bg-muted">
               {images.length > 0 ? (
                 <Image
-                  src={images[currentImageIndex]?.image || "/placeholder.svg"}
+                  src={getImageUrl(images[currentImageIndex]?.image)}
                   alt={`Image ${currentImageIndex + 1} du bien`}
                   fill
                   className="object-cover"
@@ -178,7 +179,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
                     }`}
                   >
                     <Image
-                      src={image.image || "/placeholder.svg"}
+                      src={getImageUrl(image.image)}
                       alt={`Miniature ${index + 1}`}
                       fill
                       className="object-cover"
