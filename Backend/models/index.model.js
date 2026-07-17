@@ -54,6 +54,7 @@ import EmployeeSkill from "./employeeSkill.model.js";
 import Training from "./training.model.js";
 import EmployeeTraining from "./employeeTraining.model.js";
 import TimelineEvent from "./timelineEvent.model.js";
+import ClientComplaint from "./clientComplaint.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -108,7 +109,7 @@ Favorite.belongsTo(User, { foreignKey: "idUser" });
 
 // Property - Proposals
 Property.hasMany(Proposal, { foreignKey: "idProperty" });
-Proposal.belongsTo(Property, { foreignKey: "idProperty" });
+Proposal.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
 
 // Property - Score
 Property.hasOne(PropertyScore, { foreignKey: "idProperty", as: "scores" });
@@ -188,7 +189,7 @@ Property.belongsTo(Bailleur, { foreignKey: "idBailleur" });
 // BACK-G07 — une proposition envoyée à un Client réel (remplace les
 // champs clientName/clientPhone jamais activés).
 Client.hasMany(Proposal, { foreignKey: "idClient" });
-Proposal.belongsTo(Client, { foreignKey: "idClient" });
+Proposal.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 
 // BACK-G08 — Matching : 1 client ↔ plusieurs biens.
 Client.belongsToMany(Property, {
@@ -207,8 +208,8 @@ Property.belongsToMany(Client, {
 // Association directe sur le modèle de jointure lui-même — même raison que
 // pour Favorite ci-dessus : le belongsToMany seul ne permet pas
 // `Matching.findAll({ include: Property })`.
-Matching.belongsTo(Property, { foreignKey: "idProperty" });
-Matching.belongsTo(Client, { foreignKey: "idClient" });
+Matching.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
+Matching.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 
 // BACK-G09 — Commissionnaire rattaché à Person (peut ou non avoir un User,
 // CLAUDE.md §4), fiche digitale (CDC §7).
@@ -285,6 +286,7 @@ Commission.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
 Commission.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
 Payment.belongsTo(Commission, { foreignKey: "idCommission", as: "commission" });
+Commission.hasOne(Payment, { foreignKey: "idCommission", as: "payment" });
 
 // BACK-G16 — module Tasks générique (Kanban). Tables de liaison explicites
 // par type (CLAUDE.md §4), jamais de relation polymorphe. Le statut d'une
@@ -355,6 +357,12 @@ Training.hasMany(EmployeeTraining, { foreignKey: "idTraining" });
 // voir le commentaire du modèle).
 TimelineEvent.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
 
+// GOAL 8 — plaintes client.
+Client.hasMany(ClientComplaint, { foreignKey: "idClient", as: "complaints" });
+ClientComplaint.belongsTo(Client, { foreignKey: "idClient" });
+ClientComplaint.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+ClientComplaint.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -420,5 +428,6 @@ export {
   Training,
   EmployeeTraining,
   TimelineEvent,
+  ClientComplaint,
   syncModels,
 };

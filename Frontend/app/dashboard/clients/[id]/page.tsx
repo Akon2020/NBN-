@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation"
 import { EditClientModal } from "@/components/client-modals/edit-client-modal"
 import { DeleteClientModal } from "@/components/client-modals/delete-client-modal"
 import { EntityTimeline } from "@/components/entity-timeline"
+import { ClientDossier } from "@/components/client-dossier"
 import { getSingleClient } from "@/actions/clients"
 import {
   CLIENT_PIPELINE_LABELS,
@@ -235,6 +236,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </Card>
         </div>
       </div>
+
+      <ClientDossier key={client.updatedAt} idClient={client.idClient} />
 
       <EntityTimeline key={client.updatedAt} entityType="CLIENT" entityId={client.idClient} />
 

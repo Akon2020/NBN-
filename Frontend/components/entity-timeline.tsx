@@ -12,11 +12,19 @@ import {
 import {
   AlertTriangle,
   Banknote,
+  CheckCircle2,
   ClipboardCheck,
   History,
+  Image as ImageIcon,
+  ImageOff,
+  Link2,
   Loader2,
+  LogIn,
+  LogOut,
+  MessageSquareWarning,
   Plus,
   RefreshCw,
+  UserPlus,
 } from "lucide-react"
 import { getEntityTimeline } from "@/actions/timeline"
 import type { TimelineEntityType, TimelineEvent } from "@/lib/types"
@@ -31,6 +39,14 @@ const EVENT_ICON: Record<string, typeof History> = {
   MISSION: ClipboardCheck,
   PAYMENT: Banknote,
   INCIDENT: AlertTriangle,
+  ENTREE: LogIn,
+  SORTIE: LogOut,
+  PLAINTE: MessageSquareWarning,
+  PLAINTE_RESOLUE: CheckCircle2,
+  MEDIA_ADDED: ImageIcon,
+  MEDIA_REMOVED: ImageOff,
+  COMMISSIONNAIRE_ATTRIBUE: Link2,
+  CLIENT_APPORTE: UserPlus,
 }
 
 const EVENT_COLOR: Record<string, string> = {
@@ -42,6 +58,14 @@ const EVENT_COLOR: Record<string, string> = {
   MISSION: "bg-accent-600 text-white",
   PAYMENT: "bg-success-500 text-white",
   INCIDENT: "bg-warning-500 text-neutral-900",
+  ENTREE: "bg-success-500 text-white",
+  SORTIE: "bg-neutral-600 text-white",
+  PLAINTE: "bg-error-500 text-white",
+  PLAINTE_RESOLUE: "bg-success-500 text-white",
+  MEDIA_ADDED: "bg-secondary-600 text-white",
+  MEDIA_REMOVED: "bg-neutral-600 text-white",
+  COMMISSIONNAIRE_ATTRIBUE: "bg-primary-900 text-white",
+  CLIENT_APPORTE: "bg-primary-900 text-white",
 }
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -53,6 +77,14 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   MISSION: "Mission",
   PAYMENT: "Paiement",
   INCIDENT: "Incident",
+  ENTREE: "Entrée",
+  SORTIE: "Sortie",
+  PLAINTE: "Plainte",
+  PLAINTE_RESOLUE: "Plainte résolue",
+  MEDIA_ADDED: "Média ajouté",
+  MEDIA_REMOVED: "Média retiré",
+  COMMISSIONNAIRE_ATTRIBUE: "Commissionnaire attribué",
+  CLIENT_APPORTE: "Client apporté",
 }
 
 const formatDate = (iso: string) =>

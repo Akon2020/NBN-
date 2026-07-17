@@ -1,5 +1,16 @@
 import { Op } from "sequelize";
-import { Client, Person, Matching, Property, Commissionnaire } from "../models/index.model.js";
+import {
+  Client,
+  Person,
+  Matching,
+  Property,
+  Commissionnaire,
+  ClientComplaint,
+  Proposal,
+  Commission,
+  Payment,
+  User,
+} from "../models/index.model.js";
 import { createArchiveHandlers } from "../utils/archivable.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 
@@ -240,6 +251,20 @@ export const updateClient = async (req, res, next) => {
             metadata: { automatic: true, idClient: client.idClient },
             actorUserId: req.user.idUser,
           });
+
+          // GOAL 8 — "entrée" côté client (vue 360), symétrique de la
+          // "sortie" journalisée dans updatePropertyStatut lorsqu'un bien
+          // occupé redevient disponible.
+          if (nextStatut === "OCCUPE_CLIENT_NBN") {
+            await recordTimelineEvent({
+              entityType: "CLIENT",
+              entityId: client.idClient,
+              eventType: "ENTREE",
+              title: `Entrée dans le bien — ${[property.avenue, property.quartier].filter(Boolean).join(", ")}`,
+              metadata: { idProperty: property.idProperty },
+              actorUserId: req.user.idUser,
+            });
+          }
         }
       }
     }
@@ -314,3 +339,165 @@ export const restoreClient = async (req, res, next) => {
 
 export const { archiveResource: archiveClient, unarchiveResource: unarchiveClient } =
   createArchiveHandlers(Client, "idClient", "Client non trouvé");
+
+// --- GOAL 8 — Plaintes client ---
+
+export const getClientComplaints = async (req, res, next) => {
+  try {
+    const complaints = await ClientComplaint.findAll({
+      where: { idClient: req.params.id },
+      include: [
+        { model: User, as: "creator", attributes: ["idUser", "fullName"] },
+        { model: User, as: "resolver", attributes: ["idUser", "fullName"] },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+    return res.status(200).json({ nombre: complaints.length, data: complaints });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const createComplaint = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { subject, description } = req.body;
+    if (!subject) {
+      return res.status(400).json({ message: "subject est requis." });
+    }
+    const client = await Client.findByPk(id);
+    if (!client) {
+      return res.status(404).json({ message: "Client non trouvé" });
+    }
+
+    const complaint = await ClientComplaint.create({
+      idClient: id,
+      subject,
+      description: description || null,
+      createdBy: req.user.idUser,
+    });
+
+    await recordTimelineEvent({
+      entityType: "CLIENT",
+      entityId: Number(id),
+      eventType: "PLAINTE",
+      title: `Plainte : ${subject}`,
+      description: description || null,
+      actorUserId: req.user.idUser,
+    });
+
+    return res.status(201).json({ message: "Plainte enregistrée avec succès", data: complaint });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const resolveComplaint = async (req, res, next) => {
+  try {
+    const { complaintId } = req.params;
+    const { resolution } = req.body;
+    const complaint = await ClientComplaint.findByPk(complaintId);
+    if (!complaint) {
+      return res.status(404).json({ message: "Plainte non trouvée" });
+    }
+    if (complaint.statut === "RESOLUE") {
+      return res.status(400).json({ message: "Cette plainte est déjà résolue." });
+    }
+
+    await complaint.update({
+      statut: "RESOLUE",
+      resolution: resolution || null,
+      resolvedBy: req.user.idUser,
+      resolvedAt: new Date(),
+    });
+
+    await recordTimelineEvent({
+      entityType: "CLIENT",
+      entityId: complaint.idClient,
+      eventType: "PLAINTE_RESOLUE",
+      title: `Plainte résolue : ${complaint.subject}`,
+      description: resolution || null,
+      actorUserId: req.user.idUser,
+    });
+
+    return res.status(200).json({ message: "Plainte résolue avec succès", data: complaint });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// GOAL 8 — vue 360 : agrège en un seul appel tout ce que la fiche client
+// doit afficher (biens occupés/matchés, propositions, commissions liées
+// aux paiements, plaintes) — la timeline reste consultée séparément via
+// /api/timeline/CLIENT/:id (déjà générique aux 4 entités, pas dupliqué ici).
+export const getClientDossier = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const client = await Client.findByPk(id);
+    if (!client) {
+      return res.status(404).json({ message: "Client non trouvé" });
+    }
+
+    const [matchings, proposals, commissions, complaints] = await Promise.all([
+      Matching.findAll({
+        where: { idClient: id },
+        include: [
+          {
+            model: Property,
+            as: "property",
+            attributes: ["idProperty", "category", "propertyType", "quartier", "avenue", "statut", "price"],
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      }),
+      Proposal.findAll({
+        where: { idClient: id },
+        include: [
+          {
+            model: Property,
+            as: "property",
+            attributes: ["idProperty", "category", "propertyType", "quartier", "avenue"],
+          },
+        ],
+        order: [["sentAt", "DESC"]],
+      }),
+      Commission.findAll({
+        where: { idClient: id },
+        include: [
+          { model: Property, as: "property", attributes: ["idProperty", "quartier", "avenue"] },
+          {
+            model: Payment,
+            as: "payment",
+            attributes: ["idPayment", "amount", "currencyCode", "statut", "createdAt"],
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      }),
+      ClientComplaint.findAll({
+        where: { idClient: id },
+        include: [{ model: User, as: "creator", attributes: ["idUser", "fullName"] }],
+        order: [["createdAt", "DESC"]],
+      }),
+    ]);
+
+    const occupiedProperties = matchings.filter(
+      (m) => m.statut === "VALIDE" && m.property && ["OCCUPE_CLIENT_NBN", "VENDU"].includes(m.property.statut)
+    );
+
+    return res.status(200).json({
+      data: {
+        matchings,
+        occupiedProperties,
+        proposals,
+        commissions,
+        complaints,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};

@@ -2,9 +2,13 @@ import { Router } from "express";
 import {
   archiveClient,
   createClient,
+  createComplaint,
   deleteClient,
   getAllClients,
+  getClientComplaints,
+  getClientDossier,
   getSingleClient,
+  resolveComplaint,
   restoreClient,
   unarchiveClient,
   updateClient,
@@ -219,6 +223,133 @@ clientRouter.post(
   authMiddlware,
   requirePermission("clients:manage"),
   unarchiveClient
+);
+
+/**
+ * @swagger
+ * /api/clients/{id}/dossier:
+ *   get:
+ *     summary: Vue 360 du client — biens matchés/occupés, propositions, commissions/paiements, plaintes (GOAL 8)
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Dossier agrégé récupéré avec succès
+ *       404:
+ *         description: Client non trouvé
+ */
+clientRouter.get(
+  "/:id/dossier",
+  authMiddlware,
+  requirePermission("clients:read"),
+  getClientDossier
+);
+
+/**
+ * @swagger
+ * /api/clients/{id}/complaints:
+ *   get:
+ *     summary: Liste les plaintes d'un client (GOAL 8)
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Liste récupérée avec succès
+ */
+clientRouter.get(
+  "/:id/complaints",
+  authMiddlware,
+  requirePermission("clients:read"),
+  getClientComplaints
+);
+
+/**
+ * @swagger
+ * /api/clients/{id}/complaints:
+ *   post:
+ *     summary: Enregistre une plainte pour un client (GOAL 8)
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subject]
+ *             properties:
+ *               subject:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Plainte enregistrée avec succès
+ *       400:
+ *         description: subject manquant
+ *       404:
+ *         description: Client non trouvé
+ */
+clientRouter.post(
+  "/:id/complaints",
+  authMiddlware,
+  requirePermission("clients:manage"),
+  createComplaint
+);
+
+/**
+ * @swagger
+ * /api/clients/{id}/complaints/{complaintId}/resolve:
+ *   patch:
+ *     summary: Résout une plainte client (GOAL 8)
+ *     tags: [Clients]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: complaintId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               resolution:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Plainte résolue avec succès
+ *       400:
+ *         description: Plainte déjà résolue
+ *       404:
+ *         description: Plainte non trouvée
+ */
+clientRouter.patch(
+  "/:id/complaints/:complaintId/resolve",
+  authMiddlware,
+  requirePermission("clients:manage"),
+  resolveComplaint
 );
 
 export default clientRouter;

@@ -6,6 +6,7 @@ import {
   PropertyVideo,
   PropertyPhone,
   PropertyScore,
+  Matching,
 } from "../models/index.model.js";
 import db from "../database/db.js";
 import {
@@ -306,6 +307,25 @@ export const updatePropertyStatut = async (req, res, next) => {
       metadata: { automatic: false },
       actorUserId: req.user.idUser,
     });
+
+    // GOAL 8 — "sortie" côté client (vue 360), symétrique de l'"entrée"
+    // journalisée dans client.controller.js au moment de l'occupation.
+    if (previousStatut === "OCCUPE_CLIENT_NBN" && statut !== "OCCUPE_CLIENT_NBN") {
+      const validatedMatchings = await Matching.findAll({
+        where: { idProperty: property.idProperty, statut: "VALIDE" },
+      });
+      for (const matching of validatedMatchings) {
+        await recordTimelineEvent({
+          entityType: "CLIENT",
+          entityId: matching.idClient,
+          eventType: "SORTIE",
+          title: `Sortie du bien — ${[property.avenue, property.quartier].filter(Boolean).join(", ")}`,
+          description: note || null,
+          metadata: { idProperty: property.idProperty },
+          actorUserId: req.user.idUser,
+        });
+      }
+    }
 
     const updated = await Property.findByPk(id, { include: PROPERTY_INCLUDES });
     const serialized = await serializeProperty(updated, req.user);

@@ -289,6 +289,65 @@ export interface ClientUpdatePayload {
   notesAgent?: string
 }
 
+// GOAL 8 — plaintes client, distinctes des CommissionnaireIncident (terrain).
+export type ClientComplaintStatut = "OUVERTE" | "RESOLUE"
+
+export const CLIENT_COMPLAINT_STATUT_LABELS: Record<ClientComplaintStatut, string> = {
+  OUVERTE: "Ouverte",
+  RESOLUE: "Résolue",
+}
+
+export interface ClientComplaint {
+  idClientComplaint: number
+  idClient: number
+  subject: string
+  description?: string | null
+  statut: ClientComplaintStatut
+  resolution?: string | null
+  createdBy: number
+  resolvedBy?: number | null
+  resolvedAt?: string | null
+  creator?: { idUser: number; fullName: string }
+  resolver?: { idUser: number; fullName: string } | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClientComplaintCreatePayload {
+  subject: string
+  description?: string
+}
+
+// GOAL 8 — vue 360 : agrégat en lecture seule, jamais une entité en soi.
+export interface ClientDossierMatching {
+  idMatching: number
+  idClient: number
+  idProperty: number
+  statut: "EN_COURS" | "PROPOSE" | "VALIDE"
+  property?: Pick<
+    Property,
+    "idProperty" | "category" | "propertyType" | "quartier" | "avenue" | "statut" | "price"
+  >
+  createdAt: string
+}
+
+export interface ClientDossierProposal {
+  idProposal: number
+  idProperty: number
+  idClient?: number | null
+  message?: string | null
+  property?: Pick<Property, "idProperty" | "category" | "propertyType" | "quartier" | "avenue">
+  sentAt: string
+}
+
+export interface ClientDossier {
+  matchings: ClientDossierMatching[]
+  occupiedProperties: ClientDossierMatching[]
+  proposals: ClientDossierProposal[]
+  commissions: Commission[]
+  complaints: ClientComplaint[]
+}
+
 export type BailleurType = "PROPRIETAIRE" | "MANDATAIRE"
 export type BailleurTypeCollaboration = "OCCASIONNELLE" | "REGULIERE" | "EXCLUSIVE"
 export type BailleurFiabilite = "SERIEUX" | "MOYEN" | "DIFFICILE"
@@ -688,6 +747,15 @@ export interface Commission {
   commissionnaire?: { idCommissionnaire: number; code: string; person?: { fullName: string } } | null
   currency?: Currency
   caisse?: { idCaisse: number; label: string } | null
+  // GOAL 8 — associaton inverse (Commission.hasOne(Payment)), consultée en
+  // lecture seule sur la vue 360 client, jamais recalculée côté Frontend.
+  payment?: {
+    idPayment: number
+    amount: number
+    currencyCode: string
+    statut: PaymentStatut
+    createdAt: string
+  } | null
   createdAt: string
 }
 

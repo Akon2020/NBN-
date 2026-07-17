@@ -565,3 +565,42 @@ Une fois authentifié, **la vérification visuelle a enfin pu être menée en co
 Backend : `npm test` → **122/122** (les 3 échecs SMTP signalés en Session 10 ne se sont pas reproduits ce run — confirmé transitoire). Frontend : `npx tsc --noEmit` → 0 erreur.
 
 *BACK-G23 reste différé (décision utilisateur reconfirmée). Le système est désormais complet vis-à-vis de `plan.md` à l'exception de ce seul goal.*
+
+---
+
+## Session 13 — 2026-07-17 — Nouvelle mission « Lead Software Engineer » (21 GOALS, version cible)
+
+`plan.md` etant complet (Session 12), l'utilisateur ouvre un nouveau mandat distinct et beaucoup plus large : 21 GOALS numerotes couvrant l'integralite du systeme (cycle de vie des biens, medias, timeline, CRM, pipeline commercial, marges, caisse, calendrier, courte/longue duree, parametres, missions, taches, utilisateurs, landing page, recherche globale, dashboard executif, notifications temps reel, finalisation Mobile), avec mandat explicite de travailler **sans interruption jusqu'a 100% des goals**, un commit atomique par fonctionnalite, jamais de question dont la reponse est trouvable seule. Priorite absolue declaree par l'utilisateur : le cycle de vie des biens (collecte -> validation -> suivi).
+
+### GOAL 1 - Cycle de vie reel des biens
+`Property.statut` redessine : `DISPONIBLE / OCCUPE_CLIENT_NBN / OCCUPE_CLIENT_EXTERNE / EN_MAINTENANCE / VENDU` (`VENDU` valide applicativement comme reserve a `category=SALE`, pas une contrainte de schema). Tout changement de statut passe desormais par un point d'entree unique et dedie (`PATCH /api/properties/:id/statut`) garantissant validation + tracabilite systematique - la mise a jour generique du bien ne permet plus de modifier `statut` directement. Transition automatique ajoutee : un `Client.statutPipeline` passe a `CONCLU` avec un `Matching` valide fait automatiquement basculer le bien vers `VENDU` (si `SALE`) ou `OCCUPE_CLIENT_NBN` (si `RENT`) - jamais de transition inverse automatique, une correction manuelle reste possible via le PATCH dedie.
+
+### GOAL 3 - Timeline complete (livree avec GOAL 1, prerequis transverse)
+Nouveau module generique `shared/timeline.js` + modele `TimelineEvent` (reference logicielle "soft" vers PROPERTY/CLIENT/COMMISSIONNAIRE/BAILLEUR, exception documentee a la regle anti-polymorphisme de CLAUDE.md §4 - meme patron que Notification/Alert/Reminder/CalendarEvent). Consultable via `GET /api/timeline/:entityType/:entityId`, permission reutilisee par domaine (jamais de permission dediee creee). Branche sur la creation, les changements de statut, les missions, les incidents, les paiements - puis etendu au fil des goals suivants (plaintes, entrees/sorties en GOAL 8).
+
+### GOAL 2 - Upload des medias (images + videos)
+`sharp` (present en dependance mais jamais exploite, cf. audit initial CLAUDE.md §3) enfin utilise pour compresser les images cote serveur (redimensionnement >1920px, qualite 80). Video **jamais transcodee cote serveur** (trop couteux pour l'hebergement cPanel mono-process vise, CLAUDE.md §12) - seules taille/MIME sont validees. Tables `PropertyImage`/`PropertyVideo` dediees (pas de table media polymorphique unique - contraintes reellement differentes entre les deux types). Endpoints d'ajout, suppression, reordonnancement pour chacun des deux types de media.
+
+### GOAL 4 - Relation Client/Commissionnaire renforcee
+`Client.sourceCommissionnaireCode` etait jusque-la non valide a la saisie (un code inexistant ne surface qu'a l'heure du calcul de commission). Validation ajoutee a la creation **et** a la modification du client, resolution de la relation exposee via une association explicite (`commissionnaireSource`), nouvel endpoint `GET /api/commissionnaires/:id/clients`, evenements timeline des deux cotes (`COMMISSIONNAIRE_ATTRIBUE` / `CLIENT_APPORTE`).
+
+### GOAL 5 - Panier WhatsApp cross-page
+Decision deliberee : panier **Frontend seul**, persistance `localStorage` (`nbn-property-cart`, 10 biens max) - etat ephemere d'UI, pas une entite metier justifiant une table/permission Backend. `CartProvider` + `CartButton` globaux (layout dashboard), boutons d'ajout sur toutes les pages de listing biens, generation d'un message WhatsApp formate et partage direct.
+
+### GOAL 6 - Numeros de dossier uniques (Client/Bailleur)
+`dossierNumber` genere en deux temps (create -> update immediat, derive du PK auto-incremente - pas de table de sequence separee, l'unicite du PK suffit deja). Recherche `Op.like` sur ce champ ajoutee aux listes. Affiche sur les fiches et cartes Kanban.
+
+### GOAL 7 - Pipeline commercial en Kanban drag & drop
+`@dnd-kit/core`/`sortable`/`utilities` (React 19 compatible - `react-beautiful-dnd` ecarte, non maintenu/incompatible). Carte draggable avec poignee dediee (le lien de navigation de la carte reste cliquable independamment), colonnes par etape du pipeline, changement de statut optimiste avec rollback en cas d'echec serveur, saut d'etape autorise (pas de regle de sequence stricte imposee au drag).
+
+### GOAL 8 - Rapport complet client (vue 360)
+Nouveau modele `ClientComplaint` (aucun analogue client n'existait - seul `CommissionnaireIncident` existait cote terrain). "Entrees"/"sorties" journalisees comme evenements `CLIENT` sur la Timeline existante (pas de nouveau modele dedie) : `ENTREE` emis dans la transition automatique `CONCLU` (`client.controller.js`), `SORTIE` emis quand un bien quitte `OCCUPE_CLIENT_NBN` (`property.controller.js`). Nouvel endpoint agrege `GET /api/clients/:id/dossier` (biens occupes derives de `Matching` valide + statut du bien, propositions envoyees, commissions avec leur paiement lie via une nouvelle association inverse `Commission.hasOne(Payment, {as:"payment"})`, plaintes) - la timeline reste consultee separement (deja generique, jamais dupliquee).
+
+**Bug evite avant qu'il ne devienne un defaut runtime** : `Matching.belongsTo(Property)`/`belongsTo(Client)` etaient declarees sans `as` explicite dans `models/index.model.js` - l'alias par defaut de Sequelize (`property`/`client`, en minuscule, derive de `inflection.singularize` sur le nom pluriel du modele) fonctionnait deja implicitement dans `matching.controller.js`. Ajouter un `as` explicite (conforme a la convention du projet "alias explicites partout", deja actee dans une session precedente) sur ces deux associations **change le contrat Sequelize** : des qu'une association porte un alias explicite, tout `include` qui la reference doit desormais le specifier lui aussi, sous peine de `SequelizeEagerLoadingError` au runtime - deux points d'inclusion existants dans `matching.controller.js` ont du etre mis a jour en consequence (alias identiques au defaut precedent, donc aucun changement de forme de reponse JSON pour les consommateurs existants).
+
+Frontend : nouveau composant `ClientDossier` (biens occupes, propositions, commissions/paiements, plaintes avec ajout/resolution via Dialog) insere sur la fiche client entre les infos generales et la timeline (`EntityTimeline` reutilise tel quel, etendu avec les icones/couleurs/labels des nouveaux types d'evenements `ENTREE`/`SORTIE`/`PLAINTE`/`PLAINTE_RESOLUE`/`MEDIA_ADDED`/`MEDIA_REMOVED`/`COMMISSIONNAIRE_ATTRIBUE`/`CLIENT_APPORTE`, jusque-la non mappes). Verifie en navigateur bout en bout (creation de plainte -> apparition immediate -> rechargement -> evenement timeline confirme -> resolution -> badge "Resolue" + texte de resolution affiches).
+
+### Verification
+Backend : `npm test` -> **139/142** (les 3 echecs restent le bug SMTP synchrone pre-existant et deja signale separement, cf. Session 10 - non lie a cette session). Frontend : `npx tsc --noEmit` -> 0 erreur. Verification navigateur manuelle du flux complet plainte (creation/resolution/timeline) sur `/dashboard/clients/33`.
+
+*Suite immediate, sans interruption : GOAL 9 (gestion automatique des marges).*
