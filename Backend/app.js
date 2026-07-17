@@ -33,6 +33,7 @@ import reminderRouter from "./routes/reminder.route.js";
 import calendarRouter from "./routes/calendar.route.js";
 import reportRouter from "./routes/report.route.js";
 import hrRouter from "./routes/hr.route.js";
+import dashboardRouter from "./routes/dashboard.route.js";
 import { registerEventListeners } from "./shared/eventListeners.js";
 import { registerRealtimeListeners } from "./shared/socketGateway.js";
 
@@ -131,6 +132,7 @@ app.use("/api/reminders", reminderRouter);
 app.use("/api/calendar", calendarRouter);
 app.use("/api/reports", reportRouter);
 app.use("/api/hr", hrRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

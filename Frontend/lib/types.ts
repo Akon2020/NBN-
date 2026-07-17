@@ -723,3 +723,30 @@ export const CALENDAR_SOURCE_LABELS: Record<CalendarSource, string> = {
   RELANCE_CLIENT: "Relance client",
   EVENT: "Rendez-vous",
 }
+
+// --- ADMIN-G00 : statistiques réelles du tableau de bord ---
+// Chaque champ est optionnel : le Backend ne renvoie un bloc que si
+// l'utilisateur a la permission de lire le domaine correspondant (jamais
+// de logique d'autorisation dupliquée côté Frontend, CLAUDE.md §2.2).
+export type RecentActivityType = "PROPERTY" | "CLIENT" | "MISSION" | "REQUISITION"
+
+export interface RecentActivityEntry {
+  type: RecentActivityType
+  id: number
+  label: string
+  detail?: string | null
+  date: string
+}
+
+export interface DashboardStats {
+  properties: { rentals: number; sales: number; totalImages: number }
+  favorites: number
+  clients?: number
+  proposals?: number
+  activeUsers?: number
+  pendingMissions?: number
+  pendingRequisitions?: number
+  openCaisses?: number
+  pendingCommissions?: number
+  recentActivity: RecentActivityEntry[]
+}
