@@ -96,6 +96,9 @@ export default function BailleursPage() {
                     <Link href={`/dashboard/bailleurs/${bailleur.idBailleur}`}>
                       <h3 className="font-semibold text-lg hover:underline">{bailleur.person?.fullName}</h3>
                     </Link>
+                    {bailleur.dossierNumber && (
+                      <p className="text-[10px] font-mono text-muted-foreground">{bailleur.dossierNumber}</p>
+                    )}
                     <Badge variant="outline" className="mt-1 text-xs">
                       {BAILLEUR_TYPE_LABELS[bailleur.type]}
                     </Badge>

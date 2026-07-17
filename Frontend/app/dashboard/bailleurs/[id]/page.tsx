@@ -105,7 +105,10 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-2xl">{bailleur.person?.fullName}</CardTitle>
-                  <div className="flex items-center gap-2 mt-2">
+                  {bailleur.dossierNumber && (
+                    <p className="text-xs font-mono text-muted-foreground mt-1">{bailleur.dossierNumber}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge className="bg-primary text-primary-foreground">
                       {BAILLEUR_TYPE_LABELS[bailleur.type]}
                     </Badge>

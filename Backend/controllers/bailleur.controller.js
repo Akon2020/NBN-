@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Bailleur, Person } from "../models/index.model.js";
 import {
   serializeBailleur,
@@ -7,7 +8,12 @@ import { recordTimelineEvent } from "../shared/timeline.js";
 
 export const getAllBailleurs = async (req, res, next) => {
   try {
+    // GOAL 6 — recherche directe par numéro de dossier.
+    const where = req.query.dossierNumber
+      ? { dossierNumber: { [Op.like]: `%${req.query.dossierNumber}%` } }
+      : {};
     const bailleurs = await Bailleur.findAll({
+      where,
       include: [{ model: Person, as: "person" }],
       order: [["createdAt", "DESC"]],
     });
@@ -62,6 +68,11 @@ export const createBailleur = async (req, res, next) => {
       type,
       ...bailleurFields,
       createdBy: req.user.idUser,
+    });
+
+    // GOAL 6 — même principe que Client (voir client.controller.js).
+    await bailleur.update({
+      dossierNumber: `BAI-${new Date().getFullYear()}-${String(bailleur.idBailleur).padStart(6, "0")}`,
     });
 
     const bailleurWithPerson = await Bailleur.findByPk(bailleur.idBailleur, {

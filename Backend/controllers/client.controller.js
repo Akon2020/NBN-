@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { Client, Person, Matching, Property, Commissionnaire } from "../models/index.model.js";
 import { createArchiveHandlers } from "../utils/archivable.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
@@ -20,6 +21,11 @@ const CLIENT_INCLUDES = [
 export const getAllClients = async (req, res, next) => {
   try {
     const where = req.query.includeArchived === "true" ? {} : { archivedAt: null };
+    // GOAL 6 — recherche directe par numéro de dossier (référence lisible,
+    // jamais par idClient interne).
+    if (req.query.dossierNumber) {
+      where.dossierNumber = { [Op.like]: `%${req.query.dossierNumber}%` };
+    }
     const clients = await Client.findAll({
       where,
       include: CLIENT_INCLUDES,
@@ -96,6 +102,12 @@ export const createClient = async (req, res, next) => {
       type,
       ...clientFields,
       createdBy: req.user.idUser,
+    });
+
+    // GOAL 6 — dérivé de idClient une fois connu (voir le modèle) :
+    // aucune séquence externe à maintenir, unicité garantie par construction.
+    await client.update({
+      dossierNumber: `CLI-${new Date().getFullYear()}-${String(client.idClient).padStart(6, "0")}`,
     });
 
     const clientWithPerson = await Client.findByPk(client.idClient, {

@@ -107,6 +107,9 @@ export default function ClientsPage() {
                           <p className="font-medium text-sm line-clamp-1 hover:underline">
                             {client.person?.fullName || `Client #${client.idClient}`}
                           </p>
+                          {client.dossierNumber && (
+                            <p className="text-[10px] font-mono text-muted-foreground">{client.dossierNumber}</p>
+                          )}
                         </Link>
                         <div className="flex items-center justify-between">
                           <Badge variant="outline" className="text-xs">

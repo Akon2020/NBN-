@@ -216,6 +216,9 @@ export const CLIENT_SCORE_LABELS: Record<ClientScore, string> = {
 
 export interface Client {
   idClient: number
+  // GOAL 6 — référence lisible/recherchable (ex. "CLI-2026-000042"),
+  // générée côté Backend à la création, jamais saisie manuellement.
+  dossierNumber?: string | null
   idPerson: number
   type: ClientType
   sousType?: ClientSousType | null
@@ -316,6 +319,8 @@ export const BAILLEUR_VALEUR_LABELS: Record<BailleurValeur, string> = {
 // Property.margin) — jamais présumer sa présence.
 export interface Bailleur {
   idBailleur: number
+  // GOAL 6 — voir Client.dossierNumber.
+  dossierNumber?: string | null
   idPerson: number
   type: BailleurType
   typeCollaboration?: BailleurTypeCollaboration | null

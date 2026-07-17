@@ -11,6 +11,12 @@ const Bailleur = db.define(
       primaryKey: true,
       autoIncrement: true,
     },
+    // GOAL 6 — même principe que Client.dossierNumber (voir ce modèle).
+    dossierNumber: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+      unique: true,
+    },
     idPerson: {
       type: DataTypes.BIGINT,
       allowNull: false,

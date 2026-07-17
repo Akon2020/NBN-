@@ -12,6 +12,16 @@ const Client = db.define(
       primaryKey: true,
       autoIncrement: true,
     },
+    // GOAL 6 — numéro de dossier unique, lisible, recherchable (ex.
+    // "CLI-2026-000042"). Dérivé de idClient (généré juste après la
+    // création, cf. client.controller.js) plutôt qu'un compteur séparé :
+    // garantit l'unicité sans mécanisme de séquence supplémentaire à
+    // synchroniser ni risque de collision concurrente.
+    dossierNumber: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+      unique: true,
+    },
     idPerson: {
       type: DataTypes.BIGINT,
       allowNull: false,

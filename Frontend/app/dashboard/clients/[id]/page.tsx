@@ -105,7 +105,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-2xl">{client.person?.fullName}</CardTitle>
-                  <div className="flex items-center gap-2 mt-2">
+                  {client.dossierNumber && (
+                    <p className="text-xs font-mono text-muted-foreground mt-1">{client.dossierNumber}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge className="bg-primary text-primary-foreground">
                       {CLIENT_TYPE_LABELS[client.type]}
                     </Badge>
