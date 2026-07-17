@@ -12,6 +12,7 @@ import {
 import { revokeAllUserSessions } from "../utils/session.utils.js";
 import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
 import { eventBus } from "../shared/eventBus.js";
+import { recordTimelineEvent } from "../shared/timeline.js";
 
 // BACK-G17 — n'émet l'alerte que sur la transition réelle vers
 // OBSERVATION (jamais à chaque recalcul de score qui laisse le statut
@@ -126,6 +127,15 @@ export const createCommissionnaire = async (req, res, next) => {
       include: [{ model: Person, as: "person" }],
     });
 
+    await recordTimelineEvent({
+      entityType: "COMMISSIONNAIRE",
+      entityId: commissionnaire.idCommissionnaire,
+      eventType: "CREATED",
+      title: "Commissionnaire créé",
+      description: `${person.fullName} — ${code}`,
+      actorUserId: req.user.idUser,
+    });
+
     return res.status(201).json({
       message: "Commissionnaire créé avec succès",
       data: withClassement(created),
@@ -163,7 +173,18 @@ export const updateCommissionnaire = async (req, res, next) => {
       statutSuspensif.includes(donneesAMettreAJour.statut) &&
       !statutSuspensif.includes(commissionnaire.statut);
 
+    const previousStatut = commissionnaire.statut;
     await commissionnaire.update(donneesAMettreAJour);
+
+    if (donneesAMettreAJour.statut && donneesAMettreAJour.statut !== previousStatut) {
+      await recordTimelineEvent({
+        entityType: "COMMISSIONNAIRE",
+        entityId: commissionnaire.idCommissionnaire,
+        eventType: "STATUT_CHANGED",
+        title: `Statut : ${previousStatut} → ${donneesAMettreAJour.statut}`,
+        actorUserId: req.user.idUser,
+      });
+    }
 
     // BACK-G11 — suspension/exclusion d'un commissionnaire révoque
     // immédiatement toute session active, exactement comme pour un User
@@ -271,6 +292,16 @@ export const createIncident = async (req, res, next) => {
     applyEvolutionGrid(commissionnaire);
     await commissionnaire.save();
     emitScoreLowIfNewlyObserved(commissionnaire, previousStatut);
+
+    await recordTimelineEvent({
+      entityType: "COMMISSIONNAIRE",
+      entityId: commissionnaire.idCommissionnaire,
+      eventType: "INCIDENT",
+      title: `Incident : ${type}`,
+      description: description || null,
+      metadata: { gravite: gravite || null, impactDiscipline: impactDiscipline ?? 0 },
+      actorUserId: req.user.idUser,
+    });
 
     return res.status(201).json({
       message: "Incident enregistré",

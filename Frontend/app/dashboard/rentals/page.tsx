@@ -15,7 +15,13 @@ import {
   Eye,
   Loader2,
 } from "lucide-react";
-import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_LABELS, type Property } from "@/lib/types";
+import {
+  PROPERTY_STATUT_BADGE_CLASS,
+  PROPERTY_STATUT_LABELS,
+  PROPERTY_TYPE_LABELS,
+  RENTAL_UNIT_LABELS,
+  type Property,
+} from "@/lib/types";
 import { getImageUrl } from "@/lib/imageUrl";
 import { getAllProperties } from "@/actions/properties";
 import { AddRentalModal } from "@/components/property-modals/add-rental-modal";
@@ -121,6 +127,9 @@ export default function RentalsPage() {
                   />
                   <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
                     {PROPERTY_TYPE_LABELS[property.propertyType]}
+                  </Badge>
+                  <Badge className={`absolute top-2 left-2 ${PROPERTY_STATUT_BADGE_CLASS[property.statut]}`}>
+                    {PROPERTY_STATUT_LABELS[property.statut]}
                   </Badge>
                 </div>
               </Link>

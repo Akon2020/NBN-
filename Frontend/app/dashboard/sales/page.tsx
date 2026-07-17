@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import {
   LAND_PROPERTY_TYPES,
+  PROPERTY_STATUT_BADGE_CLASS,
+  PROPERTY_STATUT_LABELS,
   PROPERTY_TYPE_LABELS,
   type Property,
 } from "@/lib/types";
@@ -128,6 +130,9 @@ export default function SalesPage() {
                   />
                   <Badge className="absolute top-2 right-2 bg-secondary text-secondary-foreground">
                     {PROPERTY_TYPE_LABELS[property.propertyType]}
+                  </Badge>
+                  <Badge className={`absolute top-2 left-2 ${PROPERTY_STATUT_BADGE_CLASS[property.statut]}`}>
+                    {PROPERTY_STATUT_LABELS[property.statut]}
                   </Badge>
                 </div>
               </Link>

@@ -8,7 +8,30 @@ export type PropertyType =
   | "TERRAIN_PLAT"
   | "TERRAIN_PENTE"
 
-export type PropertyStatut = "DISPONIBLE" | "RESERVE" | "LOUE_VENDU"
+// GOAL 1 — cycle de vie du bien. VENDU n'est atteignable qu'en category=SALE
+// (validé côté Backend, jamais côté client).
+export type PropertyStatut =
+  | "DISPONIBLE"
+  | "OCCUPE_CLIENT_NBN"
+  | "OCCUPE_CLIENT_EXTERNE"
+  | "EN_MAINTENANCE"
+  | "VENDU"
+
+export const PROPERTY_STATUT_LABELS: Record<PropertyStatut, string> = {
+  DISPONIBLE: "Disponible",
+  OCCUPE_CLIENT_NBN: "Occupé (client NBN)",
+  OCCUPE_CLIENT_EXTERNE: "Occupé (client externe)",
+  EN_MAINTENANCE: "En maintenance",
+  VENDU: "Vendu",
+}
+
+export const PROPERTY_STATUT_BADGE_CLASS: Record<PropertyStatut, string> = {
+  DISPONIBLE: "bg-success-500 text-white",
+  OCCUPE_CLIENT_NBN: "bg-primary-900 text-white",
+  OCCUPE_CLIENT_EXTERNE: "bg-secondary-600 text-white",
+  EN_MAINTENANCE: "bg-warning-500 text-neutral-900",
+  VENDU: "bg-neutral-600 text-white",
+}
 
 export type RentalUnit = "DAY" | "MONTH" | "YEAR"
 
@@ -736,6 +759,21 @@ export interface RecentActivityEntry {
   label: string
   detail?: string | null
   date: string
+}
+
+// --- GOAL 3 : Timeline complète ---
+export type TimelineEntityType = "PROPERTY" | "CLIENT" | "COMMISSIONNAIRE" | "BAILLEUR"
+
+export interface TimelineEvent {
+  idTimelineEvent: number
+  entityType: TimelineEntityType
+  entityId: number
+  eventType: string
+  title: string
+  description?: string | null
+  metadata?: Record<string, unknown> | null
+  actor?: { idUser: number; fullName: string } | null
+  occurredAt: string
 }
 
 export interface DashboardStats {

@@ -52,6 +52,7 @@ import Skill from "./skill.model.js";
 import EmployeeSkill from "./employeeSkill.model.js";
 import Training from "./training.model.js";
 import EmployeeTraining from "./employeeTraining.model.js";
+import TimelineEvent from "./timelineEvent.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -335,6 +336,10 @@ EmployeeProfile.hasMany(EmployeeTraining, { foreignKey: "idEmployeeProfile", as:
 EmployeeTraining.belongsTo(Training, { foreignKey: "idTraining", as: "training" });
 Training.hasMany(EmployeeTraining, { foreignKey: "idTraining" });
 
+// GOAL 3 — Timeline (soft reference volontaire vers entityType/entityId,
+// voir le commentaire du modèle).
+TimelineEvent.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -398,5 +403,6 @@ export {
   EmployeeSkill,
   Training,
   EmployeeTraining,
+  TimelineEvent,
   syncModels,
 };

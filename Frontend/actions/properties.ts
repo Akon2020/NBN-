@@ -91,6 +91,29 @@ export const updateProperty = async (
   }
 };
 
+// GOAL 1 — seul point d'entrée pour changer le statut d'un bien, jamais
+// via `updateProperty` (voir property.controller.js côté Backend).
+export const updatePropertyStatut = async (
+  id: number,
+  statut: PropertyStatut,
+  note?: string
+): Promise<Property> => {
+  try {
+    const res = await api.patch<{ message: string; data: Property }>(
+      `/api/properties/${id}/statut`,
+      { statut, note }
+    );
+    return res.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Erreur lors du changement de statut"
+      );
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
 export const deleteProperty = async (id: number): Promise<void> => {
   try {
     await api.delete(`/api/properties/${id}`);

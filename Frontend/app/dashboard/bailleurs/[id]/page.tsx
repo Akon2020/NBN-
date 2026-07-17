@@ -19,6 +19,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditBailleurModal } from "@/components/bailleur-modals/edit-bailleur-modal"
 import { DeleteBailleurModal } from "@/components/bailleur-modals/delete-bailleur-modal"
+import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleBailleur } from "@/actions/bailleurs"
 import {
   BAILLEUR_STATUT_LABELS,
@@ -216,6 +217,8 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
           </Card>
         </div>
       </div>
+
+      <EntityTimeline key={bailleur.updatedAt} entityType="BAILLEUR" entityId={bailleur.idBailleur} />
 
       <EditBailleurModal
         open={showEditModal}

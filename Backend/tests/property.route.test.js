@@ -159,11 +159,18 @@ describe("MOBILE-G03 - Lecture publique des biens (client final sans compte)", (
     const created = await request(app)
       .post("/api/properties")
       .set("Cookie", cookies)
-      .send({ category: "SALE", propertyType: "TERRAIN_PLAT", price: 1000, statut: "RESERVE" });
+      .send({ category: "SALE", propertyType: "TERRAIN_PLAT", price: 1000 });
     expect(created.status).toBe(201);
-    createdPropertyIds.push(created.body.data.idProperty);
+    const idProperty = created.body.data.idProperty;
+    createdPropertyIds.push(idProperty);
 
-    const res = await request(app).get(`/api/properties/public/${created.body.data.idProperty}`);
+    const statutRes = await request(app)
+      .patch(`/api/properties/${idProperty}/statut`)
+      .set("Cookie", cookies)
+      .send({ statut: "EN_MAINTENANCE" });
+    expect(statutRes.status).toBe(200);
+
+    const res = await request(app).get(`/api/properties/public/${idProperty}`);
     expect(res.status).toBe(404);
   });
 });

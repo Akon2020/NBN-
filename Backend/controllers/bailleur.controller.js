@@ -3,6 +3,7 @@ import {
   serializeBailleur,
   serializeBailleurs,
 } from "../utils/serializers/bailleur.serializer.js";
+import { recordTimelineEvent } from "../shared/timeline.js";
 
 export const getAllBailleurs = async (req, res, next) => {
   try {
@@ -68,6 +69,15 @@ export const createBailleur = async (req, res, next) => {
     });
     const data = await serializeBailleur(bailleurWithPerson, req.user);
 
+    await recordTimelineEvent({
+      entityType: "BAILLEUR",
+      entityId: bailleur.idBailleur,
+      eventType: "CREATED",
+      title: "Bailleur créé",
+      description: person.fullName,
+      actorUserId: req.user.idUser,
+    });
+
     return res.status(201).json({
       message: "Bailleur créé avec succès",
       data,
@@ -120,7 +130,22 @@ export const updateBailleur = async (req, res, next) => {
       }
     }
 
+    const previousStatutRelation = bailleur.statutRelation;
     await bailleur.update(donneesAMettreAJour);
+
+    if (
+      donneesAMettreAJour.statutRelation &&
+      donneesAMettreAJour.statutRelation !== previousStatutRelation
+    ) {
+      await recordTimelineEvent({
+        entityType: "BAILLEUR",
+        entityId: bailleur.idBailleur,
+        eventType: "STATUT_RELATION_CHANGED",
+        title: `Relation : ${previousStatutRelation} → ${donneesAMettreAJour.statutRelation}`,
+        actorUserId: req.user.idUser,
+      });
+    }
+
     const updated = await Bailleur.findByPk(id, { include: [{ model: Person, as: "person" }] });
     const data = await serializeBailleur(updated, req.user);
     return res.status(200).json({ message: "Bailleur mis à jour", data });

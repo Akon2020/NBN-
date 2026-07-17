@@ -39,10 +39,18 @@ const Property = db.define("properties", {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
-  // BACK-G05 : statut réel du bien (CDC §4) — remplace le filtrage cassé
-  // retiré en SEC-G04, qui portait sur un champ inexistant.
+  // GOAL 1 — cycle de vie du bien. "VENDU" n'est atteignable qu'en
+  // category=SALE (contrôlé en application, pas au niveau du schéma — un
+  // CHECK constraint conditionnel n'apporterait rien qu'une validation
+  // applicative ne couvre déjà, cf. property.controller.js).
   statut: {
-    type: DataTypes.ENUM("DISPONIBLE", "RESERVE", "LOUE_VENDU"),
+    type: DataTypes.ENUM(
+      "DISPONIBLE",
+      "OCCUPE_CLIENT_NBN",
+      "OCCUPE_CLIENT_EXTERNE",
+      "EN_MAINTENANCE",
+      "VENDU"
+    ),
     allowNull: false,
     defaultValue: "DISPONIBLE",
   },

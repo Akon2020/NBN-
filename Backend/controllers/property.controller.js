@@ -12,6 +12,7 @@ import {
   serializeProperty,
 } from "../utils/serializers/property.serializer.js";
 import { createArchiveHandlers } from "../utils/archivable.js";
+import { recordTimelineEvent } from "../shared/timeline.js";
 
 const PROPERTY_INCLUDES = [
   { model: RentalProperty, as: "rentalDetails" },
@@ -115,6 +116,10 @@ export const getSingleProperty = async (req, res, next) => {
   }
 };
 
+// GOAL 1 — `statut` n'est délibérément pas dans cette liste : tout
+// changement de statut passe par `updatePropertyStatut` (validation des
+// transitions + journalisation timeline), jamais par la mise à jour
+// générique des champs.
 const PROPERTY_FIELDS = [
   "propertyType",
   "quartier",
@@ -127,7 +132,6 @@ const PROPERTY_FIELDS = [
   "kitchens",
   "price",
   "margin",
-  "statut",
   "codeCommissionnaire",
   "informateur",
   "idBailleur",
@@ -185,6 +189,15 @@ export const createProperty = async (req, res, next) => {
 
     await transaction.commit();
 
+    await recordTimelineEvent({
+      entityType: "PROPERTY",
+      entityId: property.idProperty,
+      eventType: "CREATED",
+      title: `Bien créé (${category === "RENT" ? "à louer" : "à vendre"})`,
+      description: [property.propertyType, property.quartier].filter(Boolean).join(" — "),
+      actorUserId: req.user.idUser,
+    });
+
     const created = await Property.findByPk(property.idProperty, {
       include: PROPERTY_INCLUDES,
     });
@@ -235,6 +248,65 @@ export const updateProperty = async (req, res, next) => {
     return res.status(200).json({ message: "Propriété mise à jour", data: serialized });
   } catch (error) {
     await transaction.rollback();
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+const PROPERTY_STATUTS = [
+  "DISPONIBLE",
+  "OCCUPE_CLIENT_NBN",
+  "OCCUPE_CLIENT_EXTERNE",
+  "EN_MAINTENANCE",
+  "VENDU",
+];
+
+// GOAL 1 — seul point d'entrée pour changer le statut d'un bien (jamais via
+// `updateProperty`), afin que chaque transition soit à la fois validée
+// (VENDU réservé aux biens SALE) et journalisée dans la timeline (GOAL 3).
+export const updatePropertyStatut = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { statut, note } = req.body;
+
+    if (!PROPERTY_STATUTS.includes(statut)) {
+      return res.status(400).json({
+        message: `statut doit être l'un de : ${PROPERTY_STATUTS.join(", ")}.`,
+      });
+    }
+
+    const property = await Property.findByPk(id);
+    if (!property) {
+      return res.status(404).json({ message: "Propriété non trouvée" });
+    }
+
+    if (statut === "VENDU" && property.category !== "SALE") {
+      return res.status(400).json({
+        message: "Le statut VENDU n'est applicable qu'aux biens à vendre (category=SALE).",
+      });
+    }
+
+    if (property.statut === statut) {
+      return res.status(400).json({ message: "Ce bien a déjà ce statut." });
+    }
+
+    const previousStatut = property.statut;
+    await property.update({ statut });
+
+    await recordTimelineEvent({
+      entityType: "PROPERTY",
+      entityId: property.idProperty,
+      eventType: "STATUS_CHANGED",
+      title: `Statut : ${previousStatut} → ${statut}`,
+      description: note || null,
+      metadata: { automatic: false },
+      actorUserId: req.user.idUser,
+    });
+
+    const updated = await Property.findByPk(id, { include: PROPERTY_INCLUDES });
+    const serialized = await serializeProperty(updated, req.user);
+    return res.status(200).json({ message: "Statut mis à jour", data: serialized });
+  } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }

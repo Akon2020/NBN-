@@ -12,6 +12,7 @@ import {
   restoreProperty,
   unarchiveProperty,
   updateProperty,
+  updatePropertyStatut,
 } from "../controllers/property.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
@@ -68,7 +69,7 @@ propertyRouter.get("/", authMiddlware, getAllProperties);
  * @swagger
  * /api/properties/statut/{statut}:
  *   get:
- *     summary: Liste les biens par statut (DISPONIBLE, RESERVE, LOUE_VENDU)
+ *     summary: Liste les biens par statut
  *     tags: [Properties]
  *     parameters:
  *       - in: path
@@ -76,7 +77,7 @@ propertyRouter.get("/", authMiddlware, getAllProperties);
  *         required: true
  *         schema:
  *           type: string
- *           enum: [DISPONIBLE, RESERVE, LOUE_VENDU]
+ *           enum: [DISPONIBLE, OCCUPE_CLIENT_NBN, OCCUPE_CLIENT_EXTERNE, EN_MAINTENANCE, VENDU]
  *     responses:
  *       200:
  *         description: Liste récupérée avec succès
@@ -160,6 +161,46 @@ propertyRouter.patch(
   authMiddlware,
   requirePermission("property:manage"),
   updateProperty
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/statut:
+ *   patch:
+ *     summary: Change le statut d'un bien (cycle de vie, GOAL 1) — seul point d'entrée pour cette transition, journalisée dans la timeline
+ *     tags: [Properties]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [statut]
+ *             properties:
+ *               statut:
+ *                 type: string
+ *                 enum: [DISPONIBLE, OCCUPE_CLIENT_NBN, OCCUPE_CLIENT_EXTERNE, EN_MAINTENANCE, VENDU]
+ *               note:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Statut mis à jour
+ *       400:
+ *         description: Statut invalide, déjà appliqué, ou VENDU sur un bien à louer
+ *       404:
+ *         description: Propriété non trouvée
+ */
+propertyRouter.patch(
+  "/:id/statut",
+  authMiddlware,
+  requirePermission("property:manage"),
+  updatePropertyStatut
 );
 
 /**

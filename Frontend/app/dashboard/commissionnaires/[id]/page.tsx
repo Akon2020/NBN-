@@ -26,6 +26,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditScoreModal } from "@/components/commissionnaire-modals/edit-score-modal"
 import { AddIncidentModal } from "@/components/commissionnaire-modals/add-incident-modal"
+import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleCommissionnaire, updateCommissionnaire, deleteCommissionnaire } from "@/actions/commissionnaires"
 import {
   CLASSEMENT_LABELS,
@@ -280,6 +281,12 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
           </Card>
         </div>
       </div>
+
+      <EntityTimeline
+        key={commissionnaire.updatedAt}
+        entityType="COMMISSIONNAIRE"
+        entityId={commissionnaire.idCommissionnaire}
+      />
 
       <EditScoreModal
         open={showScoreModal}

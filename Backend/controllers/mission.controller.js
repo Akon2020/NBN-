@@ -1,5 +1,6 @@
 import { Mission, Commissionnaire, Person, Property, Client } from "../models/index.model.js";
 import { createArchiveHandlers } from "../utils/archivable.js";
+import { recordTimelineEvent } from "../shared/timeline.js";
 
 const MISSION_INCLUDES = [
   { model: Commissionnaire, as: "commissionnaire", include: [{ model: Person, as: "person" }] },
@@ -95,6 +96,24 @@ const transitionMission = async (req, res, next, { statut, requireMotif }) => {
       validatedAt: new Date(),
     });
     await mission.reload({ include: MISSION_INCLUDES });
+
+    const missionEvent = {
+      eventType: "MISSION",
+      title: `Mission ${mission.type} — ${statut}`,
+      description: requireMotif ? motifRejet : null,
+      actorUserId: req.user.idUser,
+    };
+    if (mission.idProperty) {
+      await recordTimelineEvent({ entityType: "PROPERTY", entityId: mission.idProperty, ...missionEvent });
+    }
+    if (mission.idClient) {
+      await recordTimelineEvent({ entityType: "CLIENT", entityId: mission.idClient, ...missionEvent });
+    }
+    await recordTimelineEvent({
+      entityType: "COMMISSIONNAIRE",
+      entityId: mission.idCommissionnaire,
+      ...missionEvent,
+    });
 
     return res.status(200).json({ message: "Mission mise à jour", data: mission });
   } catch (error) {

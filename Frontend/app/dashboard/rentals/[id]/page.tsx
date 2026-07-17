@@ -25,6 +25,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditRentalModal } from "@/components/property-modals/edit-rental-modal"
 import { DeleteRentalModal } from "@/components/property-modals/delete-rental-modal"
+import { PropertyStatutControl } from "@/components/property-statut-control"
+import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_LABELS, type Property } from "@/lib/types"
@@ -204,7 +206,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
                   <Badge className="bg-primary text-primary-foreground">
                     {PROPERTY_TYPE_LABELS[property.propertyType]}
                   </Badge>
-                  <Badge variant="secondary">{property.statut}</Badge>
+                  <PropertyStatutControl property={property} onChanged={setProperty} />
                 </div>
               </div>
             </CardHeader>
@@ -334,6 +336,8 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
           </Card>
         </div>
       </div>
+
+      <EntityTimeline key={property.updatedAt} entityType="PROPERTY" entityId={property.idProperty} />
 
       <EditRentalModal open={showEditModal} onOpenChange={setShowEditModal} property={property} onEdit={handleEdit} />
       <DeleteRentalModal

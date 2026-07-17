@@ -190,7 +190,7 @@ describe("BACK-G21 - Archivage formalisé", () => {
       propertyType: "MAISON",
       quartier: `Quartier Archive ${suffix}`,
       price: 30000,
-      statut: "LOUE_VENDU",
+      statut: "VENDU",
       createdBy: 1,
     });
     createdPropertyIds.push(property.idProperty);

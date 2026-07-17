@@ -26,6 +26,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditSaleModal } from "@/components/property-modals/edit-sale-modal"
 import { DeleteSaleModal } from "@/components/property-modals/delete-sale-modal"
+import { PropertyStatutControl } from "@/components/property-statut-control"
+import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import { LAND_PROPERTY_TYPES, PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
@@ -204,7 +206,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
                   <Badge className="bg-secondary text-secondary-foreground whitespace-nowrap">
                     {PROPERTY_TYPE_LABELS[property.propertyType]}
                   </Badge>
-                  <Badge variant="secondary">{property.statut}</Badge>
+                  <PropertyStatutControl property={property} onChanged={setProperty} />
                 </div>
               </div>
             </CardHeader>
@@ -333,6 +335,8 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
           </Card>
         </div>
       </div>
+
+      <EntityTimeline key={property.updatedAt} entityType="PROPERTY" entityId={property.idProperty} />
 
       <EditSaleModal open={showEditModal} onOpenChange={setShowEditModal} property={property} onEdit={handleEdit} />
       <DeleteSaleModal
