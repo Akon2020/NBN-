@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Save, CheckCircle2 } from "lucide-react"
+import { MarginSettingsPanel } from "@/components/margin-settings-panel"
 
 export default function SettingsPage() {
   const [maxGroupSize, setMaxGroupSize] = useState("6")
@@ -90,6 +91,8 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <MarginSettingsPanel />
 
       {/* Notifications */}
       <Card className="border-border">

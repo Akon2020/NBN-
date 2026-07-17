@@ -604,3 +604,22 @@ Frontend : nouveau composant `ClientDossier` (biens occupes, propositions, commi
 Backend : `npm test` -> **139/142** (les 3 echecs restent le bug SMTP synchrone pre-existant et deja signale separement, cf. Session 10 - non lie a cette session). Frontend : `npx tsc --noEmit` -> 0 erreur. Verification navigateur manuelle du flux complet plainte (creation/resolution/timeline) sur `/dashboard/clients/33`.
 
 *Suite immediate, sans interruption : GOAL 9 (gestion automatique des marges).*
+
+### GOAL 9 - Gestion automatique des marges
+
+Avant cette session, `Property.margin` etait un DECIMAL saisi manuellement (formulaires "Marge (USD)" sur les modales biens a vendre), sans lien avec un pourcentage, et sans mecanisme de configuration - deja identifie comme champ sensible (`property:margin:read`, field-level authorization deja en place) mais jamais reellement "gere".
+
+**Nouveau modele de calcul** : `margin` devient une valeur **derivee**, plus jamais saisie directement (retiree de `PROPERTY_FIELDS`, les deux formulaires "Marge (USD)" supprimes des modales d'ajout/edition de biens a vendre). Elle est recalculee automatiquement a partir de `price` et d'un pourcentage effectif :
+- **`MarginSetting`** (6 lignes, une par `PropertyType`, seedees a 10% par defaut) - pourcentage global configurable depuis Parametres.
+- **`Property.marginOverridePercentage`** (nullable) - pourcentage propre a UN bien, toujours prioritaire sur le defaut global de son type.
+
+**Points d'entree audites** (meme patron que le statut, GOAL 1) : `margin` et `marginOverridePercentage` retires de la mise a jour generique du bien. Nouveau `PATCH /api/properties/:id/margin-override` (permission dediee `property:margin:manage`, distincte de la simple lecture `property:margin:read` deja en place) - seul moyen de definir/retirer un override, journalise a la fois dans `MarginHistory` (audit global) et dans la Timeline du bien (`MARGIN_OVERRIDE_CHANGED`, visibilite locale). Nouveau `PATCH /api/margin-settings/:propertyType` - change le defaut d'un type et **recalcule immediatement** tous les biens de ce type sans override (`marginOverridePercentage IS NULL`) ; les biens avec un override restent strictement inchanges - l'isolation explicitement demandee ("un override sur une propriete ne doit jamais affecter les autres") verifiee par test dans les deux sens (l'override resiste au changement global ; le changement global ne s'applique qu'aux biens non overrides).
+
+**Frontend** : nouveau composant `PropertyMarginControl` (fiches bien louer/vendre) affichant le montant derive + badge "Override X%"/"Defaut du type" + Dialog pour definir/retirer l'override - rendu conditionne uniquement a `property.margin !== undefined` (deja filtre par le Backend, jamais de verification de permission cote Frontend). Nouveau panneau `MarginSettingsPanel` sur `/dashboard/settings` (premiere brique reelle de ce qui deviendra le centre de configuration complet du GOAL 13) - se masque silencieusement si l'appel `GET /api/margin-settings` echoue (403), meme logique de reaction a l'etat deja decide par le Backend.
+
+**Verifie en navigateur** (compte `tresorerie`, seul role avec `property:margin:manage` en plus d'admin) : modification du pourcentage global MAISON -> 200 OK ; definition d'un override 30% sur un bien TERRAIN_PLAT -> marge recalculee a $3 000 (30% de $10 000), badge et evenement timeline corrects ; retrait de l'override -> marge revenue au defaut courant du type.
+
+### Verification
+Backend : `tests/marginSetting.test.js` (6/6, nouveau) + `npm test` -> **145/148** (memes 3 echecs SMTP pre-existants, non lies). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 10 (Caisse - export + transfert entre caisses).*

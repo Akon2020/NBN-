@@ -7,6 +7,7 @@ import {
   PropertyPhone,
   PropertyScore,
   Matching,
+  MarginHistory,
 } from "../models/index.model.js";
 import db from "../database/db.js";
 import {
@@ -17,6 +18,7 @@ import { createArchiveHandlers } from "../utils/archivable.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 import { deleteFile } from "../utils/deletefile.js";
 import { compressImageInPlace } from "../utils/imageCompression.js";
+import { recalculatePropertyMargin } from "../shared/marginCalculator.js";
 
 const PROPERTY_INCLUDES = [
   { model: RentalProperty, as: "rentalDetails" },
@@ -125,6 +127,10 @@ export const getSingleProperty = async (req, res, next) => {
 // changement de statut passe par `updatePropertyStatut` (validation des
 // transitions + journalisation timeline), jamais par la mise à jour
 // générique des champs.
+// GOAL 9 — `margin` et `marginOverridePercentage` n'y sont pas non plus :
+// `margin` est une valeur dérivée (jamais saisie directement), et
+// l'override passe par `updatePropertyMarginOverride` (seul point d'entrée
+// audité, même patron que le statut).
 const PROPERTY_FIELDS = [
   "propertyType",
   "quartier",
@@ -136,7 +142,6 @@ const PROPERTY_FIELDS = [
   "toilets",
   "kitchens",
   "price",
-  "margin",
   "codeCommissionnaire",
   "informateur",
   "idBailleur",
@@ -192,6 +197,11 @@ export const createProperty = async (req, res, next) => {
       );
     }
 
+    // GOAL 9 — `margin` est toujours dérivée, calculée dès la création à
+    // partir du prix et du pourcentage effectif de son type (aucun override
+    // possible à la création, cf. updatePropertyMarginOverride).
+    await recalculatePropertyMargin(property, { transaction });
+
     await transaction.commit();
 
     await recordTimelineEvent({
@@ -235,6 +245,13 @@ export const updateProperty = async (req, res, next) => {
       }
     });
     await property.update(propertyData, { transaction });
+
+    // GOAL 9 — un changement de prix doit toujours se refléter dans la
+    // marge dérivée, override ou pas (l'override porte sur le pourcentage,
+    // jamais sur le montant final).
+    if (req.body.price !== undefined) {
+      await recalculatePropertyMargin(property, { transaction });
+    }
 
     if (property.category === "RENT" && (req.body.guarantee !== undefined || req.body.unit !== undefined)) {
       const rentalData = {};
@@ -330,6 +347,65 @@ export const updatePropertyStatut = async (req, res, next) => {
     const updated = await Property.findByPk(id, { include: PROPERTY_INCLUDES });
     const serialized = await serializeProperty(updated, req.user);
     return res.status(200).json({ message: "Statut mis à jour", data: serialized });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// GOAL 9 — seul point d'entrée pour changer l'override de marge d'un bien
+// (jamais via `updateProperty`) : garantit la validation du pourcentage et
+// la journalisation (MarginHistory + timeline du bien), même patron que
+// `updatePropertyStatut`. `percentage: null` retire l'override et fait
+// retomber le bien sur le pourcentage global de son type.
+export const updatePropertyMarginOverride = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { percentage } = req.body;
+
+    if (percentage !== null && percentage !== undefined) {
+      const numeric = Number(percentage);
+      if (Number.isNaN(numeric) || numeric < 0 || numeric > 100) {
+        return res.status(400).json({ message: "percentage doit être un nombre entre 0 et 100, ou null." });
+      }
+    }
+
+    const property = await Property.findByPk(id);
+    if (!property) {
+      return res.status(404).json({ message: "Propriété non trouvée" });
+    }
+
+    const normalized = percentage === undefined ? null : percentage;
+    const previousPercentage = property.marginOverridePercentage;
+    if (Number(previousPercentage ?? NaN) === Number(normalized ?? NaN)) {
+      return res.status(400).json({ message: "Ce bien a déjà cet override de marge." });
+    }
+
+    await property.update({ marginOverridePercentage: normalized });
+    await recalculatePropertyMargin(property);
+
+    await MarginHistory.create({
+      scope: "PROPERTY",
+      idProperty: property.idProperty,
+      previousPercentage,
+      newPercentage: normalized,
+      actorUserId: req.user.idUser,
+    });
+
+    await recordTimelineEvent({
+      entityType: "PROPERTY",
+      entityId: property.idProperty,
+      eventType: "MARGIN_OVERRIDE_CHANGED",
+      title:
+        normalized === null
+          ? "Override de marge retiré (retour au défaut du type)"
+          : `Override de marge : ${normalized}%`,
+      actorUserId: req.user.idUser,
+    });
+
+    const updated = await Property.findByPk(id, { include: PROPERTY_INCLUDES });
+    const serialized = await serializeProperty(updated, req.user);
+    return res.status(200).json({ message: "Override de marge mis à jour", data: serialized });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);

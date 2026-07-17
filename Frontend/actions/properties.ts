@@ -120,6 +120,28 @@ export const updatePropertyStatut = async (
   }
 };
 
+// GOAL 9 — seul point d'entrée pour changer l'override de marge d'un bien,
+// jamais via `updateProperty`. `percentage: null` retire l'override.
+export const updatePropertyMarginOverride = async (
+  id: number,
+  percentage: number | null
+): Promise<Property> => {
+  try {
+    const res = await api.patch<{ message: string; data: Property }>(
+      `/api/properties/${id}/margin-override`,
+      { percentage }
+    );
+    return res.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Erreur lors du changement d'override de marge"
+      );
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
 export const deleteProperty = async (id: number): Promise<void> => {
   try {
     await api.delete(`/api/properties/${id}`);

@@ -17,6 +17,7 @@ import {
   restoreProperty,
   unarchiveProperty,
   updateProperty,
+  updatePropertyMarginOverride,
   updatePropertyStatut,
 } from "../controllers/property.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
@@ -206,6 +207,44 @@ propertyRouter.patch(
   authMiddlware,
   requirePermission("property:manage"),
   updatePropertyStatut
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/margin-override:
+ *   patch:
+ *     summary: Définit ou retire l'override de pourcentage de marge d'un bien (GOAL 9) — seul point d'entrée pour cette valeur, journalisé (MarginHistory + timeline)
+ *     tags: [Properties]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               percentage:
+ *                 type: number
+ *                 nullable: true
+ *                 description: "0-100, ou null pour retirer l'override et revenir au défaut du type"
+ *     responses:
+ *       200:
+ *         description: Override mis à jour
+ *       400:
+ *         description: Pourcentage invalide ou déjà appliqué
+ *       404:
+ *         description: Propriété non trouvée
+ */
+propertyRouter.patch(
+  "/:id/margin-override",
+  authMiddlware,
+  requirePermission("property:margin:manage"),
+  updatePropertyMarginOverride
 );
 
 /**

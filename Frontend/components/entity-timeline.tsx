@@ -22,6 +22,7 @@ import {
   LogIn,
   LogOut,
   MessageSquareWarning,
+  Percent,
   Plus,
   RefreshCw,
   UserPlus,
@@ -47,6 +48,7 @@ const EVENT_ICON: Record<string, typeof History> = {
   MEDIA_REMOVED: ImageOff,
   COMMISSIONNAIRE_ATTRIBUE: Link2,
   CLIENT_APPORTE: UserPlus,
+  MARGIN_OVERRIDE_CHANGED: Percent,
 }
 
 const EVENT_COLOR: Record<string, string> = {
@@ -66,6 +68,7 @@ const EVENT_COLOR: Record<string, string> = {
   MEDIA_REMOVED: "bg-neutral-600 text-white",
   COMMISSIONNAIRE_ATTRIBUE: "bg-primary-900 text-white",
   CLIENT_APPORTE: "bg-primary-900 text-white",
+  MARGIN_OVERRIDE_CHANGED: "bg-accent-600 text-white",
 }
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -85,6 +88,7 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   MEDIA_REMOVED: "Média retiré",
   COMMISSIONNAIRE_ATTRIBUE: "Commissionnaire attribué",
   CLIENT_APPORTE: "Client apporté",
+  MARGIN_OVERRIDE_CHANGED: "Override de marge",
 }
 
 const formatDate = (iso: string) =>

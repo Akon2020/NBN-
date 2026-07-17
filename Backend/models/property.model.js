@@ -31,7 +31,17 @@ const Property = db.define("properties", {
   toilets: DataTypes.INTEGER,
   kitchens: DataTypes.INTEGER,
   price: DataTypes.DECIMAL(12, 2),
+  // GOAL 9 — `margin` est désormais une valeur dérivée, jamais saisie
+  // directement (retirée de PROPERTY_FIELDS) : toujours recalculée à
+  // partir de `price` et du pourcentage effectif (override ou défaut
+  // global par type, cf. shared/marginCalculator.js).
   margin: DataTypes.DECIMAL(12, 2),
+  // Pourcentage propre à CE bien, prioritaire sur MarginSetting.
+  // `null` = aucun override, le bien suit le défaut de son type.
+  marginOverridePercentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: true,
+  },
   latitude: DataTypes.DECIMAL(10, 8),
   longitude: DataTypes.DECIMAL(11, 8),
   description: DataTypes.TEXT,

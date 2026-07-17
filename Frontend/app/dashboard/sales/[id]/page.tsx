@@ -12,7 +12,6 @@ import {
   Bath,
   HomeIcon,
   Phone,
-  DollarSign,
   Calendar,
   Edit,
   Trash2,
@@ -27,6 +26,7 @@ import { useRouter } from "next/navigation"
 import { EditSaleModal } from "@/components/property-modals/edit-sale-modal"
 import { DeleteSaleModal } from "@/components/property-modals/delete-sale-modal"
 import { PropertyStatutControl } from "@/components/property-statut-control"
+import { PropertyMarginControl } from "@/components/property-margin-control"
 import { PropertyMediaManager } from "@/components/property-media-manager"
 import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
@@ -285,17 +285,10 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-secondary">${property.price.toLocaleString()}</span>
               </div>
-              {property.margin !== undefined && (
-                <div className="p-3 rounded-lg bg-muted">
-                  <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    <span className="text-muted-foreground">Marge:</span>
-                    <span className="font-semibold">${property.margin.toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
+
+          <PropertyMarginControl property={property} onChanged={setProperty} />
 
           <Card className="border-border">
             <CardHeader>

@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation"
 import { EditRentalModal } from "@/components/property-modals/edit-rental-modal"
 import { DeleteRentalModal } from "@/components/property-modals/delete-rental-modal"
 import { PropertyStatutControl } from "@/components/property-statut-control"
+import { PropertyMarginControl } from "@/components/property-margin-control"
 import { PropertyMediaManager } from "@/components/property-media-manager"
 import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
@@ -297,6 +298,8 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
               )}
             </CardContent>
           </Card>
+
+          <PropertyMarginControl property={property} onChanged={setProperty} />
 
           <Card className="border-border">
             <CardHeader>

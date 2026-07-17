@@ -44,6 +44,33 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   TERRAIN_PENTE: "Terrain en pente",
 }
 
+// GOAL 9 — gestion automatique des marges. `MarginSetting` n'est visible
+// que via /api/margin-settings, déjà filtré côté Backend par
+// property:margin:read (jamais présumer sa présence côté Frontend).
+export interface MarginSetting {
+  idMarginSetting: number
+  propertyType: PropertyType
+  defaultPercentage: number
+  updatedBy?: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type MarginHistoryScope = "GLOBAL" | "PROPERTY"
+
+export interface MarginHistoryEntry {
+  idMarginHistory: number
+  scope: MarginHistoryScope
+  propertyType?: string | null
+  idProperty?: number | null
+  previousPercentage?: number | null
+  newPercentage?: number | null
+  actorUserId: number
+  property?: { idProperty: number; quartier?: string | null; avenue?: string | null } | null
+  actor?: { idUser: number; fullName: string } | null
+  createdAt: string
+}
+
 export const RENTAL_PROPERTY_TYPES: PropertyType[] = ["APPARTEMENT", "MAISON"]
 export const SALE_PROPERTY_TYPES: PropertyType[] = [
   "CONSTRUCTION_DURABLE",
@@ -108,7 +135,12 @@ export interface Property {
   toilets?: number | null
   kitchens?: number | null
   price: number
+  // GOAL 9 — `margin` est désormais dérivé (jamais saisi directement) :
+  // price * pourcentage effectif (override du bien ou défaut du type).
   margin?: number
+  // Pourcentage propre à ce bien, prioritaire sur le défaut de son type.
+  // `null`/absent = aucun override. Même filtrage field-level que `margin`.
+  marginOverridePercentage?: number | null
   statut: PropertyStatut
   codeCommissionnaire?: string | null
   informateur?: string | null
@@ -140,8 +172,6 @@ export interface PropertyPayload {
   toilets?: number
   kitchens?: number
   price?: number
-  margin?: number
-  statut?: PropertyStatut
   description?: string
   guarantee?: number
   unit?: RentalUnit

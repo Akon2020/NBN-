@@ -55,6 +55,8 @@ import Training from "./training.model.js";
 import EmployeeTraining from "./employeeTraining.model.js";
 import TimelineEvent from "./timelineEvent.model.js";
 import ClientComplaint from "./clientComplaint.model.js";
+import MarginSetting from "./marginSetting.model.js";
+import MarginHistory from "./marginHistory.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -363,6 +365,11 @@ ClientComplaint.belongsTo(Client, { foreignKey: "idClient" });
 ClientComplaint.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 ClientComplaint.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
 
+// GOAL 9 — gestion automatique des marges.
+MarginSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
+MarginHistory.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
+MarginHistory.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -429,5 +436,7 @@ export {
   EmployeeTraining,
   TimelineEvent,
   ClientComplaint,
+  MarginSetting,
+  MarginHistory,
   syncModels,
 };
