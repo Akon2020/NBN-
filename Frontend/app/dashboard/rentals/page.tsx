@@ -22,6 +22,7 @@ import {
   RENTAL_UNIT_LABELS,
   type Property,
 } from "@/lib/types";
+import { AddToCartButton } from "@/components/add-to-cart-button";
 import { getImageUrl } from "@/lib/imageUrl";
 import { getAllProperties } from "@/actions/properties";
 import { AddRentalModal } from "@/components/property-modals/add-rental-modal";
@@ -131,6 +132,9 @@ export default function RentalsPage() {
                   <Badge className={`absolute top-2 left-2 ${PROPERTY_STATUT_BADGE_CLASS[property.statut]}`}>
                     {PROPERTY_STATUT_LABELS[property.statut]}
                   </Badge>
+                  <div className="absolute bottom-2 right-2">
+                    <AddToCartButton property={property} />
+                  </div>
                 </div>
               </Link>
               <CardContent className="p-4 space-y-3">

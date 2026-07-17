@@ -11,6 +11,7 @@ import { Search, MapPin, Home, Building2, Bed, Bath, DollarSign, Filter, Loader2
 import { getAllProperties } from "@/actions/properties"
 import { PROPERTY_TYPE_LABELS, type Property, type PropertyType } from "@/lib/types"
 import { getImageUrl } from "@/lib/imageUrl"
+import { AddToCartButton } from "@/components/add-to-cart-button"
 import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -228,6 +229,9 @@ export default function SearchPage() {
                           </>
                         )}
                       </Badge>
+                      <div className="absolute bottom-2 right-2">
+                        <AddToCartButton property={property} />
+                      </div>
                     </div>
                     <CardContent className="p-4 space-y-3">
                       <div>

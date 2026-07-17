@@ -23,6 +23,7 @@ import {
   PROPERTY_TYPE_LABELS,
   type Property,
 } from "@/lib/types";
+import { AddToCartButton } from "@/components/add-to-cart-button";
 import { getImageUrl } from "@/lib/imageUrl";
 import { getAllProperties } from "@/actions/properties";
 import { AddSaleModal } from "@/components/property-modals/add-sale-modal";
@@ -134,6 +135,9 @@ export default function SalesPage() {
                   <Badge className={`absolute top-2 left-2 ${PROPERTY_STATUT_BADGE_CLASS[property.statut]}`}>
                     {PROPERTY_STATUT_LABELS[property.statut]}
                   </Badge>
+                  <div className="absolute bottom-2 right-2">
+                    <AddToCartButton property={property} />
+                  </div>
                 </div>
               </Link>
               <CardContent className="p-4 space-y-3">

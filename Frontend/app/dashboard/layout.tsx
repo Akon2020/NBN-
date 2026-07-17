@@ -9,6 +9,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { CartButton } from "@/components/cart-button";
+import { CartProvider } from "@/components/cart-provider";
 import {
   Building2,
   Home,
@@ -89,12 +91,13 @@ export default function DashboardLayout({
     { name: "Paramètres", href: "/dashboard/settings", icon: Settings },
   ];
 
+  // BACK-G02 : le catalogue de rôles ne se limite plus à admin/agent —
+  // l'autorisation réelle est tranchée par le backend (RBAC par
+  // permission), le Frontend ne fait ici que vérifier l'authentification.
   return (
-    // BACK-G02 : le catalogue de rôles ne se limite plus à admin/agent —
-    // l'autorisation réelle est tranchée par le backend (RBAC par
-    // permission), le Frontend ne fait ici que vérifier l'authentification.
     <ProtectedRoute>
-    <div className="min-h-screen bg-background">
+      <CartProvider>
+        <div className="min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -207,6 +210,7 @@ export default function DashboardLayout({
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex-1" />
+          <CartButton />
           <NotificationBell />
           <ThemeToggle />
         </header>
@@ -214,7 +218,8 @@ export default function DashboardLayout({
         {/* Page content */}
         <main className="p-4 md:p-6">{children}</main>
       </div>
-    </div>
+        </div>
+      </CartProvider>
     </ProtectedRoute>
   );
 }
