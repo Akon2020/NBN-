@@ -1,7 +1,9 @@
 import { Router } from "express";
 import {
   createCaisse,
+  createCaisseTransfer,
   getAllCaisses,
+  getAllCaisseTransfers,
   getSingleCaisse,
   updateCaisse,
 } from "../controllers/caisse.controller.js";
@@ -21,6 +23,67 @@ const caisseRouter = Router();
  *         description: Liste récupérée avec succès
  */
 caisseRouter.get("/", authMiddlware, requirePermission("treasury:read"), getAllCaisses);
+
+/**
+ * @swagger
+ * /api/caisses/transfers:
+ *   get:
+ *     summary: Liste les virements entre caisses (GOAL 10), filtrable par caisse impliquée
+ *     tags: [Treasury]
+ *     parameters:
+ *       - in: query
+ *         name: idCaisse
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Liste récupérée avec succès
+ */
+caisseRouter.get(
+  "/transfers",
+  authMiddlware,
+  requirePermission("treasury:read"),
+  getAllCaisseTransfers
+);
+
+/**
+ * @swagger
+ * /api/caisses/transfers:
+ *   post:
+ *     summary: Effectue un virement entre deux caisses, dans une seule devise (GOAL 10)
+ *     tags: [Treasury]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idCaisseSource, idCaisseDestination, currencyCode, amount]
+ *             properties:
+ *               idCaisseSource:
+ *                 type: integer
+ *               idCaisseDestination:
+ *                 type: integer
+ *               currencyCode:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Virement effectué avec succès
+ *       400:
+ *         description: Données invalides, caisse clôturée, devise non suivie, ou solde insuffisant
+ *       404:
+ *         description: Caisse source ou destination non trouvée
+ */
+caisseRouter.post(
+  "/transfers",
+  authMiddlware,
+  requirePermission("treasury:manage"),
+  createCaisseTransfer
+);
 
 /**
  * @swagger

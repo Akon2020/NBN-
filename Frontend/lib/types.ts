@@ -622,6 +622,21 @@ export interface Caisse {
   createdAt: string
 }
 
+// GOAL 10 — virement entre deux caisses, immuable une fois créé (pas de
+// correction possible, seulement un nouveau virement en sens inverse).
+export interface CaisseTransfer {
+  idCaisseTransfer: number
+  idCaisseSource: number
+  idCaisseDestination: number
+  currencyCode: string
+  amount: number
+  description?: string | null
+  caisseSource?: { idCaisse: number; label: string }
+  caisseDestination?: { idCaisse: number; label: string }
+  creator?: { idUser: number; fullName: string }
+  createdAt: string
+}
+
 export interface ExchangeRate {
   idExchangeRate: number
   fromCurrency: string

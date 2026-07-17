@@ -35,6 +35,7 @@ import PaymentMethod from "./paymentMethod.model.js";
 import Payment from "./payment.model.js";
 import CashMovement from "./cashMovement.model.js";
 import LedgerEntry from "./ledgerEntry.model.js";
+import CaisseTransfer from "./caisseTransfer.model.js";
 import Commission from "./commission.model.js";
 import Task from "./task.model.js";
 import TaskAssignee from "./taskAssignee.model.js";
@@ -277,6 +278,13 @@ LedgerEntry.belongsTo(CashMovement, { foreignKey: "idCashMovement", as: "cashMov
 LedgerEntry.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 CashMovement.hasOne(LedgerEntry, { foreignKey: "idCashMovement", as: "ledgerEntry" });
 
+// GOAL 10 — virements entre caisses.
+CaisseTransfer.belongsTo(Caisse, { foreignKey: "idCaisseSource", as: "caisseSource" });
+CaisseTransfer.belongsTo(Caisse, { foreignKey: "idCaisseDestination", as: "caisseDestination" });
+CaisseTransfer.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+CashMovement.belongsTo(CaisseTransfer, { foreignKey: "idCaisseTransfer", as: "transfer" });
+CaisseTransfer.hasMany(CashMovement, { foreignKey: "idCaisseTransfer", as: "movements" });
+
 // BACK-G15 — Commission calculée à partir d'une transaction conclue (CDC),
 // éligible à un Payment une fois marquée DUE (même circuit que Requisition).
 Commission.belongsTo(Client, { foreignKey: "idClient", as: "client" });
@@ -416,6 +424,7 @@ export {
   Payment,
   CashMovement,
   LedgerEntry,
+  CaisseTransfer,
   Commission,
   Task,
   TaskAssignee,

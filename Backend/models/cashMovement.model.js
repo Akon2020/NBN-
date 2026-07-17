@@ -28,9 +28,18 @@ const CashMovement = db.define(
       type: DataTypes.ENUM("ENTREE", "SORTIE"),
       allowNull: false,
     },
+    // GOAL 10 — nullable : un mouvement peut désormais provenir d'un
+    // virement entre caisses (idCaisseTransfer) plutôt que d'un paiement.
+    // Toujours l'un OU l'autre en pratique, jamais les deux ni aucun des
+    // deux (contrôlé en application, cf. payment.controller.js /
+    // caisse.controller.js — jamais un mouvement sans origine traçable).
     idPayment: {
       type: DataTypes.BIGINT,
-      allowNull: false,
+      allowNull: true,
+    },
+    idCaisseTransfer: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
     },
     createdBy: {
       type: DataTypes.BIGINT,

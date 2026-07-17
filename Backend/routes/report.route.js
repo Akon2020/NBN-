@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  exportCaisseLedger,
   exportCommissions,
   exportProperties,
   getCaisseStatementPdf,
@@ -37,6 +38,46 @@ reportRouter.get(
   authMiddlware,
   requirePermission("reports:read"),
   getCaisseStatementPdf
+);
+
+/**
+ * @swagger
+ * /api/reports/caisses/{id}/ledger:
+ *   get:
+ *     summary: Exporte le ledger d'une caisse sur une période (CSV ou Excel selon ?format=xlsx|csv, GOAL 10)
+ *     tags: [Reports]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [csv, xlsx]
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Fichier généré
+ *       404:
+ *         description: Caisse non trouvée
+ */
+reportRouter.get(
+  "/caisses/:id/ledger",
+  authMiddlware,
+  requirePermission("reports:read"),
+  exportCaisseLedger
 );
 
 /**

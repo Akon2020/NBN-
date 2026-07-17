@@ -38,7 +38,7 @@ export const getCaisseStatementPdf = async (req, res, next) => {
     }
 
     const ledgerEntries = await LedgerEntry.findAll({
-      where: { idCaisse: caisse.idCaisse },
+      where: { idCaisse: caisse.idCaisse, createdAt: { [Op.between]: [from, to] } },
       order: [["createdAt", "ASC"]],
     });
 
@@ -161,6 +161,62 @@ export const exportCommissions = async (req, res, next) => {
     const csv = toCsv(rows, COMMISSION_COLUMNS);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", 'attachment; filename="commissions.csv"');
+    return res.status(200).send(csv);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+const LEDGER_COLUMNS = [
+  { header: "Date", key: "date" },
+  { header: "Type", key: "type" },
+  { header: "Montant", key: "amount" },
+  { header: "Devise", key: "currencyCode" },
+  { header: "Solde après", key: "balanceAfter" },
+  { header: "Description", key: "description" },
+];
+
+// GOAL 10 — export tabulaire (CSV/Excel) du ledger d'une caisse, en
+// complément du PDF déjà existant (`getCaisseStatementPdf`) — même source
+// de données (LedgerEntry, append-only), même filtrage par période.
+export const exportCaisseLedger = async (req, res, next) => {
+  try {
+    const format = req.query.format === "xlsx" ? "xlsx" : "csv";
+    const { from, to } = parseRange(req.query);
+
+    const caisse = await Caisse.findByPk(req.params.id);
+    if (!caisse) {
+      return res.status(404).json({ message: "Caisse non trouvée" });
+    }
+
+    const ledgerEntries = await LedgerEntry.findAll({
+      where: { idCaisse: caisse.idCaisse, createdAt: { [Op.between]: [from, to] } },
+      order: [["createdAt", "ASC"]],
+    });
+
+    const rows = ledgerEntries.map((entry) => ({
+      date: entry.createdAt.toISOString(),
+      type: entry.type,
+      amount: Number(entry.amount),
+      currencyCode: entry.currencyCode,
+      balanceAfter: Number(entry.balanceAfter),
+      description: entry.description || "",
+    }));
+
+    if (format === "xlsx") {
+      const buffer = await toExcelBuffer(rows, LEDGER_COLUMNS, "Ledger");
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader("Content-Disposition", `attachment; filename="caisse-${caisse.idCaisse}-ledger.xlsx"`);
+      return res.status(200).send(buffer);
+    }
+
+    const csv = toCsv(rows, LEDGER_COLUMNS);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="caisse-${caisse.idCaisse}-ledger.csv"`);
     return res.status(200).send(csv);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });

@@ -52,6 +52,24 @@ export const downloadCaisseStatement = async (
   }
 };
 
+// GOAL 10 — export tabulaire du ledger, en complément du PDF déjà existant.
+export const downloadCaisseLedgerExport = async (
+  caisseId: number,
+  format: "csv" | "xlsx",
+  from?: string,
+  to?: string
+): Promise<void> => {
+  try {
+    const res = await api.get(`/api/reports/caisses/${caisseId}/ledger`, {
+      params: { format, from, to },
+      responseType: "blob",
+    });
+    triggerDownload(res.data, `caisse-${caisseId}-ledger.${format}`);
+  } catch (error) {
+    await handleError(error, "Erreur lors de l'export du ledger");
+  }
+};
+
 export const downloadPropertiesExport = async (format: "csv" | "xlsx"): Promise<void> => {
   try {
     const res = await api.get("/api/reports/properties", {

@@ -623,3 +623,18 @@ Avant cette session, `Property.margin` etait un DECIMAL saisi manuellement (form
 Backend : `tests/marginSetting.test.js` (6/6, nouveau) + `npm test` -> **145/148** (memes 3 echecs SMTP pre-existants, non lies). Frontend : `npx tsc --noEmit` -> 0 erreur.
 
 *Suite immediate, sans interruption : GOAL 10 (Caisse - export + transfert entre caisses).*
+
+### GOAL 10 - Caisse : export et virements entre caisses
+
+Constat en ouvrant le chantier : l'infrastructure financiere (Caisse/CaisseBalance/CashMovement/LedgerEntry append-only) etait deja solide et testee, et un export PDF de l'etat de caisse existait deja (`GET /api/reports/caisses/:id/etat.pdf`) - mais **aucun export tabulaire (CSV/Excel)** pour la caisse (contrairement aux biens et commissions, deja couverts), et **aucun concept de virement entre caisses**. Bug adjacent trouve et corrige au passage : `from`/`to` etaient bien parses par `parseRange()` mais jamais appliques au `LedgerEntry.findAll` de l'export PDF - la periode demandee etait purement decorative, corrige avec un `where: { createdAt: { [Op.between]: [from, to] } } ` desormais reellement applique aux deux exports (PDF et nouveaux CSV/Excel).
+
+**Virement entre caisses** : nouveau modele `CaisseTransfer` (immuable, pas d'updatedAt - une correction passe par un virement en sens inverse, jamais une modification). `CashMovement.idPayment` assoupli en nullable et complete par un nouveau `idCaisseTransfer` nullable - un mouvement a toujours exactement une origine tracable (paiement OU virement), jamais aucune des deux. Un virement produit **deux** `CashMovement`/`LedgerEntry` (SORTIE cote source, ENTREE cote destination) ancres au meme `CaisseTransfer`, dans une seule transaction Sequelize - meme circuit comptable que `payment.controller.js` (verrouillage `CaisseBalance` en `LOCK.UPDATE`, solde jamais negatif, caisse cloturee refusee). Verrouillage des deux `CaisseBalance` dans un ordre stable (idCaisse croissant) pour eviter un interblocage entre deux virements opposes concurrents entre les deux memes caisses. Nouvelle permission `treasury:manage` reutilisee (aucune permission inventee) pour `POST /api/caisses/transfers` ; `treasury:read` pour la liste filtrable par caisse impliquee.
+
+**Export tabulaire** : nouveau `GET /api/reports/caisses/:id/ledger?format=csv|xlsx`, meme pattern que les exports biens/commissions deja en place (`utils/reports/tabularExport.js`), memes colonnes que le ledger (date, type, montant, devise, solde apres, description).
+
+**Frontend** : nouveau `TransferCaisseModal` (source/destination/devise limitee aux devises reellement suivies par la caisse source/montant/description), bouton "Virement" sur la fiche caisse (visible seulement si `OUVERTE`, meme regle que "Enregistrer un paiement"). Menu deroulant "Exporter" (PDF/CSV/Excel) ajoute a cote. Verifie en navigateur bout en bout (compte `tresorerie`) : virement de 100 CDF Caisse Principale -> Budget Principale, solde source passe de 60 000 a 59 900, ligne de ledger "Virement vers Budget Principale" visible immediatement ; export CSV declenche avec succes (200 OK).
+
+### Verification
+Backend : `tests/caisseTransfer.test.js` (8/8, nouveau) + `npm test` -> **153/156** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 11 (Calendrier ameliore).*
