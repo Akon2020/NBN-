@@ -27,12 +27,19 @@ import { useRouter } from "next/navigation"
 import { EditScoreModal } from "@/components/commissionnaire-modals/edit-score-modal"
 import { AddIncidentModal } from "@/components/commissionnaire-modals/add-incident-modal"
 import { EntityTimeline } from "@/components/entity-timeline"
-import { getSingleCommissionnaire, updateCommissionnaire, deleteCommissionnaire } from "@/actions/commissionnaires"
+import {
+  getCommissionnaireClients,
+  getSingleCommissionnaire,
+  updateCommissionnaire,
+  deleteCommissionnaire,
+} from "@/actions/commissionnaires"
 import {
   CLASSEMENT_LABELS,
+  CLIENT_PIPELINE_LABELS,
   INCIDENT_TYPE_LABELS,
   NIVEAU_LABELS,
   STATUT_COMMISSIONNAIRE_LABELS,
+  type Client,
   type Commissionnaire,
   type CommissionnaireStatut,
 } from "@/lib/types"
@@ -42,6 +49,7 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
   const { id } = use(params)
   const router = useRouter()
   const [commissionnaire, setCommissionnaire] = useState<Commissionnaire | null>(null)
+  const [clientsApportes, setClientsApportes] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showScoreModal, setShowScoreModal] = useState(false)
   const [showIncidentModal, setShowIncidentModal] = useState(false)
@@ -58,6 +66,12 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
   useEffect(() => {
     const load = async () => {
       await reload()
+      try {
+        setClientsApportes(await getCommissionnaireClients(Number(id)))
+      } catch {
+        // GOAL 4 — un rôle sans clients:read verra simplement une section vide,
+        // pas d'erreur bloquante : le reste de la fiche commissionnaire reste utilisable.
+      }
       setIsLoading(false)
     }
     load()
@@ -281,6 +295,28 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
           </Card>
         </div>
       </div>
+
+      {clientsApportes.length > 0 && (
+        <Card className="border-border">
+          <CardHeader>
+            <CardTitle>Clients apportés ({clientsApportes.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {clientsApportes.map((client) => (
+                <Link
+                  key={client.idClient}
+                  href={`/dashboard/clients/${client.idClient}`}
+                  className="rounded-lg border border-border p-3 text-sm hover:bg-accent transition-colors"
+                >
+                  <p className="font-medium truncate">{client.person?.fullName}</p>
+                  <p className="text-xs text-muted-foreground">{CLIENT_PIPELINE_LABELS[client.statutPipeline]}</p>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <EntityTimeline
         key={commissionnaire.updatedAt}

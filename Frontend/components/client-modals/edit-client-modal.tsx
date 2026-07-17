@@ -50,6 +50,7 @@ export function EditClientModal({ open, onOpenChange, client, onEdit }: EditClie
   const [localisationQuartiers, setLocalisationQuartiers] = useState("")
   const [besoinTypeBien, setBesoinTypeBien] = useState("")
   const [notesAgent, setNotesAgent] = useState("")
+  const [sourceCommissionnaireCode, setSourceCommissionnaireCode] = useState("")
 
   useEffect(() => {
     if (client) {
@@ -61,6 +62,7 @@ export function EditClientModal({ open, onOpenChange, client, onEdit }: EditClie
       setLocalisationQuartiers(client.localisationQuartiers || "")
       setBesoinTypeBien(client.besoinTypeBien || "")
       setNotesAgent(client.notesAgent || "")
+      setSourceCommissionnaireCode(client.sourceCommissionnaireCode || "")
     }
   }, [client])
 
@@ -79,6 +81,7 @@ export function EditClientModal({ open, onOpenChange, client, onEdit }: EditClie
         localisationQuartiers: localisationQuartiers || undefined,
         besoinTypeBien: besoinTypeBien || undefined,
         notesAgent: notesAgent || undefined,
+        sourceCommissionnaireCode: sourceCommissionnaireCode || null,
       })
       onEdit(updated)
       onOpenChange(false)
@@ -193,6 +196,16 @@ export function EditClientModal({ open, onOpenChange, client, onEdit }: EditClie
               placeholder="Ibanda, Nyalukemba..."
               value={localisationQuartiers}
               onChange={(e) => setLocalisationQuartiers(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sourceCommissionnaireCode">Code commissionnaire source</Label>
+            <Input
+              id="sourceCommissionnaireCode"
+              placeholder="Ex. CMR-001 (laisser vide pour retirer l'attribution)"
+              value={sourceCommissionnaireCode}
+              onChange={(e) => setSourceCommissionnaireCode(e.target.value)}
             />
           </div>
 

@@ -221,6 +221,13 @@ export interface Client {
   sousType?: ClientSousType | null
   source?: ClientSource | null
   sourceCommissionnaireCode?: string | null
+  // GOAL 4 — résolu côté Backend via l'association sur le code unique
+  // (jamais reconstruit à la main côté Frontend à partir du code seul).
+  commissionnaireSource?: {
+    idCommissionnaire: number
+    code: string
+    person?: { fullName: string }
+  } | null
   besoinTypeBien?: string | null
   besoinUsage?: ClientBesoinUsage | null
   localisationVille?: string | null
@@ -251,12 +258,16 @@ export interface ClientCreatePayload {
   type: ClientType
   sousType?: ClientSousType
   source?: ClientSource
+  sourceCommissionnaireCode?: string
 }
 
 export interface ClientUpdatePayload {
   sousType?: ClientSousType
   source?: ClientSource
-  sourceCommissionnaireCode?: string
+  // GOAL 4 — code du commissionnaire à l'origine du client (référence
+  // métier, jamais un idCommissionnaire interne). `null` retire
+  // explicitement l'attribution, `undefined` laisse le champ inchangé.
+  sourceCommissionnaireCode?: string | null
   besoinTypeBien?: string
   besoinUsage?: ClientBesoinUsage
   localisationVille?: string

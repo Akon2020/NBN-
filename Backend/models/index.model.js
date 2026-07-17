@@ -167,6 +167,17 @@ EmployeeProfile.belongsTo(EmployeeProfile, {
 Person.hasOne(Client, { foreignKey: "idPerson" });
 Client.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 
+// GOAL 4 — le code commissionnaire est la référence métier (jamais un
+// idCommissionnaire interne saisi/affiché) ; association basée sur cette
+// colonne unique plutôt qu'une simple jointure manuelle côté contrôleur,
+// pour bénéficier du même mécanisme d'`include` que le reste du modèle.
+Client.belongsTo(Commissionnaire, {
+  foreignKey: "sourceCommissionnaireCode",
+  targetKey: "code",
+  as: "commissionnaireSource",
+  constraints: false,
+});
+
 Person.hasOne(Bailleur, { foreignKey: "idPerson" });
 Bailleur.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 

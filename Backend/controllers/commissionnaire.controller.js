@@ -3,6 +3,7 @@ import {
   CommissionnaireIncident,
   Person,
   User,
+  Client,
 } from "../models/index.model.js";
 import {
   applyEvolutionGrid,
@@ -86,6 +87,31 @@ export const getSingleCommissionnaire = async (req, res, next) => {
       return res.status(404).json({ message: "Commissionnaire non trouvé" });
     }
     return res.status(200).json(withClassement(commissionnaire));
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// GOAL 4 — renforce le lien Client↔Commissionnaire : la fiche
+// commissionnaire doit pouvoir montrer les clients qu'il a effectivement
+// apportés (Client.sourceCommissionnaireCode === ce code), pas seulement
+// l'inverse (déjà visible côté fiche client).
+export const getCommissionnaireClients = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const commissionnaire = await Commissionnaire.findByPk(id);
+    if (!commissionnaire) {
+      return res.status(404).json({ message: "Commissionnaire non trouvé" });
+    }
+
+    const clients = await Client.findAll({
+      where: { sourceCommissionnaireCode: commissionnaire.code, archivedAt: null },
+      include: [{ model: Person, as: "person" }],
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.status(200).json({ nombre: clients.length, data: clients });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);

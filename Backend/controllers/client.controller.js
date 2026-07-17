@@ -1,6 +1,19 @@
-import { Client, Person, Matching, Property } from "../models/index.model.js";
+import { Client, Person, Matching, Property, Commissionnaire } from "../models/index.model.js";
 import { createArchiveHandlers } from "../utils/archivable.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
+
+// GOAL 4 — le commissionnaire source est résolu par la même association
+// que le reste du modèle (jamais une jointure manuelle refaite à chaque
+// endpoint), attributs limités au strict nécessaire pour l'affichage.
+const CLIENT_INCLUDES = [
+  { model: Person, as: "person" },
+  {
+    model: Commissionnaire,
+    as: "commissionnaireSource",
+    attributes: ["idCommissionnaire", "code"],
+    include: [{ model: Person, as: "person", attributes: ["fullName"] }],
+  },
+];
 
 // BACK-G21 — clients archivés désencombrés des listes actives par défaut,
 // réintégrables via `?includeArchived=true` (voir property.controller.js).
@@ -9,7 +22,7 @@ export const getAllClients = async (req, res, next) => {
     const where = req.query.includeArchived === "true" ? {} : { archivedAt: null };
     const clients = await Client.findAll({
       where,
-      include: [{ model: Person, as: "person" }],
+      include: CLIENT_INCLUDES,
       order: [["createdAt", "DESC"]],
     });
     return res.status(200).json({ nombre: clients.length, data: clients });
@@ -22,7 +35,7 @@ export const getAllClients = async (req, res, next) => {
 export const getSingleClient = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const client = await Client.findByPk(id, { include: [{ model: Person, as: "person" }] });
+    const client = await Client.findByPk(id, { include: CLIENT_INCLUDES });
     if (!client) {
       return res.status(404).json({ message: "Client non trouvé" });
     }
@@ -33,12 +46,34 @@ export const getSingleClient = async (req, res, next) => {
   }
 };
 
+// GOAL 4 — le code commissionnaire est la référence métier de la relation
+// (jamais un idCommissionnaire interne exposé/saisi) ; on vérifie qu'il
+// existe réellement avant de l'attribuer, plutôt que de ne le découvrir
+// que bien plus tard au moment du calcul d'une commission.
+const findCommissionnaireByCode = async (code) => {
+  if (!code) return { commissionnaire: null, error: null };
+  const commissionnaire = await Commissionnaire.findOne({ where: { code } });
+  if (!commissionnaire) {
+    return { commissionnaire: null, error: `Aucun commissionnaire avec le code "${code}".` };
+  }
+  return { commissionnaire, error: null };
+};
+
 export const createClient = async (req, res, next) => {
   try {
     const { idPerson, fullName, phone, email, type, ...clientFields } = req.body;
 
     if (!type) {
       return res.status(400).json({ message: "Le type (LOCATAIRE/ACHETEUR) est requis." });
+    }
+
+    let commissionnaire = null;
+    if (clientFields.sourceCommissionnaireCode) {
+      const result = await findCommissionnaireByCode(clientFields.sourceCommissionnaireCode);
+      if (result.error) {
+        return res.status(400).json({ message: result.error });
+      }
+      commissionnaire = result.commissionnaire;
     }
 
     let person;
@@ -64,7 +99,7 @@ export const createClient = async (req, res, next) => {
     });
 
     const clientWithPerson = await Client.findByPk(client.idClient, {
-      include: [{ model: Person, as: "person" }],
+      include: CLIENT_INCLUDES,
     });
 
     await recordTimelineEvent({
@@ -75,6 +110,23 @@ export const createClient = async (req, res, next) => {
       description: person.fullName,
       actorUserId: req.user.idUser,
     });
+
+    if (commissionnaire) {
+      await recordTimelineEvent({
+        entityType: "CLIENT",
+        entityId: client.idClient,
+        eventType: "COMMISSIONNAIRE_ATTRIBUE",
+        title: `Attribué au commissionnaire ${commissionnaire.code}`,
+        actorUserId: req.user.idUser,
+      });
+      await recordTimelineEvent({
+        entityType: "COMMISSIONNAIRE",
+        entityId: commissionnaire.idCommissionnaire,
+        eventType: "CLIENT_APPORTE",
+        title: `Nouveau client apporté : ${person.fullName}`,
+        actorUserId: req.user.idUser,
+      });
+    }
 
     return res.status(201).json({
       message: "Client créé avec succès",
@@ -122,6 +174,21 @@ export const updateClient = async (req, res, next) => {
       }
     });
 
+    const previousCommissionnaireCode = client.sourceCommissionnaireCode;
+    let newCommissionnaire = null;
+    if (
+      donneesAMettreAJour.sourceCommissionnaireCode !== undefined &&
+      donneesAMettreAJour.sourceCommissionnaireCode !== previousCommissionnaireCode
+    ) {
+      if (donneesAMettreAJour.sourceCommissionnaireCode) {
+        const result = await findCommissionnaireByCode(donneesAMettreAJour.sourceCommissionnaireCode);
+        if (result.error) {
+          return res.status(400).json({ message: result.error });
+        }
+        newCommissionnaire = result.commissionnaire;
+      }
+    }
+
     const previousStatutPipeline = client.statutPipeline;
     await client.update(donneesAMettreAJour);
 
@@ -165,7 +232,32 @@ export const updateClient = async (req, res, next) => {
       }
     }
 
-    const updated = await Client.findByPk(id, { include: [{ model: Person, as: "person" }] });
+    if (
+      donneesAMettreAJour.sourceCommissionnaireCode !== undefined &&
+      donneesAMettreAJour.sourceCommissionnaireCode !== previousCommissionnaireCode
+    ) {
+      await recordTimelineEvent({
+        entityType: "CLIENT",
+        entityId: client.idClient,
+        eventType: "COMMISSIONNAIRE_ATTRIBUE",
+        title: newCommissionnaire
+          ? `Attribué au commissionnaire ${newCommissionnaire.code}`
+          : "Attribution commissionnaire retirée",
+        actorUserId: req.user.idUser,
+      });
+      if (newCommissionnaire) {
+        const clientPerson = await Person.findByPk(client.idPerson);
+        await recordTimelineEvent({
+          entityType: "COMMISSIONNAIRE",
+          entityId: newCommissionnaire.idCommissionnaire,
+          eventType: "CLIENT_APPORTE",
+          title: `Nouveau client apporté : ${clientPerson?.fullName || `Client #${client.idClient}`}`,
+          actorUserId: req.user.idUser,
+        });
+      }
+    }
+
+    const updated = await Client.findByPk(id, { include: CLIENT_INCLUDES });
     return res.status(200).json({ message: "Client mis à jour", data: updated });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });

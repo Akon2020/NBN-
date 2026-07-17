@@ -35,10 +35,19 @@ export function AddClientModal({ open, onOpenChange, onAdd }: AddClientModalProp
     type: "" as ClientType | "",
     sousType: "" as ClientSousType | "",
     source: "" as ClientSource | "",
+    sourceCommissionnaireCode: "",
   })
 
   const resetForm = () =>
-    setFormData({ fullName: "", phone: "", email: "", type: "", sousType: "", source: "" })
+    setFormData({
+      fullName: "",
+      phone: "",
+      email: "",
+      type: "",
+      sousType: "",
+      source: "",
+      sourceCommissionnaireCode: "",
+    })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,6 +62,8 @@ export function AddClientModal({ open, onOpenChange, onAdd }: AddClientModalProp
         type: formData.type,
         sousType: formData.sousType || undefined,
         source: formData.source || undefined,
+        sourceCommissionnaireCode:
+          formData.source === "COMMISSIONNAIRE" ? formData.sourceCommissionnaireCode || undefined : undefined,
       })
       onAdd(created)
       onOpenChange(false)
@@ -140,6 +151,18 @@ export function AddClientModal({ open, onOpenChange, onAdd }: AddClientModalProp
               </Select>
             </div>
           </div>
+
+          {formData.source === "COMMISSIONNAIRE" && (
+            <div className="space-y-2">
+              <Label htmlFor="sourceCommissionnaireCode">Code du commissionnaire</Label>
+              <Input
+                id="sourceCommissionnaireCode"
+                placeholder="Ex. CMR-001"
+                value={formData.sourceCommissionnaireCode}
+                onChange={(e) => setFormData({ ...formData, sourceCommissionnaireCode: e.target.value })}
+              />
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

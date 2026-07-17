@@ -187,6 +187,17 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                   <span className="font-medium">{client.source}</span>
                 </div>
               )}
+              {client.commissionnaireSource && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Commissionnaire : </span>
+                  <Link
+                    href={`/dashboard/commissionnaires/${client.commissionnaireSource.idCommissionnaire}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {client.commissionnaireSource.person?.fullName} ({client.commissionnaireSource.code})
+                  </Link>
+                </div>
+              )}
               {client.statutRelance && (
                 <div className="text-sm">
                   <span className="text-muted-foreground">Relance : </span>
