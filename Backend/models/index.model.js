@@ -5,6 +5,7 @@ import Property from "./property.model.js";
 import RentalProperty from "./rentalProperty.model.js";
 import SaleProperty from "./saleProperty.model.js";
 import PropertyImage from "./propertyImage.model.js";
+import PropertyVideo from "./propertyVideo.model.js";
 import PropertyPhone from "./propertyPhone.model.js";
 import Favorite from "./favorite.model.js";
 import Proposal from "./proposal.model.js";
@@ -76,6 +77,9 @@ SaleProperty.belongsTo(Property, { foreignKey: "idProperty" });
 // Property - Images
 Property.hasMany(PropertyImage, { foreignKey: "idProperty", as: "images" });
 PropertyImage.belongsTo(Property, { foreignKey: "idProperty" });
+
+Property.hasMany(PropertyVideo, { foreignKey: "idProperty", as: "videos" });
+PropertyVideo.belongsTo(Property, { foreignKey: "idProperty" });
 
 // Property - Phones
 Property.hasMany(PropertyPhone, { foreignKey: "idProperty", as: "phones" });
@@ -356,6 +360,7 @@ export {
   RentalProperty,
   SaleProperty,
   PropertyImage,
+  PropertyVideo,
   PropertyPhone,
   Favorite,
   Proposal,

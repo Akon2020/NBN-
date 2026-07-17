@@ -73,6 +73,16 @@ export interface PropertyImageEntry {
   idPropertyImage: number
   idProperty: number
   image: string
+  order: number
+}
+
+// GOAL 2 — vidéos de bien, jamais mélangées avec PropertyImageEntry (table
+// dédiée côté Backend, contraintes de format/taille différentes).
+export interface PropertyVideoEntry {
+  idPropertyVideo: number
+  idProperty: number
+  video: string
+  order: number
 }
 
 export interface PropertyPhoneEntry {
@@ -111,6 +121,7 @@ export interface Property {
   rentalDetails?: RentalDetails
   saleDetails?: SaleDetails
   images?: PropertyImageEntry[]
+  videos?: PropertyVideoEntry[]
   phones?: PropertyPhoneEntry[]
   scores?: unknown
   createdAt: string

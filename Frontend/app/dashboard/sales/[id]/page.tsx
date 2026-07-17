@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation"
 import { EditSaleModal } from "@/components/property-modals/edit-sale-modal"
 import { DeleteSaleModal } from "@/components/property-modals/delete-sale-modal"
 import { PropertyStatutControl } from "@/components/property-statut-control"
+import { PropertyMediaManager } from "@/components/property-media-manager"
 import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
@@ -335,6 +336,8 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
           </Card>
         </div>
       </div>
+
+      <PropertyMediaManager property={property} onChanged={setProperty} />
 
       <EntityTimeline key={property.updatedAt} entityType="PROPERTY" entityId={property.idProperty} />
 

@@ -3,6 +3,7 @@ import {
   RentalProperty,
   SaleProperty,
   PropertyImage,
+  PropertyVideo,
   PropertyPhone,
   PropertyScore,
 } from "../models/index.model.js";
@@ -13,11 +14,14 @@ import {
 } from "../utils/serializers/property.serializer.js";
 import { createArchiveHandlers } from "../utils/archivable.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
+import { deleteFile } from "../utils/deletefile.js";
+import { compressImageInPlace } from "../utils/imageCompression.js";
 
 const PROPERTY_INCLUDES = [
   { model: RentalProperty, as: "rentalDetails" },
   { model: SaleProperty, as: "saleDetails" },
-  { model: PropertyImage, as: "images" },
+  { model: PropertyImage, as: "images", separate: true, order: [["order", "ASC"]] },
+  { model: PropertyVideo, as: "videos", separate: true, order: [["order", "ASC"]] },
   { model: PropertyPhone, as: "phones" },
   { model: PropertyScore, as: "scores" },
 ];
@@ -314,6 +318,8 @@ export const updatePropertyStatut = async (req, res, next) => {
 
 // Upload découplé de la création (CLAUDE.md §8 — même principe côté web
 // qu'offline mobile : un échec d'image ne doit jamais invalider le bien).
+// GOAL 2 — chaque image est recompressée (sharp) avant d'être enregistrée ;
+// un échec de compression n'empêche jamais l'ajout (voir imageCompression.js).
 export const addPropertyImages = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -327,11 +333,172 @@ export const addPropertyImages = async (req, res, next) => {
       return res.status(400).json({ message: "Aucune image fournie." });
     }
 
+    await Promise.all(files.map((file) => compressImageInPlace(file.path)));
+
+    const maxOrder = (await PropertyImage.max("order", { where: { idProperty: id } })) || 0;
     const images = await PropertyImage.bulkCreate(
-      files.map((file) => ({ idProperty: id, image: file.path }))
+      files.map((file, index) => ({
+        idProperty: id,
+        image: file.path,
+        order: maxOrder + index + 1,
+      }))
     );
 
+    await recordTimelineEvent({
+      entityType: "PROPERTY",
+      entityId: Number(id),
+      eventType: "MEDIA_ADDED",
+      title: `${images.length} image(s) ajoutée(s)`,
+      actorUserId: req.user.idUser,
+    });
+
     return res.status(201).json({ message: "Images ajoutées avec succès", data: images });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const deletePropertyImage = async (req, res, next) => {
+  try {
+    const { id, imageId } = req.params;
+    const image = await PropertyImage.findOne({ where: { idPropertyImage: imageId, idProperty: id } });
+    if (!image) {
+      return res.status(404).json({ message: "Image non trouvée" });
+    }
+
+    await deleteFile(image.image);
+    await image.destroy();
+
+    await recordTimelineEvent({
+      entityType: "PROPERTY",
+      entityId: Number(id),
+      eventType: "MEDIA_REMOVED",
+      title: "Image supprimée",
+      actorUserId: req.user.idUser,
+    });
+
+    return res.status(200).json({ message: "Image supprimée avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// GOAL 2 — réorganisation : `orderedIds` est la liste complète des
+// idPropertyImage du bien dans le nouvel ordre voulu, jamais un delta —
+// plus simple et sans ambiguïté côté client (un simple drag terminé
+// renvoie l'état final de la liste).
+export const reorderPropertyImages = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds) || !orderedIds.length) {
+      return res.status(400).json({ message: "orderedIds (tableau) est requis." });
+    }
+
+    await Promise.all(
+      orderedIds.map((imageId, index) =>
+        PropertyImage.update(
+          { order: index },
+          { where: { idPropertyImage: imageId, idProperty: id } }
+        )
+      )
+    );
+
+    const images = await PropertyImage.findAll({ where: { idProperty: id }, order: [["order", "ASC"]] });
+    return res.status(200).json({ message: "Ordre mis à jour", data: images });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// GOAL 2 — vidéo jamais recompressée côté serveur (coût CPU disproportionné
+// sur un hébergement mono-process, cf. upload.middleware.js) : seule la
+// validation de format/taille protège cet endpoint.
+export const addPropertyVideos = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const property = await Property.findByPk(id);
+    if (!property) {
+      return res.status(404).json({ message: "Propriété non trouvée" });
+    }
+
+    const files = req.files || [];
+    if (!files.length) {
+      return res.status(400).json({ message: "Aucune vidéo fournie." });
+    }
+
+    const maxOrder = (await PropertyVideo.max("order", { where: { idProperty: id } })) || 0;
+    const videos = await PropertyVideo.bulkCreate(
+      files.map((file, index) => ({
+        idProperty: id,
+        video: file.path,
+        order: maxOrder + index + 1,
+      }))
+    );
+
+    await recordTimelineEvent({
+      entityType: "PROPERTY",
+      entityId: Number(id),
+      eventType: "MEDIA_ADDED",
+      title: `${videos.length} vidéo(s) ajoutée(s)`,
+      actorUserId: req.user.idUser,
+    });
+
+    return res.status(201).json({ message: "Vidéos ajoutées avec succès", data: videos });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const deletePropertyVideo = async (req, res, next) => {
+  try {
+    const { id, videoId } = req.params;
+    const video = await PropertyVideo.findOne({ where: { idPropertyVideo: videoId, idProperty: id } });
+    if (!video) {
+      return res.status(404).json({ message: "Vidéo non trouvée" });
+    }
+
+    await deleteFile(video.video);
+    await video.destroy();
+
+    await recordTimelineEvent({
+      entityType: "PROPERTY",
+      entityId: Number(id),
+      eventType: "MEDIA_REMOVED",
+      title: "Vidéo supprimée",
+      actorUserId: req.user.idUser,
+    });
+
+    return res.status(200).json({ message: "Vidéo supprimée avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const reorderPropertyVideos = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds) || !orderedIds.length) {
+      return res.status(400).json({ message: "orderedIds (tableau) est requis." });
+    }
+
+    await Promise.all(
+      orderedIds.map((videoId, index) =>
+        PropertyVideo.update(
+          { order: index },
+          { where: { idPropertyVideo: videoId, idProperty: id } }
+        )
+      )
+    );
+
+    const videos = await PropertyVideo.findAll({ where: { idProperty: id }, order: [["order", "ASC"]] });
+    return res.status(200).json({ message: "Ordre mis à jour", data: videos });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);

@@ -1,14 +1,19 @@
 import { Router } from "express";
 import {
   addPropertyImages,
+  addPropertyVideos,
   archiveProperty,
   createProperty,
   deleteProperty,
+  deletePropertyImage,
+  deletePropertyVideo,
   getAllProperties,
   getPropertiesByStatut,
   getPublicProperties,
   getPublicProperty,
   getSingleProperty,
+  reorderPropertyImages,
+  reorderPropertyVideos,
   restoreProperty,
   unarchiveProperty,
   updateProperty,
@@ -16,7 +21,7 @@ import {
 } from "../controllers/property.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
-import upload from "../middlewares/upload.middleware.js";
+import upload, { uploadVideo } from "../middlewares/upload.middleware.js";
 import { normalizeUploadPaths } from "../utils/normalizeUploadPaths.js";
 
 const propertyRouter = Router();
@@ -237,6 +242,132 @@ propertyRouter.post(
   upload.array("image", 10),
   normalizeUploadPaths,
   addPropertyImages
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/images/{imageId}:
+ *   delete:
+ *     summary: Supprime une image d'un bien (GOAL 2)
+ *     tags: [Properties]
+ *     responses:
+ *       200:
+ *         description: Image supprimée avec succès
+ *       404:
+ *         description: Image non trouvée
+ */
+propertyRouter.delete(
+  "/:id/images/:imageId",
+  authMiddlware,
+  requirePermission("property:manage"),
+  deletePropertyImage
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/images/reorder:
+ *   patch:
+ *     summary: Réorganise la galerie d'images d'un bien (GOAL 2)
+ *     tags: [Properties]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [orderedIds]
+ *             properties:
+ *               orderedIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Ordre mis à jour
+ */
+propertyRouter.patch(
+  "/:id/images/reorder",
+  authMiddlware,
+  requirePermission("property:manage"),
+  reorderPropertyImages
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/videos:
+ *   post:
+ *     summary: Ajoute des vidéos à un bien (GOAL 2, jamais recompressées côté serveur)
+ *     tags: [Properties]
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               video:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: Vidéos ajoutées avec succès
+ */
+propertyRouter.post(
+  "/:id/videos",
+  authMiddlware,
+  requirePermission("property:manage"),
+  uploadVideo.array("video", 5),
+  normalizeUploadPaths,
+  addPropertyVideos
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/videos/{videoId}:
+ *   delete:
+ *     summary: Supprime une vidéo d'un bien (GOAL 2)
+ *     tags: [Properties]
+ *     responses:
+ *       200:
+ *         description: Vidéo supprimée avec succès
+ *       404:
+ *         description: Vidéo non trouvée
+ */
+propertyRouter.delete(
+  "/:id/videos/:videoId",
+  authMiddlware,
+  requirePermission("property:manage"),
+  deletePropertyVideo
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/videos/reorder:
+ *   patch:
+ *     summary: Réorganise les vidéos d'un bien (GOAL 2)
+ *     tags: [Properties]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *             schema:
+ *               type: object
+ *               required: [orderedIds]
+ *               properties:
+ *                 orderedIds:
+ *                   type: array
+ *                   items:
+ *                     type: integer
+ *     responses:
+ *       200:
+ *         description: Ordre mis à jour
+ */
+propertyRouter.patch(
+  "/:id/videos/reorder",
+  authMiddlware,
+  requirePermission("property:manage"),
+  reorderPropertyVideos
 );
 
 /**

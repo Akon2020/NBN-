@@ -20,4 +20,6 @@ export const {
   HOST_URL,
   FRONT_URL,
   DEFAULT_PASSWD,
+  MAX_IMAGE_SIZE_MB,
+  MAX_VIDEO_SIZE_MB,
 } = process.env;
