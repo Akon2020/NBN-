@@ -26,6 +26,20 @@ export const getAllAlerts = async (req, res, next) => {
   }
 };
 
+// GOAL 14 — détail d'une alerte (absent jusqu'ici, seule la liste existait).
+export const getSingleAlert = async (req, res, next) => {
+  try {
+    const alert = await Alert.findByPk(req.params.id, { include: ALERT_INCLUDES });
+    if (!alert) {
+      return res.status(404).json({ message: "Alerte non trouvée" });
+    }
+    return res.status(200).json({ data: alert });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
 export const createManualAlert = async (req, res, next) => {
   try {
     const { type, title, description, severite, assignedTo } = req.body;
@@ -53,10 +67,26 @@ export const createManualAlert = async (req, res, next) => {
 // CLAUDE.md §4 — cycle de vie : ouverte → reconnue → assignée → en cours
 // → résolue → clôturée. Chaque transition notifie le responsable actuel
 // (services/notification.service.js `transitionAlert`).
+// GOAL 14 — le graphe de transitions valides est désormais imposé côté
+// Backend (avant cette session, n'importe quel statut → n'importe quel
+// autre était accepté sans contrôle ; seule la Frontend respectait un
+// ordre par convention, ce qui contredit CLAUDE.md §2.2 : le Backend
+// reste la seule autorité, jamais le Frontend seul). CLOTUREE réouvrable
+// n'est pas prévu (terminal) ; RESOLUE reste réouvrable vers EN_COURS si
+// la résolution était prématurée.
+const VALID_TRANSITIONS = {
+  OUVERTE: ["RECONNUE", "ASSIGNEE"],
+  RECONNUE: ["ASSIGNEE", "EN_COURS"],
+  ASSIGNEE: ["EN_COURS", "RECONNUE"],
+  EN_COURS: ["RESOLUE"],
+  RESOLUE: ["CLOTUREE", "EN_COURS"],
+  CLOTUREE: [],
+};
+
 export const transitionAlertStatus = async (req, res, next) => {
   try {
     const { statut } = req.body;
-    const validStatuts = ["OUVERTE", "RECONNUE", "ASSIGNEE", "EN_COURS", "RESOLUE", "CLOTUREE"];
+    const validStatuts = Object.keys(VALID_TRANSITIONS);
     if (!validStatuts.includes(statut)) {
       return res.status(400).json({ message: "Statut d'alerte invalide." });
     }
@@ -64,6 +94,15 @@ export const transitionAlertStatus = async (req, res, next) => {
     const alert = await Alert.findByPk(req.params.id);
     if (!alert) {
       return res.status(404).json({ message: "Alerte non trouvée" });
+    }
+
+    if (statut === alert.statut) {
+      return res.status(400).json({ message: "Cette alerte a déjà ce statut." });
+    }
+    if (!VALID_TRANSITIONS[alert.statut].includes(statut)) {
+      return res.status(400).json({
+        message: `Transition invalide : ${alert.statut} → ${statut}.`,
+      });
     }
 
     await transitionAlert(alert, { statut, resolvedBy: req.user.idUser });
@@ -86,6 +125,9 @@ export const assignAlert = async (req, res, next) => {
     const alert = await Alert.findByPk(req.params.id);
     if (!alert) {
       return res.status(404).json({ message: "Alerte non trouvée" });
+    }
+    if (alert.statut === "CLOTUREE") {
+      return res.status(400).json({ message: "Une alerte clôturée ne peut plus être réassignée." });
     }
 
     await alert.update({ assignedTo, statut: "ASSIGNEE" });

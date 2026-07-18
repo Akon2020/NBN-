@@ -1,9 +1,12 @@
 import { Router } from "express";
 import {
   createTask,
+  createTaskComment,
   deleteTask,
+  deleteTaskComment,
   getAllTasks,
   getSingleTask,
+  getTaskComments,
   updateTask,
   updateTaskStatus,
 } from "../controllers/task.controller.js";
@@ -149,5 +152,60 @@ taskRouter.patch(
  *         description: Tâche non trouvée
  */
 taskRouter.delete("/:id", authMiddlware, requirePermission("tasks:manage"), deleteTask);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/comments:
+ *   get:
+ *     summary: Liste les commentaires d'une tâche (ordre chronologique)
+ *     tags: [Tasks]
+ *     responses:
+ *       200:
+ *         description: Commentaires récupérés
+ *       404:
+ *         description: Tâche non trouvée
+ *   post:
+ *     summary: Ajoute un commentaire à une tâche
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Commentaire ajouté
+ *       400:
+ *         description: content manquant
+ */
+taskRouter.get("/:id/comments", authMiddlware, requirePermission("tasks:read"), getTaskComments);
+taskRouter.post("/:id/comments", authMiddlware, requirePermission("tasks:read"), createTaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/comments/{commentId}:
+ *   delete:
+ *     summary: Supprime un commentaire (auteur ou tasks:manage uniquement)
+ *     tags: [Tasks]
+ *     responses:
+ *       200:
+ *         description: Commentaire supprimé
+ *       403:
+ *         description: Ni auteur ni tasks:manage
+ *       404:
+ *         description: Commentaire non trouvé
+ */
+taskRouter.delete(
+  "/:id/comments/:commentId",
+  authMiddlware,
+  requirePermission("tasks:read"),
+  deleteTaskComment
+);
 
 export default taskRouter;

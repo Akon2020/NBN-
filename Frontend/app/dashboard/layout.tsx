@@ -34,6 +34,7 @@ import {
   X,
   CalendarDays,
   FileBarChart,
+  ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -77,6 +78,7 @@ export default function DashboardLayout({
     { name: "Bailleurs", href: "/dashboard/bailleurs", icon: Handshake },
     { name: "Commissionnaires", href: "/dashboard/commissionnaires", icon: Compass },
     { name: "Missions", href: "/dashboard/missions", icon: ClipboardCheck },
+    { name: "Tâches", href: "/dashboard/tasks", icon: ListChecks },
     { name: "Caisses", href: "/dashboard/caisses", icon: Wallet },
     { name: "Réquisitions", href: "/dashboard/requisitions", icon: FileText },
     { name: "Commissions", href: "/dashboard/commissions", icon: Percent },

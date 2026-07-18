@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import { Check, X, Edit3, Loader2, ShieldAlert, ClipboardList } from "lucide-react"
 import {
   MISSION_STATUT_LABELS,
@@ -100,9 +102,14 @@ export default function MissionsPage() {
           {missions.map((mission) => (
             <Card key={mission.idMission} className="border-border">
               <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{MISSION_TYPE_LABELS[mission.type]}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link
+                      href={`/dashboard/missions/${mission.idMission}`}
+                      className="font-semibold hover:underline"
+                    >
+                      {MISSION_TYPE_LABELS[mission.type]}
+                    </Link>
                     <Badge className={STATUT_BADGE_CLASS[mission.statut]}>
                       {MISSION_STATUT_LABELS[mission.statut]}
                     </Badge>
@@ -116,6 +123,12 @@ export default function MissionsPage() {
                   {mission.motifRejet && (
                     <p className="text-sm text-destructive mt-1">Motif : {mission.motifRejet}</p>
                   )}
+                  <div className="flex items-center gap-2 mt-2 max-w-xs">
+                    <Progress value={mission.progression} className="h-1.5" />
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {mission.progression}%
+                    </span>
+                  </div>
                 </div>
 
                 {mission.statut === "SOUMISE" && (

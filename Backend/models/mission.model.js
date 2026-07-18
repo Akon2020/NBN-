@@ -57,6 +57,13 @@ const Mission = db.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    // GOAL 14 — avancement terrain déclaré par le commissionnaire assigné
+    // (0-100), distinct du `statut` de validation administrative.
+    progression: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
     // BACK-G21 — mêmes principes que Requisition ci-dessus : archivage
     // métier orthogonal au `statut` de la mission, `deletedAt` (paranoid)
     // réservé à l'erreur de saisie.

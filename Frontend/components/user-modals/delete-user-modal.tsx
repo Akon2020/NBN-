@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,28 +11,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: "admin" | "agent" | "consultant"
-  status: "active" | "inactive"
-  createdAt: Date
-}
+import { deleteUser } from "@/actions/users"
+import { User } from "@/types/type"
+import { toast } from "sonner"
 
 interface DeleteUserModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: User | null
-  onDelete: (id: string) => void
+  onDelete: (id: number) => void
 }
 
 export function DeleteUserModal({ open, onOpenChange, user, onDelete }: DeleteUserModalProps) {
-  const handleDelete = () => {
-    if (user) {
-      onDelete(user.id)
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!user) return
+    setSubmitting(true)
+    try {
+      await deleteUser(user.idUser)
+      onDelete(user.idUser)
       onOpenChange(false)
+      toast.success("Utilisateur supprimé")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -43,17 +48,18 @@ export function DeleteUserModal({ open, onOpenChange, user, onDelete }: DeleteUs
         <AlertDialogHeader>
           <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
           <AlertDialogDescription>
-            Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{user.name}</strong> ({user.email}) ? Cette action
-            est irréversible.
+            Êtes-vous sûr de vouloir supprimer l&apos;utilisateur <strong>{user.fullName}</strong> ({user.email}) ?
+            Cette action est irréversible.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
+            disabled={submitting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Supprimer
+            {submitting ? "Suppression..." : "Supprimer"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

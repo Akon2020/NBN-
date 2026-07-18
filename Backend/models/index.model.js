@@ -43,6 +43,7 @@ import TaskPropertyLink from "./taskPropertyLink.model.js";
 import TaskClientLink from "./taskClientLink.model.js";
 import TaskBailleurLink from "./taskBailleurLink.model.js";
 import TaskCommissionnaireLink from "./taskCommissionnaireLink.model.js";
+import TaskComment from "./taskComment.model.js";
 import Notification from "./notification.model.js";
 import Alert from "./alert.model.js";
 import Reminder from "./reminder.model.js";
@@ -328,6 +329,11 @@ TaskCommissionnaireLink.belongsTo(Commissionnaire, {
   as: "commissionnaire",
 });
 
+// GOAL 15 — fil de commentaires par tâche.
+Task.hasMany(TaskComment, { foreignKey: "idTask", as: "comments" });
+TaskComment.belongsTo(Task, { foreignKey: "idTask" });
+TaskComment.belongsTo(User, { foreignKey: "authorId", as: "author" });
+
 // BACK-G17 — Notifications/Alerts/Reminders (CLAUDE.md §4/§7).
 Notification.belongsTo(User, { foreignKey: "idUser", as: "user" });
 User.hasMany(Notification, { foreignKey: "idUser" });
@@ -442,6 +448,7 @@ export {
   TaskClientLink,
   TaskBailleurLink,
   TaskCommissionnaireLink,
+  TaskComment,
   Notification,
   Alert,
   Reminder,

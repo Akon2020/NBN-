@@ -56,6 +56,7 @@ const Session = db.define(
         "admin_revoke",
         "reuse_detected",
         "account_suspended",
+        "password_changed",
         "expired"
       ),
       allowNull: true,

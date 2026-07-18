@@ -1,4 +1,4 @@
-import { User } from "../models/index.model.js";
+import { User, Session } from "../models/index.model.js";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
 import { DEFAULT_PASSWD, EMAIL, FRONT_URL } from "../config/env.js";
@@ -200,9 +200,24 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
+// GOAL 16 — l'ancien mot de passe requis en fait de facto un changement en
+// libre-service (jamais un reset admin) ; l'absence de vérification
+// explicite d'identité laissait n'importe quel titulaire de JWT valide
+// tenter ce endpoint sur l'idUser d'un tiers (seule la connaissance de
+// l'ancien mot de passe de la cible protégeait réellement). Corrigé en
+// n'autorisant que le propriétaire du compte — un admin qui veut réinitialiser
+// le mot de passe d'un tiers utilise `resetUserPassword` ci-dessous, qui ne
+// requiert pas l'ancien mot de passe et journalise l'action différemment.
 export const updateUserPassword = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    if (String(req.user.idUser) !== String(id)) {
+      return res.status(403).json({
+        message: "Vous ne pouvez modifier que votre propre mot de passe.",
+      });
+    }
+
     const { oldPassword, newPassword, confirmNewPassword } = req.body;
 
     if (!oldPassword || !newPassword || !confirmNewPassword) {
@@ -243,11 +258,119 @@ export const updateUserPassword = async (req, res, next) => {
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    await User.update({ password: hashedPassword }, { where: { idUser: id } });
+    // CLAUDE.md §5 — un changement de mot de passe est un événement de
+    // révocation au même titre qu'une suspension : double mécanisme
+    // (sessions révoquées + securityVersion incrémenté), toutes les
+    // sessions actives (y compris l'appareil courant) devront se
+    // reconnecter.
+    await user.update({
+      password: hashedPassword,
+      securityVersion: user.securityVersion + 1,
+    });
+    await revokeAllUserSessions(user.idUser, "password_changed");
+    invalidateSecurityVersion(user.idUser);
 
     return res
       .status(200)
       .json({ message: "Mot de passe mis à jour avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// GOAL 16 — réinitialisation par un administrateur (users:manage) : ne
+// requiert pas l'ancien mot de passe, contrairement à `updateUserPassword`
+// ci-dessus qui reste strictement un changement en libre-service.
+export const resetUserPassword = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({ message: "newPassword est requis" });
+    }
+
+    if (!strongPasswd(newPassword)) {
+      return res.status(401).json({
+        message:
+          "Le mot de passe doit être de 6 caractères au mininum et doit contenir au moins:\n- 1 lettre\n-1 chiffre\n- 1 symbole",
+      });
+    }
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User non trouvé" });
+    }
+
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await user.update({
+      password: hashedPassword,
+      securityVersion: user.securityVersion + 1,
+    });
+    await revokeAllUserSessions(user.idUser, "admin_revoke");
+    invalidateSecurityVersion(user.idUser);
+
+    return res.status(200).json({
+      message: `Mot de passe de ${user.fullName} réinitialisé avec succès. Toutes ses sessions actives ont été déconnectées.`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// GOAL 16 — visibilité admin sur les sessions actives d'un utilisateur
+// (CLAUDE.md §5 décrit l'entité Session à cette fin, jamais consommée
+// jusqu'ici par une route dédiée). Ne renvoie jamais `refreshTokenHash`.
+export const getUserSessions = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User non trouvé" });
+    }
+
+    const sessions = await Session.findAll({
+      where: { idUser: id, revokedAt: null, expiresAt: { [Op.gt]: new Date() } },
+      attributes: [
+        "idSession",
+        "platform",
+        "deviceLabel",
+        "lastActiveAt",
+        "createdAt",
+        "expiresAt",
+      ],
+      order: [["lastActiveAt", "DESC"]],
+    });
+
+    return res.status(200).json({ nombre: sessions.length, data: sessions });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// GOAL 16 — "déconnecter toutes les sessions" côté admin, même mécanisme
+// que la suspension et que `logout-all` en libre-service, mais déclenché
+// sur un tiers (raison d'audit distincte : "admin_revoke").
+export const revokeUserSessions = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "User non trouvé" });
+    }
+
+    await user.update({ securityVersion: user.securityVersion + 1 });
+    await revokeAllUserSessions(user.idUser, "admin_revoke");
+    invalidateSecurityVersion(user.idUser);
+
+    return res.status(200).json({
+      message: `Toutes les sessions actives de ${user.fullName} ont été révoquées.`,
+    });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);

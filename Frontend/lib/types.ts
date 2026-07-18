@@ -603,6 +603,9 @@ export interface Mission {
   motifRejet?: string | null
   validatedBy?: number | null
   validatedAt?: string | null
+  // GOAL 14 — avancement terrain déclaré par le commissionnaire assigné
+  // (0-100), distinct du `statut` de validation administrative.
+  progression: number
   commissionnaire?: Commissionnaire
   property?: Property
   client?: Client
@@ -927,7 +930,13 @@ export interface RecentActivityEntry {
 }
 
 // --- GOAL 3 : Timeline complète ---
-export type TimelineEntityType = "PROPERTY" | "CLIENT" | "COMMISSIONNAIRE" | "BAILLEUR"
+export type TimelineEntityType =
+  | "PROPERTY"
+  | "CLIENT"
+  | "COMMISSIONNAIRE"
+  | "BAILLEUR"
+  | "MISSION"
+  | "TASK"
 
 export interface TimelineEvent {
   idTimelineEvent: number
@@ -952,4 +961,121 @@ export interface DashboardStats {
   openCaisses?: number
   pendingCommissions?: number
   recentActivity: RecentActivityEntry[]
+}
+
+// --- GOAL 15 : Module de gestion des tâches (Kanban) ---
+
+export type TaskStatut = "A_FAIRE" | "EN_COURS" | "EN_REVISION" | "TERMINEE"
+export type TaskPriorite = "BASSE" | "NORMALE" | "HAUTE" | "URGENTE"
+
+export const TASK_STATUT_LABELS: Record<TaskStatut, string> = {
+  A_FAIRE: "À faire",
+  EN_COURS: "En cours",
+  EN_REVISION: "En révision",
+  TERMINEE: "Terminée",
+}
+
+export const TASK_PRIORITE_LABELS: Record<TaskPriorite, string> = {
+  BASSE: "Basse",
+  NORMALE: "Normale",
+  HAUTE: "Haute",
+  URGENTE: "Urgente",
+}
+
+export const TASK_STATUT_STAGES: TaskStatut[] = ["A_FAIRE", "EN_COURS", "EN_REVISION", "TERMINEE"]
+
+export interface TaskAssignee {
+  idUser: number
+  user?: { idUser: number; fullName: string }
+}
+
+export interface TaskPropertyLink {
+  idProperty: number
+  property?: { idProperty: number; quartier: string; avenue?: string | null }
+}
+
+export interface TaskClientLink {
+  idClient: number
+  client?: { idClient: number; type: string }
+}
+
+export interface TaskBailleurLink {
+  idBailleur: number
+  bailleur?: { idBailleur: number }
+}
+
+export interface TaskCommissionnaireLink {
+  idCommissionnaire: number
+  commissionnaire?: { idCommissionnaire: number; code: string; person?: { fullName: string } }
+}
+
+export interface Task {
+  idTask: number
+  title: string
+  description?: string | null
+  statut: TaskStatut
+  priorite: TaskPriorite
+  dateEcheance?: string | null
+  createdBy: number
+  creator?: { idUser: number; fullName: string }
+  assignees: TaskAssignee[]
+  propertyLinks: TaskPropertyLink[]
+  clientLinks: TaskClientLink[]
+  bailleurLinks: TaskBailleurLink[]
+  commissionnaireLinks: TaskCommissionnaireLink[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TaskComment {
+  idTaskComment: number
+  idTask: number
+  authorId: number
+  content: string
+  author?: { idUser: number; fullName: string }
+  createdAt: string
+  updatedAt: string
+}
+
+// --- GOAL 16 : Gestion des utilisateurs ---
+
+// Catalogue reel des roles (Backend/seeders/20260714200000-seed-rbac-catalog.cjs)
+// — distinct du RoleEnum de types/type.ts (identique en valeurs), garde ici
+// pour fournir des libelles lisibles sans dupliquer la logique RBAC.
+export const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrateur",
+  communication: "Communication",
+  marketing: "Marketing",
+  operations: "Opérations",
+  technologique: "Technologique",
+  juridique: "Juridique",
+  tresorerie: "Trésorerie",
+  commissionnaire: "Commissionnaire",
+  consultant: "Consultant",
+}
+
+export const ASSIGNABLE_ROLES = [
+  "admin",
+  "communication",
+  "marketing",
+  "operations",
+  "technologique",
+  "juridique",
+  "tresorerie",
+  "commissionnaire",
+  "consultant",
+] as const
+
+export const USER_STATUS_LABELS: Record<"ACTIVE" | "INACTIVE", string> = {
+  ACTIVE: "Actif",
+  INACTIVE: "Inactif",
+}
+
+export interface UserSession {
+  idSession: number
+  platform: "web" | "ios" | "android"
+  deviceLabel?: string | null
+  lastActiveAt: string
+  createdAt: string
+  expiresAt: string
 }
