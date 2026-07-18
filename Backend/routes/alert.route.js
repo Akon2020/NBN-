@@ -3,6 +3,7 @@ import {
   assignAlert,
   createManualAlert,
   getAllAlerts,
+  getSingleAlert,
   transitionAlertStatus,
 } from "../controllers/alert.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
@@ -35,6 +36,26 @@ alertRouter.get("/", authMiddlware, requirePermission("alerts:read"), getAllAler
  *         description: type ou title manquant
  */
 alertRouter.post("/", authMiddlware, requirePermission("alerts:manage"), createManualAlert);
+
+/**
+ * @swagger
+ * /api/alerts/{id}:
+ *   get:
+ *     summary: Détail d'une alerte (GOAL 14)
+ *     tags: [Alerts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Alerte trouvée
+ *       404:
+ *         description: Alerte non trouvée
+ */
+alertRouter.get("/:id", authMiddlware, requirePermission("alerts:read"), getSingleAlert);
 
 /**
  * @swagger

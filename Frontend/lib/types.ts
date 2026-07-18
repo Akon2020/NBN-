@@ -603,6 +603,9 @@ export interface Mission {
   motifRejet?: string | null
   validatedBy?: number | null
   validatedAt?: string | null
+  // GOAL 14 — avancement terrain déclaré par le commissionnaire assigné
+  // (0-100), distinct du `statut` de validation administrative.
+  progression: number
   commissionnaire?: Commissionnaire
   property?: Property
   client?: Client
@@ -927,7 +930,7 @@ export interface RecentActivityEntry {
 }
 
 // --- GOAL 3 : Timeline complète ---
-export type TimelineEntityType = "PROPERTY" | "CLIENT" | "COMMISSIONNAIRE" | "BAILLEUR"
+export type TimelineEntityType = "PROPERTY" | "CLIENT" | "COMMISSIONNAIRE" | "BAILLEUR" | "MISSION"
 
 export interface TimelineEvent {
   idTimelineEvent: number

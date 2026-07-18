@@ -18,11 +18,29 @@ export const getAllAlerts = async (): Promise<Alert[]> => {
   }
 };
 
+export const getSingleAlert = async (id: number): Promise<Alert> => {
+  try {
+    const res = await api.get<{ data: Alert }>(`/api/alerts/${id}`);
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors de la récupération de l'alerte");
+  }
+};
+
 export const transitionAlertStatus = async (id: number, statut: AlertStatut): Promise<Alert> => {
   try {
     const res = await api.patch<{ data: Alert }>(`/api/alerts/${id}/statut`, { statut });
     return res.data.data;
   } catch (error) {
     return handleError(error, "Erreur lors du changement de statut de l'alerte");
+  }
+};
+
+export const assignAlert = async (id: number, assignedTo: number): Promise<Alert> => {
+  try {
+    const res = await api.patch<{ data: Alert }>(`/api/alerts/${id}/assigner`, { assignedTo });
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors de l'assignation de l'alerte");
   }
 };

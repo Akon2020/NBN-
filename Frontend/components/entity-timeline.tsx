@@ -14,6 +14,7 @@ import {
   Banknote,
   CheckCircle2,
   ClipboardCheck,
+  Edit3,
   History,
   Image as ImageIcon,
   ImageOff,
@@ -25,7 +26,9 @@ import {
   Percent,
   Plus,
   RefreshCw,
+  TrendingUp,
   UserPlus,
+  X,
 } from "lucide-react"
 import { getEntityTimeline } from "@/actions/timeline"
 import type { TimelineEntityType, TimelineEvent } from "@/lib/types"
@@ -49,6 +52,10 @@ const EVENT_ICON: Record<string, typeof History> = {
   COMMISSIONNAIRE_ATTRIBUE: Link2,
   CLIENT_APPORTE: UserPlus,
   MARGIN_OVERRIDE_CHANGED: Percent,
+  VALIDEE: CheckCircle2,
+  REJETEE: X,
+  CORRECTION_DEMANDEE: Edit3,
+  PROGRESSION: TrendingUp,
 }
 
 const EVENT_COLOR: Record<string, string> = {
@@ -69,6 +76,10 @@ const EVENT_COLOR: Record<string, string> = {
   COMMISSIONNAIRE_ATTRIBUE: "bg-primary-900 text-white",
   CLIENT_APPORTE: "bg-primary-900 text-white",
   MARGIN_OVERRIDE_CHANGED: "bg-accent-600 text-white",
+  VALIDEE: "bg-success-500 text-white",
+  REJETEE: "bg-error-500 text-white",
+  CORRECTION_DEMANDEE: "bg-warning-500 text-neutral-900",
+  PROGRESSION: "bg-primary-900 text-white",
 }
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -89,6 +100,10 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   COMMISSIONNAIRE_ATTRIBUE: "Commissionnaire attribué",
   CLIENT_APPORTE: "Client apporté",
   MARGIN_OVERRIDE_CHANGED: "Override de marge",
+  VALIDEE: "Validée",
+  REJETEE: "Rejetée",
+  CORRECTION_DEMANDEE: "Correction demandée",
+  PROGRESSION: "Avancement",
 }
 
 const formatDate = (iso: string) =>

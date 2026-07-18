@@ -4,9 +4,11 @@ import {
   createMission,
   getAllMissions,
   getMissionsByCommissionnaire,
+  getSingleMission,
   rejectMission,
   requestMissionCorrection,
   unarchiveMission,
+  updateMissionProgression,
   validateMission,
 } from "../controllers/mission.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
@@ -47,6 +49,65 @@ missionRouter.get(
   authMiddlware,
   requirePermission("missions:read"),
   getMissionsByCommissionnaire
+);
+
+/**
+ * @swagger
+ * /api/missions/{id}:
+ *   get:
+ *     summary: Détail d'une mission terrain (GOAL 14)
+ *     tags: [Missions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Mission trouvée
+ *       404:
+ *         description: Mission non trouvée
+ */
+missionRouter.get("/:id", authMiddlware, requirePermission("missions:read"), getSingleMission);
+
+/**
+ * @swagger
+ * /api/missions/{id}/progression:
+ *   patch:
+ *     summary: Déclare l'avancement terrain d'une mission (0-100, GOAL 14) — le commissionnaire assigné ou missions:validate
+ *     tags: [Missions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [progression]
+ *             properties:
+ *               progression:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Avancement mis à jour
+ *       400:
+ *         description: Valeur invalide
+ *       403:
+ *         description: Ni le commissionnaire assigné, ni missions:validate
+ *       404:
+ *         description: Mission non trouvée
+ */
+missionRouter.patch(
+  "/:id/progression",
+  authMiddlware,
+  requirePermission("missions:read"),
+  updateMissionProgression
 );
 
 /**

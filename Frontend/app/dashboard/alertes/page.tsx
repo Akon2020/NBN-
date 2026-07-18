@@ -4,7 +4,14 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, ShieldAlert, Bell, Check } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Loader2, ShieldAlert, Bell, Check, UserPlus } from "lucide-react"
 import {
   ALERT_SEVERITE_LABELS,
   ALERT_STATUT_LABELS,
@@ -12,7 +19,8 @@ import {
   type AlertSeverite,
   type AlertStatut,
 } from "@/lib/types"
-import { getAllAlerts, transitionAlertStatus } from "@/actions/alerts"
+import { getAllAlerts, assignAlert, transitionAlertStatus } from "@/actions/alerts"
+import { getUsersDirectory, type UserDirectoryEntry } from "@/actions/users"
 import { getSocket } from "@/lib/socket"
 import { toast } from "sonner"
 
@@ -34,6 +42,7 @@ export default function AlertesPage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
+  const [directory, setDirectory] = useState<UserDirectoryEntry[]>([])
 
   const load = async () => {
     try {
@@ -51,6 +60,11 @@ export default function AlertesPage() {
 
   useEffect(() => {
     load()
+    getUsersDirectory()
+      .then(setDirectory)
+      .catch(() => {
+        // Sélecteur d'assignation simplement absent si l'annuaire échoue.
+      })
 
     // ADMIN-G07 — déclencheur d'invalidation uniquement (CLAUDE.md §6) :
     // Socket.IO ne pousse jamais l'alerte elle-même, juste "quelque chose a
@@ -73,6 +87,16 @@ export default function AlertesPage() {
       const updated = await transitionAlertStatus(alert.idAlert, next)
       setAlerts((prev) => prev.map((a) => (a.idAlert === updated.idAlert ? updated : a)))
       toast.success(`Alerte passée à « ${ALERT_STATUT_LABELS[next]} »`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    }
+  }
+
+  const handleAssign = async (alert: Alert, idUser: string) => {
+    try {
+      const updated = await assignAlert(alert.idAlert, Number(idUser))
+      setAlerts((prev) => prev.map((a) => (a.idAlert === updated.idAlert ? updated : a)))
+      toast.success("Alerte assignée")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur inconnue")
     }
@@ -126,14 +150,35 @@ export default function AlertesPage() {
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
                     {new Date(alert.createdAt).toLocaleString("fr-FR")}
+                    {alert.assignee ? ` · Assignée à ${alert.assignee.fullName}` : ""}
                   </p>
                 </div>
-                {NEXT_STATUT[alert.statut] && (
-                  <Button size="sm" variant="outline" onClick={() => handleAdvance(alert)}>
-                    <Check className="h-4 w-4 mr-1" />
-                    {ALERT_STATUT_LABELS[NEXT_STATUT[alert.statut]!]}
-                  </Button>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {alert.statut !== "CLOTUREE" && directory.length > 0 && (
+                    <Select
+                      value={alert.assignee ? String(alert.assignee.idUser) : ""}
+                      onValueChange={(value) => handleAssign(alert, value)}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <UserPlus className="h-3.5 w-3.5 mr-1 shrink-0" />
+                        <SelectValue placeholder="Assigner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {directory.map((user) => (
+                          <SelectItem key={user.idUser} value={String(user.idUser)}>
+                            {user.fullName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {NEXT_STATUT[alert.statut] && (
+                    <Button size="sm" variant="outline" onClick={() => handleAdvance(alert)}>
+                      <Check className="h-4 w-4 mr-1" />
+                      {ALERT_STATUT_LABELS[NEXT_STATUT[alert.statut]!]}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}

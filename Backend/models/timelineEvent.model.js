@@ -19,7 +19,7 @@ const TimelineEvent = db.define(
       autoIncrement: true,
     },
     entityType: {
-      type: DataTypes.ENUM("PROPERTY", "CLIENT", "COMMISSIONNAIRE", "BAILLEUR"),
+      type: DataTypes.ENUM("PROPERTY", "CLIENT", "COMMISSIONNAIRE", "BAILLEUR", "MISSION"),
       allowNull: false,
     },
     entityId: {

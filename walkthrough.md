@@ -698,3 +698,24 @@ Constat en ouvrant le chantier, confirme par un sous-agent : la quasi-totalite d
 Backend : `tests/appSettings.test.js` (5/5, nouveau) + `npm test` -> **169/172** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur. Verifie en navigateur bout en bout (compte `technologique`) : modification du nombre max de biens (10 -> 12), persistance confirmee apres rechargement, section marges masquee correctement pour un role sans `property:margin:read` (comportement attendu, pas une regression).
 
 *Suite immediate, sans interruption : GOAL 14 (Missions et alertes completes).*
+
+### GOAL 14 - Missions et alertes completes
+
+Constat en ouvrant le chantier, confirme par un sous-agent : les deux modules avaient une logique de transition solide (Mission : Soumise/Validee/Rejetee/Correction demandee ; Alert : cycle Ouverte->...->Cloturee via `createAlert`/`transitionAlert` deja existants) mais quatre lacunes concretes empechaient de les considerer "complets" :
+1. **Aucune page de detail** pour une mission ou une alerte (`GET /:id` absent des deux routes, seules les listes existaient).
+2. **Aucune notion de progression terrain** sur une mission - seul le statut de validation administrative existait, rien ne permettait au commissionnaire de declarer son avancement reel sur le terrain.
+3. **Zero notification** a la validation/rejet/demande de correction d'une mission - le commissionnaire assigne n'apprenait jamais la decision autrement qu'en revenant consulter l'ecran.
+4. **Le graphe de transitions des alertes n'etait impose que cote Frontend** (un `NEXT_STATUT` code en dur dans la page) - le Backend acceptait n'importe quel statut vers n'importe quel autre sans controle, en contradiction directe avec CLAUDE.md §2.2 ("le Backend reste la seule source d'autorite").
+
+**Missions** : nouveau champ `progression` (0-100), distinct du `statut` de validation - `PATCH /api/missions/:id/progression` reserve au commissionnaire assigne (resolu via Person.idUser, meme patron que `getMyCommissionnaireProfile` deja existant) ou a un titulaire de `missions:validate`. `MISSION` ajoute comme 5e type d'entite a la Timeline generique (GOAL 3) - `TimelineEvent.entityType` etait un ENUM MySQL, migre par `changeColumn`. Chaque creation/transition/declaration d'avancement y est desormais journalisee, en plus des evenements deja existants sur PROPERTY/CLIENT/COMMISSIONNAIRE. Notification (`createNotification`) ajoutee sur chaque transition Valider/Rejeter/Demander correction, adressee au compte User du commissionnaire s'il en a un (silencieusement ignoree sinon - un commissionnaire terrain peut exister sans compte, CLAUDE.md §4).
+
+**Alertes** : graphe `VALID_TRANSITIONS` impose desormais cote Backend (`OUVERTE->RECONNUE|ASSIGNEE`, `RECONNUE->ASSIGNEE|EN_COURS`, `ASSIGNEE->EN_COURS|RECONNUE`, `EN_COURS->RESOLUE`, `RESOLUE->CLOTUREE|EN_COURS` pour reouverture, `CLOTUREE` terminal) - une transition hors graphe ou vers le meme statut est desormais rejetee (400), la Frontend reste un simple client de cette regle plutot que sa seule application. Reassignation d'une alerte CLOTUREE egalement bloquee.
+
+**Frontend** : nouvelles pages de detail `missions/[id]` (responsable terrain, bien/client lies, barre de progression editable, historique via `EntityTimeline` reutilise tel quel) - liste des missions desormais cliquable avec mini-barre de progression par carte. Page alertes enrichie d'un selecteur d'assignation (annuaire `GET /api/users/directory` deja construit au GOAL 11, reutilise ici) - masque automatiquement sur une alerte cloturee.
+
+Verifie en navigateur bout en bout (compte `operations`) : declaration d'avancement sur une mission validee (0% -> 75%, evenement historique confirme) ; assignation d'une alerte "Score bas" -> statut passe a Assignee, bouton d'avancement suivant devient correctement "En cours" (pas "Reconnue"), badge de reassignation absent sur une alerte deja cloturee.
+
+### Verification
+Backend : `tests/missionAlert.test.js` (9/9, nouveau) + `npm test` -> **178/181** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 15 (Module de gestion des taches complet).*
