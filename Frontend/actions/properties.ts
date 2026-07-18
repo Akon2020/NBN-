@@ -1,6 +1,12 @@
 import api from "@/lib/axios";
 import axios from "axios";
-import { Property, PropertyPayload, PropertyStatut } from "@/lib/types";
+import {
+  Property,
+  PropertyImageEntry,
+  PropertyPayload,
+  PropertyStatut,
+  PropertyVideoEntry,
+} from "@/lib/types";
 
 export const getAllProperties = async (): Promise<Property[]> => {
   try {
@@ -91,6 +97,51 @@ export const updateProperty = async (
   }
 };
 
+// GOAL 1 — seul point d'entrée pour changer le statut d'un bien, jamais
+// via `updateProperty` (voir property.controller.js côté Backend).
+export const updatePropertyStatut = async (
+  id: number,
+  statut: PropertyStatut,
+  note?: string
+): Promise<Property> => {
+  try {
+    const res = await api.patch<{ message: string; data: Property }>(
+      `/api/properties/${id}/statut`,
+      { statut, note }
+    );
+    return res.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Erreur lors du changement de statut"
+      );
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
+// GOAL 9 — seul point d'entrée pour changer l'override de marge d'un bien,
+// jamais via `updateProperty`. `percentage: null` retire l'override.
+export const updatePropertyMarginOverride = async (
+  id: number,
+  percentage: number | null
+): Promise<Property> => {
+  try {
+    const res = await api.patch<{ message: string; data: Property }>(
+      `/api/properties/${id}/margin-override`,
+      { percentage }
+    );
+    return res.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Erreur lors du changement d'override de marge"
+      );
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
 export const deleteProperty = async (id: number): Promise<void> => {
   try {
     await api.delete(`/api/properties/${id}`);
@@ -107,18 +158,102 @@ export const deleteProperty = async (id: number): Promise<void> => {
 export const addPropertyImages = async (
   id: number,
   files: File[]
-): Promise<void> => {
+): Promise<PropertyImageEntry[]> => {
   try {
     const formData = new FormData();
     files.forEach((file) => formData.append("image", file));
-    await api.post(`/api/properties/${id}/images`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const res = await api.post<{ message: string; data: PropertyImageEntry[] }>(
+      `/api/properties/${id}/images`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return res.data.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error(
         error.response?.data?.message || "Erreur lors de l'ajout des images"
       );
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
+export const deletePropertyImage = async (id: number, imageId: number): Promise<void> => {
+  try {
+    await api.delete(`/api/properties/${id}/images/${imageId}`);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || "Erreur lors de la suppression de l'image");
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
+export const reorderPropertyImages = async (
+  id: number,
+  orderedIds: number[]
+): Promise<PropertyImageEntry[]> => {
+  try {
+    const res = await api.patch<{ message: string; data: PropertyImageEntry[] }>(
+      `/api/properties/${id}/images/reorder`,
+      { orderedIds }
+    );
+    return res.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || "Erreur lors de la réorganisation");
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
+export const addPropertyVideos = async (
+  id: number,
+  files: File[]
+): Promise<PropertyVideoEntry[]> => {
+  try {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("video", file));
+    const res = await api.post<{ message: string; data: PropertyVideoEntry[] }>(
+      `/api/properties/${id}/videos`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return res.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Erreur lors de l'ajout des vidéos"
+      );
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
+export const deletePropertyVideo = async (id: number, videoId: number): Promise<void> => {
+  try {
+    await api.delete(`/api/properties/${id}/videos/${videoId}`);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || "Erreur lors de la suppression de la vidéo");
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
+export const reorderPropertyVideos = async (
+  id: number,
+  orderedIds: number[]
+): Promise<PropertyVideoEntry[]> => {
+  try {
+    const res = await api.patch<{ message: string; data: PropertyVideoEntry[] }>(
+      `/api/properties/${id}/videos/reorder`,
+      { orderedIds }
+    );
+    return res.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || "Erreur lors de la réorganisation");
     }
     throw new Error("Erreur inconnue");
   }

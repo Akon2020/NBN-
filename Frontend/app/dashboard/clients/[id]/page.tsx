@@ -20,6 +20,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditClientModal } from "@/components/client-modals/edit-client-modal"
 import { DeleteClientModal } from "@/components/client-modals/delete-client-modal"
+import { EntityTimeline } from "@/components/entity-timeline"
+import { ClientDossier } from "@/components/client-dossier"
 import { getSingleClient } from "@/actions/clients"
 import {
   CLIENT_PIPELINE_LABELS,
@@ -104,7 +106,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-2xl">{client.person?.fullName}</CardTitle>
-                  <div className="flex items-center gap-2 mt-2">
+                  {client.dossierNumber && (
+                    <p className="text-xs font-mono text-muted-foreground mt-1">{client.dossierNumber}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge className="bg-primary text-primary-foreground">
                       {CLIENT_TYPE_LABELS[client.type]}
                     </Badge>
@@ -186,6 +191,17 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                   <span className="font-medium">{client.source}</span>
                 </div>
               )}
+              {client.commissionnaireSource && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Commissionnaire : </span>
+                  <Link
+                    href={`/dashboard/commissionnaires/${client.commissionnaireSource.idCommissionnaire}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {client.commissionnaireSource.person?.fullName} ({client.commissionnaireSource.code})
+                  </Link>
+                </div>
+              )}
               {client.statutRelance && (
                 <div className="text-sm">
                   <span className="text-muted-foreground">Relance : </span>
@@ -220,6 +236,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </Card>
         </div>
       </div>
+
+      <ClientDossier key={client.updatedAt} idClient={client.idClient} />
+
+      <EntityTimeline key={client.updatedAt} entityType="CLIENT" entityId={client.idClient} />
 
       <EditClientModal
         open={showEditModal}

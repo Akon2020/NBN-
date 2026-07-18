@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Search, MapPin, Home, Building2, Bed, Bath, DollarSign, Filter, Loader2 } from "lucide-react"
 import { getAllProperties } from "@/actions/properties"
 import { PROPERTY_TYPE_LABELS, type Property, type PropertyType } from "@/lib/types"
+import { getImageUrl } from "@/lib/imageUrl"
+import { AddToCartButton } from "@/components/add-to-cart-button"
 import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -209,7 +211,7 @@ export default function SearchPage() {
                   <Card className="border-border overflow-hidden group">
                     <div className="relative aspect-video overflow-hidden">
                       <Image
-                        src={property.images?.[0]?.image || "/placeholder.svg"}
+                        src={getImageUrl(property.images?.[0]?.image)}
                         alt={`Property in ${property.quartier || ""}`}
                         fill
                         className="object-cover transition-transform group-hover:scale-105"
@@ -227,6 +229,9 @@ export default function SearchPage() {
                           </>
                         )}
                       </Badge>
+                      <div className="absolute bottom-2 right-2">
+                        <AddToCartButton property={property} />
+                      </div>
                     </div>
                     <CardContent className="p-4 space-y-3">
                       <div>

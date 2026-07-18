@@ -1,6 +1,7 @@
 import api from "@/lib/axios";
 import axios from "axios";
 import {
+  Client,
   Commissionnaire,
   CommissionnaireCreatePayload,
   CommissionnaireIncident,
@@ -127,6 +128,23 @@ export const deleteCommissionnaire = async (id: number): Promise<void> => {
     if (axios.isAxiosError(error)) {
       throw new Error(
         error.response?.data?.message || "Erreur lors de la suppression du commissionnaire"
+      );
+    }
+    throw new Error("Erreur inconnue");
+  }
+};
+
+// GOAL 4 — clients apportés par ce commissionnaire (Client.sourceCommissionnaireCode).
+export const getCommissionnaireClients = async (id: number): Promise<Client[]> => {
+  try {
+    const res = await api.get<{ nombre: number; data: Client[] }>(
+      `/api/commissionnaires/${id}/clients`
+    );
+    return res.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Erreur lors de la récupération des clients apportés"
       );
     }
     throw new Error("Erreur inconnue");

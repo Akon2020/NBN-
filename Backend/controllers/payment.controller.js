@@ -12,6 +12,7 @@ import {
   Commission,
   User,
 } from "../models/index.model.js";
+import { recordTimelineEvent } from "../shared/timeline.js";
 
 const PAYMENT_INCLUDES = [
   { model: Caisse, as: "caisse", attributes: ["idCaisse", "label"] },
@@ -187,6 +188,19 @@ export const recordPayment = async (req, res, next) => {
     );
 
     await t.commit();
+
+    // GOAL 3 — un paiement lié à une commission concerne un client précis
+    // (Commission.idClient) ; les décaissements liés à une réquisition ne
+    // sont rattachés à aucune des quatre entités suivies par la timeline.
+    if (commission) {
+      await recordTimelineEvent({
+        entityType: "CLIENT",
+        entityId: commission.idClient,
+        eventType: "PAYMENT",
+        title: `Commission payée (${amount} ${currencyCode.toUpperCase()})`,
+        actorUserId: req.user.idUser,
+      });
+    }
 
     const created = await Payment.findByPk(payment.idPayment, { include: PAYMENT_INCLUDES });
     return res.status(201).json({ message: "Paiement enregistré avec succès", data: created });

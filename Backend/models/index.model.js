@@ -5,6 +5,7 @@ import Property from "./property.model.js";
 import RentalProperty from "./rentalProperty.model.js";
 import SaleProperty from "./saleProperty.model.js";
 import PropertyImage from "./propertyImage.model.js";
+import PropertyVideo from "./propertyVideo.model.js";
 import PropertyPhone from "./propertyPhone.model.js";
 import Favorite from "./favorite.model.js";
 import Proposal from "./proposal.model.js";
@@ -34,6 +35,7 @@ import PaymentMethod from "./paymentMethod.model.js";
 import Payment from "./payment.model.js";
 import CashMovement from "./cashMovement.model.js";
 import LedgerEntry from "./ledgerEntry.model.js";
+import CaisseTransfer from "./caisseTransfer.model.js";
 import Commission from "./commission.model.js";
 import Task from "./task.model.js";
 import TaskAssignee from "./taskAssignee.model.js";
@@ -45,6 +47,19 @@ import Notification from "./notification.model.js";
 import Alert from "./alert.model.js";
 import Reminder from "./reminder.model.js";
 import OutboxEvent from "./outboxEvent.model.js";
+import CalendarEvent from "./calendarEvent.model.js";
+import CalendarEventParticipant from "./calendarEventParticipant.model.js";
+import Evaluation from "./evaluation.model.js";
+import Objective from "./objective.model.js";
+import Skill from "./skill.model.js";
+import EmployeeSkill from "./employeeSkill.model.js";
+import Training from "./training.model.js";
+import EmployeeTraining from "./employeeTraining.model.js";
+import TimelineEvent from "./timelineEvent.model.js";
+import ClientComplaint from "./clientComplaint.model.js";
+import MarginSetting from "./marginSetting.model.js";
+import AppSetting from "./appSetting.model.js";
+import MarginHistory from "./marginHistory.model.js";
 
 // User - Property
 // NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
@@ -68,6 +83,9 @@ SaleProperty.belongsTo(Property, { foreignKey: "idProperty" });
 // Property - Images
 Property.hasMany(PropertyImage, { foreignKey: "idProperty", as: "images" });
 PropertyImage.belongsTo(Property, { foreignKey: "idProperty" });
+
+Property.hasMany(PropertyVideo, { foreignKey: "idProperty", as: "videos" });
+PropertyVideo.belongsTo(Property, { foreignKey: "idProperty" });
 
 // Property - Phones
 Property.hasMany(PropertyPhone, { foreignKey: "idProperty", as: "phones" });
@@ -96,7 +114,7 @@ Favorite.belongsTo(User, { foreignKey: "idUser" });
 
 // Property - Proposals
 Property.hasMany(Proposal, { foreignKey: "idProperty" });
-Proposal.belongsTo(Property, { foreignKey: "idProperty" });
+Proposal.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
 
 // Property - Score
 Property.hasOne(PropertyScore, { foreignKey: "idProperty", as: "scores" });
@@ -134,16 +152,16 @@ Person.belongsTo(User, { foreignKey: "idUser" });
 User.hasOne(Person, { foreignKey: "idUser" });
 
 Person.hasOne(EmployeeProfile, { foreignKey: "idPerson" });
-EmployeeProfile.belongsTo(Person, { foreignKey: "idPerson" });
+EmployeeProfile.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 
 Service.hasMany(Poste, { foreignKey: "idService" });
 Poste.belongsTo(Service, { foreignKey: "idService" });
 
 Service.hasMany(EmployeeProfile, { foreignKey: "idService" });
-EmployeeProfile.belongsTo(Service, { foreignKey: "idService" });
+EmployeeProfile.belongsTo(Service, { foreignKey: "idService", as: "service" });
 
 Poste.hasMany(EmployeeProfile, { foreignKey: "idPoste" });
-EmployeeProfile.belongsTo(Poste, { foreignKey: "idPoste" });
+EmployeeProfile.belongsTo(Poste, { foreignKey: "idPoste", as: "poste" });
 
 EmployeeProfile.belongsTo(EmployeeProfile, {
   foreignKey: "idResponsable",
@@ -155,6 +173,17 @@ EmployeeProfile.belongsTo(EmployeeProfile, {
 Person.hasOne(Client, { foreignKey: "idPerson" });
 Client.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 
+// GOAL 4 — le code commissionnaire est la référence métier (jamais un
+// idCommissionnaire interne saisi/affiché) ; association basée sur cette
+// colonne unique plutôt qu'une simple jointure manuelle côté contrôleur,
+// pour bénéficier du même mécanisme d'`include` que le reste du modèle.
+Client.belongsTo(Commissionnaire, {
+  foreignKey: "sourceCommissionnaireCode",
+  targetKey: "code",
+  as: "commissionnaireSource",
+  constraints: false,
+});
+
 Person.hasOne(Bailleur, { foreignKey: "idPerson" });
 Bailleur.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 
@@ -165,7 +194,7 @@ Property.belongsTo(Bailleur, { foreignKey: "idBailleur" });
 // BACK-G07 — une proposition envoyée à un Client réel (remplace les
 // champs clientName/clientPhone jamais activés).
 Client.hasMany(Proposal, { foreignKey: "idClient" });
-Proposal.belongsTo(Client, { foreignKey: "idClient" });
+Proposal.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 
 // BACK-G08 — Matching : 1 client ↔ plusieurs biens.
 Client.belongsToMany(Property, {
@@ -184,8 +213,8 @@ Property.belongsToMany(Client, {
 // Association directe sur le modèle de jointure lui-même — même raison que
 // pour Favorite ci-dessus : le belongsToMany seul ne permet pas
 // `Matching.findAll({ include: Property })`.
-Matching.belongsTo(Property, { foreignKey: "idProperty" });
-Matching.belongsTo(Client, { foreignKey: "idClient" });
+Matching.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
+Matching.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 
 // BACK-G09 — Commissionnaire rattaché à Person (peut ou non avoir un User,
 // CLAUDE.md §4), fiche digitale (CDC §7).
@@ -251,6 +280,13 @@ LedgerEntry.belongsTo(CashMovement, { foreignKey: "idCashMovement", as: "cashMov
 LedgerEntry.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 CashMovement.hasOne(LedgerEntry, { foreignKey: "idCashMovement", as: "ledgerEntry" });
 
+// GOAL 10 — virements entre caisses.
+CaisseTransfer.belongsTo(Caisse, { foreignKey: "idCaisseSource", as: "caisseSource" });
+CaisseTransfer.belongsTo(Caisse, { foreignKey: "idCaisseDestination", as: "caisseDestination" });
+CaisseTransfer.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+CashMovement.belongsTo(CaisseTransfer, { foreignKey: "idCaisseTransfer", as: "transfer" });
+CaisseTransfer.hasMany(CashMovement, { foreignKey: "idCaisseTransfer", as: "movements" });
+
 // BACK-G15 — Commission calculée à partir d'une transaction conclue (CDC),
 // éligible à un Payment une fois marquée DUE (même circuit que Requisition).
 Commission.belongsTo(Client, { foreignKey: "idClient", as: "client" });
@@ -262,6 +298,7 @@ Commission.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
 Commission.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
 Payment.belongsTo(Commission, { foreignKey: "idCommission", as: "commission" });
+Commission.hasOne(Payment, { foreignKey: "idCommission", as: "payment" });
 
 // BACK-G16 — module Tasks générique (Kanban). Tables de liaison explicites
 // par type (CLAUDE.md §4), jamais de relation polymorphe. Le statut d'une
@@ -302,6 +339,55 @@ Alert.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
 Reminder.belongsTo(User, { foreignKey: "idUser", as: "user" });
 Reminder.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
+// BACK-G19 — Calendrier agrégé (vue seulement ; CalendarEvent propre
+// uniquement pour un rendez-vous sans source ailleurs, CLAUDE.md §4).
+CalendarEvent.belongsTo(User, { foreignKey: "idUser", as: "owner" });
+CalendarEvent.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+// GOAL 11 — assignation multi-personnes d'un rendez-vous.
+CalendarEvent.hasMany(CalendarEventParticipant, { foreignKey: "idCalendarEvent", as: "participants" });
+CalendarEventParticipant.belongsTo(CalendarEvent, { foreignKey: "idCalendarEvent" });
+CalendarEventParticipant.belongsTo(User, { foreignKey: "idUser", as: "user" });
+
+// BACK-G22 — RH avancé (évaluations, objectifs, compétences, formations),
+// tout rattaché à EmployeeProfile (jamais à User directement, CLAUDE.md §4
+// — un employé peut ne pas avoir de compte de connexion).
+Evaluation.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
+EmployeeProfile.hasMany(Evaluation, { foreignKey: "idEmployeeProfile" });
+Evaluation.belongsTo(User, { foreignKey: "evaluatorUserId", as: "evaluator" });
+
+Objective.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
+EmployeeProfile.hasMany(Objective, { foreignKey: "idEmployeeProfile" });
+Objective.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+
+EmployeeSkill.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
+EmployeeProfile.hasMany(EmployeeSkill, { foreignKey: "idEmployeeProfile", as: "employeeSkills" });
+EmployeeSkill.belongsTo(Skill, { foreignKey: "idSkill", as: "skill" });
+Skill.hasMany(EmployeeSkill, { foreignKey: "idSkill" });
+
+EmployeeTraining.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
+EmployeeProfile.hasMany(EmployeeTraining, { foreignKey: "idEmployeeProfile", as: "employeeTrainings" });
+EmployeeTraining.belongsTo(Training, { foreignKey: "idTraining", as: "training" });
+Training.hasMany(EmployeeTraining, { foreignKey: "idTraining" });
+
+// GOAL 3 — Timeline (soft reference volontaire vers entityType/entityId,
+// voir le commentaire du modèle).
+TimelineEvent.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
+
+// GOAL 8 — plaintes client.
+Client.hasMany(ClientComplaint, { foreignKey: "idClient", as: "complaints" });
+ClientComplaint.belongsTo(Client, { foreignKey: "idClient" });
+ClientComplaint.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
+ClientComplaint.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
+
+// GOAL 9 — gestion automatique des marges.
+MarginSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
+
+// GOAL 13 — centre de configuration générique.
+AppSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
+MarginHistory.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
+MarginHistory.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
+
 const syncModels = async () => {
   try {
     await db.sync({ alter: false });
@@ -318,6 +404,7 @@ export {
   RentalProperty,
   SaleProperty,
   PropertyImage,
+  PropertyVideo,
   PropertyPhone,
   Favorite,
   Proposal,
@@ -347,6 +434,7 @@ export {
   Payment,
   CashMovement,
   LedgerEntry,
+  CaisseTransfer,
   Commission,
   Task,
   TaskAssignee,
@@ -358,5 +446,18 @@ export {
   Alert,
   Reminder,
   OutboxEvent,
+  CalendarEvent,
+  CalendarEventParticipant,
+  Evaluation,
+  Objective,
+  Skill,
+  EmployeeSkill,
+  Training,
+  EmployeeTraining,
+  TimelineEvent,
+  ClientComplaint,
+  MarginSetting,
+  AppSetting,
+  MarginHistory,
   syncModels,
 };

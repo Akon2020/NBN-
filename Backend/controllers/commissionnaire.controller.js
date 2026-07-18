@@ -3,6 +3,7 @@ import {
   CommissionnaireIncident,
   Person,
   User,
+  Client,
 } from "../models/index.model.js";
 import {
   applyEvolutionGrid,
@@ -12,6 +13,8 @@ import {
 import { revokeAllUserSessions } from "../utils/session.utils.js";
 import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
 import { eventBus } from "../shared/eventBus.js";
+import { recordTimelineEvent } from "../shared/timeline.js";
+import { getSettingValue } from "../shared/appSettings.js";
 
 // BACK-G17 — n'émet l'alerte que sur la transition réelle vers
 // OBSERVATION (jamais à chaque recalcul de score qui laisse le statut
@@ -91,6 +94,31 @@ export const getSingleCommissionnaire = async (req, res, next) => {
   }
 };
 
+// GOAL 4 — renforce le lien Client↔Commissionnaire : la fiche
+// commissionnaire doit pouvoir montrer les clients qu'il a effectivement
+// apportés (Client.sourceCommissionnaireCode === ce code), pas seulement
+// l'inverse (déjà visible côté fiche client).
+export const getCommissionnaireClients = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const commissionnaire = await Commissionnaire.findByPk(id);
+    if (!commissionnaire) {
+      return res.status(404).json({ message: "Commissionnaire non trouvé" });
+    }
+
+    const clients = await Client.findAll({
+      where: { sourceCommissionnaireCode: commissionnaire.code, archivedAt: null },
+      include: [{ model: Person, as: "person" }],
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.status(200).json({ nombre: clients.length, data: clients });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
 export const createCommissionnaire = async (req, res, next) => {
   try {
     const { idPerson, fullName, phone, email, code, zone, dateDebutActivite } = req.body;
@@ -124,6 +152,15 @@ export const createCommissionnaire = async (req, res, next) => {
 
     const created = await Commissionnaire.findByPk(commissionnaire.idCommissionnaire, {
       include: [{ model: Person, as: "person" }],
+    });
+
+    await recordTimelineEvent({
+      entityType: "COMMISSIONNAIRE",
+      entityId: commissionnaire.idCommissionnaire,
+      eventType: "CREATED",
+      title: "Commissionnaire créé",
+      description: `${person.fullName} — ${code}`,
+      actorUserId: req.user.idUser,
     });
 
     return res.status(201).json({
@@ -163,7 +200,18 @@ export const updateCommissionnaire = async (req, res, next) => {
       statutSuspensif.includes(donneesAMettreAJour.statut) &&
       !statutSuspensif.includes(commissionnaire.statut);
 
+    const previousStatut = commissionnaire.statut;
     await commissionnaire.update(donneesAMettreAJour);
+
+    if (donneesAMettreAJour.statut && donneesAMettreAJour.statut !== previousStatut) {
+      await recordTimelineEvent({
+        entityType: "COMMISSIONNAIRE",
+        entityId: commissionnaire.idCommissionnaire,
+        eventType: "STATUT_CHANGED",
+        title: `Statut : ${previousStatut} → ${donneesAMettreAJour.statut}`,
+        actorUserId: req.user.idUser,
+      });
+    }
 
     // BACK-G11 — suspension/exclusion d'un commissionnaire révoque
     // immédiatement toute session active, exactement comme pour un User
@@ -264,13 +312,30 @@ export const createIncident = async (req, res, next) => {
       createdBy: req.user.idUser,
     });
 
-    commissionnaire.scoreDiscipline = clampSubScore(
-      Number(commissionnaire.scoreDiscipline) - Number(impactDiscipline ?? 0)
-    );
-    const previousStatut = commissionnaire.statut;
-    applyEvolutionGrid(commissionnaire);
-    await commissionnaire.save();
-    emitScoreLowIfNewlyObserved(commissionnaire, previousStatut);
+    // GOAL 13 — l'incident reste toujours enregistré (traçabilité), mais
+    // son impact automatique sur le score/la grille d'évolution peut être
+    // désactivé (ex. période de gestion manuelle assumée par un
+    // superviseur) sans perdre l'historique des incidents eux-mêmes.
+    const scoringEnabled = await getSettingValue("commissionnaire.scoringEnabled", true);
+    if (scoringEnabled) {
+      commissionnaire.scoreDiscipline = clampSubScore(
+        Number(commissionnaire.scoreDiscipline) - Number(impactDiscipline ?? 0)
+      );
+      const previousStatut = commissionnaire.statut;
+      applyEvolutionGrid(commissionnaire);
+      await commissionnaire.save();
+      emitScoreLowIfNewlyObserved(commissionnaire, previousStatut);
+    }
+
+    await recordTimelineEvent({
+      entityType: "COMMISSIONNAIRE",
+      entityId: commissionnaire.idCommissionnaire,
+      eventType: "INCIDENT",
+      title: `Incident : ${type}`,
+      description: description || null,
+      metadata: { gravite: gravite || null, impactDiscipline: impactDiscipline ?? 0 },
+      actorUserId: req.user.idUser,
+    });
 
     return res.status(201).json({
       message: "Incident enregistré",

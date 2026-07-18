@@ -4,30 +4,42 @@ import { useEffect, useState, use } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Loader2, Lock, Plus } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ArrowLeft, ArrowLeftRight, Download, FileText, Loader2, Lock, Plus, Sheet } from "lucide-react"
 import Link from "next/link"
-import { getSingleCaisse, updateCaisse } from "@/actions/treasury"
+import { getAllCaisses, getSingleCaisse, updateCaisse } from "@/actions/treasury"
 import { getLedgerEntries } from "@/actions/payments"
+import { downloadCaisseLedgerExport, downloadCaisseStatement } from "@/actions/reports"
 import { RecordPaymentModal } from "@/components/treasury-modals/record-payment-modal"
+import { TransferCaisseModal } from "@/components/treasury-modals/transfer-caisse-modal"
 import { CAISSE_STATUT_LABELS, type Caisse, type LedgerEntry } from "@/lib/types"
 import { toast } from "sonner"
 
 export default function CaisseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [caisse, setCaisse] = useState<Caisse | null>(null)
+  const [allCaisses, setAllCaisses] = useState<Caisse[]>([])
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
 
   const reload = async () => {
     try {
-      const [caisseData, ledgerData] = await Promise.all([
+      const [caisseData, ledgerData, caissesData] = await Promise.all([
         getSingleCaisse(Number(id)),
         getLedgerEntries(),
+        getAllCaisses(),
       ])
       setCaisse(caisseData)
       setLedger(ledgerData.filter((entry) => entry.idCaisse === Number(id)))
+      setAllCaisses(caissesData)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur inconnue")
     }
@@ -89,11 +101,37 @@ export default function CaisseDetailPage({ params }: { params: Promise<{ id: str
           </Button>
         </Link>
         <div className="flex flex-wrap gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Exporter
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => downloadCaisseStatement(caisse.idCaisse)}>
+                <FileText className="h-4 w-4 mr-2" />
+                État de caisse (PDF)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => downloadCaisseLedgerExport(caisse.idCaisse, "csv")}>
+                <Sheet className="h-4 w-4 mr-2" />
+                Ledger (CSV)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => downloadCaisseLedgerExport(caisse.idCaisse, "xlsx")}>
+                <Sheet className="h-4 w-4 mr-2" />
+                Ledger (Excel)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {caisse.statut === "OUVERTE" && (
             <>
               <Button size="sm" onClick={() => setShowPaymentModal(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Enregistrer un paiement
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowTransferModal(true)}>
+                <ArrowLeftRight className="h-4 w-4 mr-2" />
+                Virement
               </Button>
               <Button variant="outline" size="sm" onClick={handleClose} disabled={isClosing}>
                 <Lock className="h-4 w-4 mr-2" />
@@ -203,6 +241,13 @@ export default function CaisseDetailPage({ params }: { params: Promise<{ id: str
         onOpenChange={setShowPaymentModal}
         caisse={caisse}
         onRecorded={reload}
+      />
+      <TransferCaisseModal
+        open={showTransferModal}
+        onOpenChange={setShowTransferModal}
+        caisses={allCaisses}
+        sourceCaisseId={caisse.idCaisse}
+        onTransferred={reload}
       />
     </div>
   )

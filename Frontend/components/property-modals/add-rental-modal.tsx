@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, X } from "lucide-react"
 import { createProperty } from "@/actions/properties"
-import type { Property, PropertyType, RentalUnit } from "@/lib/types"
+import { RENTAL_UNIT_PRICE_SUFFIX, type Property, type PropertyType, type RentalUnit } from "@/lib/types"
 import { toast } from "sonner"
 
 interface AddRentalModalProps {
@@ -222,7 +222,9 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="price">Prix (USD)</Label>
+              <Label htmlFor="price">
+                Prix (USD){formData.unit ? ` ${RENTAL_UNIT_PRICE_SUFFIX[formData.unit]}` : ""}
+              </Label>
               <Input
                 id="price"
                 type="number"
@@ -256,9 +258,9 @@ export function AddRentalModal({ open, onOpenChange, onAdd }: AddRentalModalProp
                   <SelectValue placeholder="Unité" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DAY">Jours</SelectItem>
-                  <SelectItem value="MONTH">Mois</SelectItem>
-                  <SelectItem value="YEAR">Années</SelectItem>
+                  <SelectItem value="DAY">Jours (courte durée)</SelectItem>
+                  <SelectItem value="MONTH">Mois (longue durée)</SelectItem>
+                  <SelectItem value="YEAR">Années (longue durée)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

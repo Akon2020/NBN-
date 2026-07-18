@@ -115,7 +115,7 @@ afterAll(async () => {
     await Caisse.destroy({ where: { idCaisse: createdCaisseIds } });
   }
   if (createdClientIds.length) {
-    await Client.destroy({ where: { idClient: createdClientIds } });
+    await Client.destroy({ where: { idClient: createdClientIds }, force: true });
   }
   if (createdCommissionnaireIds.length) {
     await Commissionnaire.destroy({ where: { idCommissionnaire: createdCommissionnaireIds } });

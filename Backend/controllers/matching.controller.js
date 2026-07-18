@@ -5,7 +5,7 @@ export const getMatchingsByClient = async (req, res, next) => {
     const { idClient } = req.params;
     const matchings = await Matching.findAll({
       where: { idClient },
-      include: [{ model: Property }],
+      include: [{ model: Property, as: "property" }],
     });
     return res.status(200).json({ nombre: matchings.length, data: matchings });
   } catch (error) {
@@ -19,7 +19,7 @@ export const getMatchingsByProperty = async (req, res, next) => {
     const { idProperty } = req.params;
     const matchings = await Matching.findAll({
       where: { idProperty },
-      include: [{ model: Client, include: [{ model: Person, as: "person" }] }],
+      include: [{ model: Client, as: "client", include: [{ model: Person, as: "person" }] }],
     });
     return res.status(200).json({ nombre: matchings.length, data: matchings });
   } catch (error) {

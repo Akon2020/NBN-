@@ -13,6 +13,7 @@ export const serializeProperty = async (property, user) => {
   const canReadMargin = await hasPermission(user, "property:margin:read");
   if (!canReadMargin) {
     delete plain.margin;
+    delete plain.marginOverridePercentage;
   }
 
   return plain;

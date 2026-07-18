@@ -27,6 +27,25 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
+// GOAL 11 — annuaire minimal (nom/rôle uniquement, jamais email/statut/
+// avatar) pour les sélecteurs d'assignation (participants de calendrier,
+// etc.) : n'importe quel utilisateur authentifié peut voir les noms de ses
+// collègues, contrairement à `getAllUsers` (données complètes, réservé à
+// `users:read`).
+export const getUsersDirectory = async (req, res, next) => {
+  try {
+    const users = await User.findAll({
+      where: { status: "ACTIVE" },
+      attributes: ["idUser", "fullName", "role"],
+      order: [["fullName", "ASC"]],
+    });
+    return res.status(200).json({ nombre: users.length, data: users });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
 export const getSingleUser = async (req, res, next) => {
   try {
     const { id } = req.params;

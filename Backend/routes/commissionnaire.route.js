@@ -4,6 +4,7 @@ import {
   createIncident,
   deleteCommissionnaire,
   getAllCommissionnaires,
+  getCommissionnaireClients,
   getMyCommissionnaireProfile,
   getSingleCommissionnaire,
   updateCommissionnaire,
@@ -73,6 +74,31 @@ commissionnaireRouter.get(
   authMiddlware,
   requirePermission("commissionnaires:read"),
   getSingleCommissionnaire
+);
+
+/**
+ * @swagger
+ * /api/commissionnaires/{id}/clients:
+ *   get:
+ *     summary: Liste les clients apportés par ce commissionnaire (GOAL 4 — Client.sourceCommissionnaireCode)
+ *     tags: [Commissionnaires]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Liste récupérée avec succès
+ *       404:
+ *         description: Commissionnaire non trouvé
+ */
+commissionnaireRouter.get(
+  "/:id/clients",
+  authMiddlware,
+  requirePermission("clients:read"),
+  getCommissionnaireClients
 );
 
 /**

@@ -25,9 +25,19 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditRentalModal } from "@/components/property-modals/edit-rental-modal"
 import { DeleteRentalModal } from "@/components/property-modals/delete-rental-modal"
+import { PropertyStatutControl } from "@/components/property-statut-control"
+import { PropertyMarginControl } from "@/components/property-margin-control"
+import { PropertyMediaManager } from "@/components/property-media-manager"
+import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
-import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_LABELS, type Property } from "@/lib/types"
+import {
+  PROPERTY_TYPE_LABELS,
+  RENTAL_UNIT_LABELS,
+  RENTAL_UNIT_PRICE_SUFFIX,
+  type Property,
+} from "@/lib/types"
+import { getImageUrl } from "@/lib/imageUrl"
 import { toast } from "sonner"
 
 export default function RentalDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -107,7 +117,10 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
     const guarantee = property.rentalDetails
       ? `${property.rentalDetails.guarantee ?? 0} ${RENTAL_UNIT_LABELS[property.rentalDetails.unit].toLowerCase()}`
       : "N/A"
-    const message = `Bonjour! Je vous propose ce bien à louer:\n\n${PROPERTY_TYPE_LABELS[property.propertyType]}\nAdresse: ${property.avenue}, ${property.quartier}, Bukavu\n${property.bedrooms ?? 0} chambres, ${property.livingRooms ?? 0} salons, ${property.toilets ?? 0} douches, ${property.kitchens ?? 0} cuisines\nPrix: $${property.price}/mois\nGarantie: ${guarantee}\n\nPour plus d'informations, contactez-nous!`
+    const priceSuffix = property.rentalDetails
+      ? RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]
+      : ""
+    const message = `Bonjour! Je vous propose ce bien à louer:\n\n${PROPERTY_TYPE_LABELS[property.propertyType]}\nAdresse: ${property.avenue}, ${property.quartier}, Bukavu\n${property.bedrooms ?? 0} chambres, ${property.livingRooms ?? 0} salons, ${property.toilets ?? 0} douches, ${property.kitchens ?? 0} cuisines\nPrix: $${property.price}${priceSuffix}\nGarantie: ${guarantee}\n\nPour plus d'informations, contactez-nous!`
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, "_blank")
@@ -156,7 +169,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
             <div className="relative aspect-video bg-muted">
               {images.length > 0 ? (
                 <Image
-                  src={images[currentImageIndex]?.image || "/placeholder.svg"}
+                  src={getImageUrl(images[currentImageIndex]?.image)}
                   alt={`Image ${currentImageIndex + 1} du bien`}
                   fill
                   className="object-cover"
@@ -178,7 +191,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
                     }`}
                   >
                     <Image
-                      src={image.image || "/placeholder.svg"}
+                      src={getImageUrl(image.image)}
                       alt={`Miniature ${index + 1}`}
                       fill
                       className="object-cover"
@@ -203,7 +216,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
                   <Badge className="bg-primary text-primary-foreground">
                     {PROPERTY_TYPE_LABELS[property.propertyType]}
                   </Badge>
-                  <Badge variant="secondary">{property.statut}</Badge>
+                  <PropertyStatutControl property={property} onChanged={setProperty} />
                 </div>
               </div>
             </CardHeader>
@@ -278,7 +291,11 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
             <CardContent className="space-y-4">
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-primary">${property.price}</span>
-                <span className="text-muted-foreground">/mois</span>
+                <span className="text-muted-foreground">
+                  {property.rentalDetails
+                    ? RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]
+                    : ""}
+                </span>
               </div>
               {property.rentalDetails && (
                 <div className="p-3 rounded-lg bg-muted">
@@ -293,6 +310,8 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
               )}
             </CardContent>
           </Card>
+
+          <PropertyMarginControl property={property} onChanged={setProperty} />
 
           <Card className="border-border">
             <CardHeader>
@@ -333,6 +352,10 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
           </Card>
         </div>
       </div>
+
+      <PropertyMediaManager property={property} onChanged={setProperty} />
+
+      <EntityTimeline key={property.updatedAt} entityType="PROPERTY" entityId={property.idProperty} />
 
       <EditRentalModal open={showEditModal} onOpenChange={setShowEditModal} property={property} onEdit={handleEdit} />
       <DeleteRentalModal

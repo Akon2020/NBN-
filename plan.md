@@ -365,6 +365,16 @@ Chaque milestone ci-dessous liste explicitement ce que chaque workstream peut fa
 
 ---
 
+## Addendum — ADMIN-G00 : Tableau de bord (page d'accueil du dashboard)
+
+Goal découvert manquant lors de la finalisation du système (non nommé explicitement dans la version initiale de ce plan) : la page d'accueil du dashboard Admin (`/dashboard`) affichait des chiffres et une "activité récente" **entièrement inventés en dur** depuis la création du projet — jamais branchés sur une donnée réelle, malgré tous les modules métier sous-jacents (biens, clients, missions, réquisitions, caisses, commissions, utilisateurs) déjà livrés et fonctionnels.
+
+- **Tâches** : `GET /api/dashboard/stats` (Backend) agrégeant des compteurs réels par domaine, chaque bloc n'étant renvoyé que si l'utilisateur a la permission de lecture correspondante (jamais de logique d'autorisation dupliquée côté Frontend, `CLAUDE.md` §2.2) ; `recentActivity` réelle fusionnée à partir des créations récentes de Property/Client/Mission/Requisition. Frontend : `dashboard/page.tsx` réécrit pour consommer cet endpoint, cartes masquées si le champ correspondant est absent de la réponse (jamais une carte affichant "0" par défaut pour un domaine non autorisé).
+- **Dépendances** : tous les modules métier déjà livrés (M2-M6).
+- **Statut** : ✅ livré, voir `walkthrough.md`.
+
+---
+
 ## Workstreams transversaux — récapitulatif
 
 | Workstream | Contenu principal | Répartition |

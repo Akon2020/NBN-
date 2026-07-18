@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import axios from "axios";
-import { Caisse, Currency, ExchangeRate } from "@/lib/types";
+import { Caisse, CaisseTransfer, Currency, ExchangeRate } from "@/lib/types";
 
 const handleError = (error: unknown, fallback: string): never => {
   if (axios.isAxiosError(error)) {
@@ -48,6 +48,34 @@ export const updateCaisse = async (
     return res.data.data;
   } catch (error) {
     return handleError(error, "Erreur lors de la mise à jour de la caisse");
+  }
+};
+
+// GOAL 10 — virement entre deux caisses, même circuit financier qu'un
+// paiement (transaction unique côté Backend, solde jamais négatif).
+export const createCaisseTransfer = async (payload: {
+  idCaisseSource: number;
+  idCaisseDestination: number;
+  currencyCode: string;
+  amount: number;
+  description?: string;
+}): Promise<CaisseTransfer> => {
+  try {
+    const res = await api.post<{ data: CaisseTransfer }>("/api/caisses/transfers", payload);
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors du virement entre caisses");
+  }
+};
+
+export const getCaisseTransfers = async (idCaisse?: number): Promise<CaisseTransfer[]> => {
+  try {
+    const res = await api.get<{ data: CaisseTransfer[] }>("/api/caisses/transfers", {
+      params: idCaisse ? { idCaisse } : undefined,
+    });
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors de la récupération des virements");
   }
 };
 

@@ -50,7 +50,6 @@ export function EditSaleModal({
   const [toilets, setToilets] = useState("0");
   const [kitchens, setKitchens] = useState("0");
   const [price, setPrice] = useState("");
-  const [margin, setMargin] = useState("");
   const [description, setDescription] = useState("");
 
   useEffect(() => {
@@ -65,7 +64,6 @@ export function EditSaleModal({
       setToilets((property.toilets ?? 0).toString());
       setKitchens((property.kitchens ?? 0).toString());
       setPrice(property.price.toString());
-      setMargin((property.margin ?? 0).toString());
       setDescription(property.description || "");
     }
   }, [property]);
@@ -87,7 +85,6 @@ export function EditSaleModal({
         toilets: isLand ? 0 : Number.parseInt(toilets),
         kitchens: isLand ? 0 : Number.parseInt(kitchens),
         price: Number.parseFloat(price),
-        margin: Number.parseFloat(margin),
         description,
       });
       onEdit(updated);
@@ -235,32 +232,19 @@ export function EditSaleModal({
             </>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="edit-sale-price">Prix de vente ($) *</Label>
-              <Input
-                id="edit-sale-price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-sale-margin">Marge ($) *</Label>
-              <Input
-                id="edit-sale-margin"
-                type="number"
-                min="0"
-                step="0.01"
-                value={margin}
-                onChange={(e) => setMargin(e.target.value)}
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-sale-price">Prix de vente ($) *</Label>
+            <Input
+              id="edit-sale-price"
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+            />
+            {/* GOAL 9 — la marge est calculée automatiquement (pourcentage
+                du type ou override du bien), plus de saisie manuelle ici. */}
           </div>
 
           <div className="space-y-2">
@@ -274,7 +258,7 @@ export function EditSaleModal({
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="outline"

@@ -19,6 +19,13 @@ const PropertyImage = db.define("propertyImages", {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  // GOAL 2 — réorganisation manuelle de la galerie, jamais déduite de
+  // l'ordre d'upload (qui n'est pas toujours l'ordre voulu à l'affichage).
+  order: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
 });
 
 export default PropertyImage;

@@ -1,4 +1,6 @@
 import { Mission, Commissionnaire, Person, Property, Client } from "../models/index.model.js";
+import { createArchiveHandlers } from "../utils/archivable.js";
+import { recordTimelineEvent } from "../shared/timeline.js";
 
 const MISSION_INCLUDES = [
   { model: Commissionnaire, as: "commissionnaire", include: [{ model: Person, as: "person" }] },
@@ -6,9 +8,13 @@ const MISSION_INCLUDES = [
   { model: Client },
 ];
 
+// BACK-G21 — missions archivées désencombrées des listes actives par
+// défaut, réintégrables via `?includeArchived=true`.
 export const getAllMissions = async (req, res, next) => {
   try {
+    const where = req.query.includeArchived === "true" ? {} : { archivedAt: null };
     const missions = await Mission.findAll({
+      where,
       include: MISSION_INCLUDES,
       order: [["createdAt", "DESC"]],
     });
@@ -91,6 +97,24 @@ const transitionMission = async (req, res, next, { statut, requireMotif }) => {
     });
     await mission.reload({ include: MISSION_INCLUDES });
 
+    const missionEvent = {
+      eventType: "MISSION",
+      title: `Mission ${mission.type} — ${statut}`,
+      description: requireMotif ? motifRejet : null,
+      actorUserId: req.user.idUser,
+    };
+    if (mission.idProperty) {
+      await recordTimelineEvent({ entityType: "PROPERTY", entityId: mission.idProperty, ...missionEvent });
+    }
+    if (mission.idClient) {
+      await recordTimelineEvent({ entityType: "CLIENT", entityId: mission.idClient, ...missionEvent });
+    }
+    await recordTimelineEvent({
+      entityType: "COMMISSIONNAIRE",
+      entityId: mission.idCommissionnaire,
+      ...missionEvent,
+    });
+
     return res.status(200).json({ message: "Mission mise à jour", data: mission });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
@@ -107,3 +131,9 @@ export const rejectMission = (req, res, next) =>
 
 export const requestMissionCorrection = (req, res, next) =>
   transitionMission(req, res, next, { statut: "CORRECTION_DEMANDEE", requireMotif: true });
+
+// BACK-G21 — archivage métier, orthogonal au `statut` de la mission. Aucun
+// endpoint de suppression n'existe pour les missions (historique terrain,
+// CDC §7) — seul l'archivage s'applique ici, pas de soft delete.
+export const { archiveResource: archiveMission, unarchiveResource: unarchiveMission } =
+  createArchiveHandlers(Mission, "idMission", "Mission non trouvée");

@@ -58,6 +58,12 @@
         {
           "locationAlwaysAndWhenInUsePermission": "NBN Express Plus utilise votre position pour géolocaliser les biens collectés sur le terrain."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FC963C"
+        }
       ]
     ],
     "experiments": {

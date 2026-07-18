@@ -18,9 +18,13 @@ import {
 } from "lucide-react";
 import {
   LAND_PROPERTY_TYPES,
+  PROPERTY_STATUT_BADGE_CLASS,
+  PROPERTY_STATUT_LABELS,
   PROPERTY_TYPE_LABELS,
   type Property,
 } from "@/lib/types";
+import { AddToCartButton } from "@/components/add-to-cart-button";
+import { getImageUrl } from "@/lib/imageUrl";
 import { getAllProperties } from "@/actions/properties";
 import { AddSaleModal } from "@/components/property-modals/add-sale-modal";
 import { EditSaleModal } from "@/components/property-modals/edit-sale-modal";
@@ -120,7 +124,7 @@ export default function SalesPage() {
               <Link href={`/dashboard/sales/${property.idProperty}`}>
                 <div className="relative aspect-video overflow-hidden">
                   <Image
-                    src={property.images?.[0]?.image || "/placeholder.svg"}
+                    src={getImageUrl(property.images?.[0]?.image)}
                     alt={`${PROPERTY_TYPE_LABELS[property.propertyType]} à ${property.quartier || ""}`}
                     fill
                     className="object-cover transition-transform group-hover:scale-105"
@@ -128,6 +132,12 @@ export default function SalesPage() {
                   <Badge className="absolute top-2 right-2 bg-secondary text-secondary-foreground">
                     {PROPERTY_TYPE_LABELS[property.propertyType]}
                   </Badge>
+                  <Badge className={`absolute top-2 left-2 ${PROPERTY_STATUT_BADGE_CLASS[property.statut]}`}>
+                    {PROPERTY_STATUT_LABELS[property.statut]}
+                  </Badge>
+                  <div className="absolute bottom-2 right-2">
+                    <AddToCartButton property={property} />
+                  </div>
                 </div>
               </Link>
               <CardContent className="p-4 space-y-3">

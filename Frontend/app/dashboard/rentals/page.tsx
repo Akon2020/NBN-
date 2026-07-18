@@ -15,7 +15,16 @@ import {
   Eye,
   Loader2,
 } from "lucide-react";
-import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_LABELS, type Property } from "@/lib/types";
+import {
+  PROPERTY_STATUT_BADGE_CLASS,
+  PROPERTY_STATUT_LABELS,
+  PROPERTY_TYPE_LABELS,
+  RENTAL_UNIT_LABELS,
+  RENTAL_UNIT_PRICE_SUFFIX,
+  type Property,
+} from "@/lib/types";
+import { AddToCartButton } from "@/components/add-to-cart-button";
+import { getImageUrl } from "@/lib/imageUrl";
 import { getAllProperties } from "@/actions/properties";
 import { AddRentalModal } from "@/components/property-modals/add-rental-modal";
 import { EditRentalModal } from "@/components/property-modals/edit-rental-modal";
@@ -113,7 +122,7 @@ export default function RentalsPage() {
               <Link href={`/dashboard/rentals/${property.idProperty}`}>
                 <div className="relative aspect-video overflow-hidden">
                   <Image
-                    src={property.images?.[0]?.image || "/placeholder.svg"}
+                    src={getImageUrl(property.images?.[0]?.image)}
                     alt={`${PROPERTY_TYPE_LABELS[property.propertyType]} à ${property.quartier || ""}`}
                     fill
                     className="object-cover transition-transform group-hover:scale-105"
@@ -121,6 +130,12 @@ export default function RentalsPage() {
                   <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
                     {PROPERTY_TYPE_LABELS[property.propertyType]}
                   </Badge>
+                  <Badge className={`absolute top-2 left-2 ${PROPERTY_STATUT_BADGE_CLASS[property.statut]}`}>
+                    {PROPERTY_STATUT_LABELS[property.statut]}
+                  </Badge>
+                  <div className="absolute bottom-2 right-2">
+                    <AddToCartButton property={property} />
+                  </div>
                 </div>
               </Link>
               <CardContent className="p-4 space-y-3">
@@ -153,6 +168,11 @@ export default function RentalsPage() {
                   <div>
                     <div className="text-2xl font-bold text-primary">
                       ${property.price}
+                      {property.rentalDetails && (
+                        <span className="text-sm font-normal text-muted-foreground">
+                          {RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]}
+                        </span>
+                      )}
                     </div>
                     {property.rentalDetails && (
                       <div className="text-xs text-muted-foreground">

@@ -71,7 +71,7 @@ afterAll(async () => {
     await Task.destroy({ where: { idTask: createdTaskIds } });
   }
   if (createdPropertyIds.length) {
-    await Property.destroy({ where: { idProperty: createdPropertyIds } });
+    await Property.destroy({ where: { idProperty: createdPropertyIds }, force: true });
   }
   if (createdUserIds.length) {
     await User.destroy({ where: { idUser: createdUserIds } });

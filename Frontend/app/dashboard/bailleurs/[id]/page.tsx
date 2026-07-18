@@ -19,6 +19,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditBailleurModal } from "@/components/bailleur-modals/edit-bailleur-modal"
 import { DeleteBailleurModal } from "@/components/bailleur-modals/delete-bailleur-modal"
+import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleBailleur } from "@/actions/bailleurs"
 import {
   BAILLEUR_STATUT_LABELS,
@@ -104,7 +105,10 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-2xl">{bailleur.person?.fullName}</CardTitle>
-                  <div className="flex items-center gap-2 mt-2">
+                  {bailleur.dossierNumber && (
+                    <p className="text-xs font-mono text-muted-foreground mt-1">{bailleur.dossierNumber}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge className="bg-primary text-primary-foreground">
                       {BAILLEUR_TYPE_LABELS[bailleur.type]}
                     </Badge>
@@ -216,6 +220,8 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
           </Card>
         </div>
       </div>
+
+      <EntityTimeline key={bailleur.updatedAt} entityType="BAILLEUR" entityId={bailleur.idBailleur} />
 
       <EditBailleurModal
         open={showEditModal}

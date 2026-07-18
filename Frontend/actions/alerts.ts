@@ -1,0 +1,28 @@
+import api from "@/lib/axios";
+import axios from "axios";
+import { Alert, AlertStatut } from "@/lib/types";
+
+const handleError = (error: unknown, fallback: string): never => {
+  if (axios.isAxiosError(error)) {
+    throw new Error(error.response?.data?.message || fallback);
+  }
+  throw new Error("Erreur inconnue");
+};
+
+export const getAllAlerts = async (): Promise<Alert[]> => {
+  try {
+    const res = await api.get<{ nombre: number; data: Alert[] }>("/api/alerts");
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors de la récupération des alertes");
+  }
+};
+
+export const transitionAlertStatus = async (id: number, statut: AlertStatut): Promise<Alert> => {
+  try {
+    const res = await api.patch<{ data: Alert }>(`/api/alerts/${id}/statut`, { statut });
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors du changement de statut de l'alerte");
+  }
+};

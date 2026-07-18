@@ -8,7 +8,30 @@ export type PropertyType =
   | "TERRAIN_PLAT"
   | "TERRAIN_PENTE"
 
-export type PropertyStatut = "DISPONIBLE" | "RESERVE" | "LOUE_VENDU"
+// GOAL 1 — cycle de vie du bien. VENDU n'est atteignable qu'en category=SALE
+// (validé côté Backend, jamais côté client).
+export type PropertyStatut =
+  | "DISPONIBLE"
+  | "OCCUPE_CLIENT_NBN"
+  | "OCCUPE_CLIENT_EXTERNE"
+  | "EN_MAINTENANCE"
+  | "VENDU"
+
+export const PROPERTY_STATUT_LABELS: Record<PropertyStatut, string> = {
+  DISPONIBLE: "Disponible",
+  OCCUPE_CLIENT_NBN: "Occupé (client NBN)",
+  OCCUPE_CLIENT_EXTERNE: "Occupé (client externe)",
+  EN_MAINTENANCE: "En maintenance",
+  VENDU: "Vendu",
+}
+
+export const PROPERTY_STATUT_BADGE_CLASS: Record<PropertyStatut, string> = {
+  DISPONIBLE: "bg-success-500 text-white",
+  OCCUPE_CLIENT_NBN: "bg-primary-900 text-white",
+  OCCUPE_CLIENT_EXTERNE: "bg-secondary-600 text-white",
+  EN_MAINTENANCE: "bg-warning-500 text-neutral-900",
+  VENDU: "bg-neutral-600 text-white",
+}
 
 export type RentalUnit = "DAY" | "MONTH" | "YEAR"
 
@@ -19,6 +42,46 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   CONSTRUCTION_SEMI_DURABLE: "Construction semi-durable",
   TERRAIN_PLAT: "Terrain plat",
   TERRAIN_PENTE: "Terrain en pente",
+}
+
+// GOAL 9 — gestion automatique des marges. `MarginSetting` n'est visible
+// que via /api/margin-settings, déjà filtré côté Backend par
+// property:margin:read (jamais présumer sa présence côté Frontend).
+// GOAL 12 — une location facturée à la journée (RentalProperty.unit=DAY)
+// est une courte durée ; tout le reste (MONTH/YEAR, ou une vente) reste
+// longue durée. Chaque combinaison type de bien × type de séjour a son
+// propre pourcentage configurable indépendamment.
+export type StayType = "LONGUE_DUREE" | "COURT_SEJOUR"
+
+export const STAY_TYPE_LABELS: Record<StayType, string> = {
+  LONGUE_DUREE: "Longue durée",
+  COURT_SEJOUR: "Courte durée",
+}
+
+export interface MarginSetting {
+  idMarginSetting: number
+  propertyType: PropertyType
+  stayType: StayType
+  defaultPercentage: number
+  updatedBy?: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type MarginHistoryScope = "GLOBAL" | "PROPERTY"
+
+export interface MarginHistoryEntry {
+  idMarginHistory: number
+  scope: MarginHistoryScope
+  propertyType?: string | null
+  stayType?: StayType | null
+  idProperty?: number | null
+  previousPercentage?: number | null
+  newPercentage?: number | null
+  actorUserId: number
+  property?: { idProperty: number; quartier?: string | null; avenue?: string | null } | null
+  actor?: { idUser: number; fullName: string } | null
+  createdAt: string
 }
 
 export const RENTAL_PROPERTY_TYPES: PropertyType[] = ["APPARTEMENT", "MAISON"]
@@ -36,6 +99,15 @@ export const RENTAL_UNIT_LABELS: Record<RentalUnit, string> = {
   YEAR: "Ans",
 }
 
+// GOAL 12 — `price` est le tarif dans l'unité du bien (jamais implicitement
+// mensuel) : ce suffixe reflète toujours `unit`, plus jamais "/mois" codé
+// en dur indépendamment de sa valeur réelle.
+export const RENTAL_UNIT_PRICE_SUFFIX: Record<RentalUnit, string> = {
+  DAY: "/jour",
+  MONTH: "/mois",
+  YEAR: "/an",
+}
+
 export interface RentalDetails {
   idProperty: number
   guarantee: number | null
@@ -50,6 +122,16 @@ export interface PropertyImageEntry {
   idPropertyImage: number
   idProperty: number
   image: string
+  order: number
+}
+
+// GOAL 2 — vidéos de bien, jamais mélangées avec PropertyImageEntry (table
+// dédiée côté Backend, contraintes de format/taille différentes).
+export interface PropertyVideoEntry {
+  idPropertyVideo: number
+  idProperty: number
+  video: string
+  order: number
 }
 
 export interface PropertyPhoneEntry {
@@ -75,7 +157,12 @@ export interface Property {
   toilets?: number | null
   kitchens?: number | null
   price: number
+  // GOAL 9 — `margin` est désormais dérivé (jamais saisi directement) :
+  // price * pourcentage effectif (override du bien ou défaut du type).
   margin?: number
+  // Pourcentage propre à ce bien, prioritaire sur le défaut de son type.
+  // `null`/absent = aucun override. Même filtrage field-level que `margin`.
+  marginOverridePercentage?: number | null
   statut: PropertyStatut
   codeCommissionnaire?: string | null
   informateur?: string | null
@@ -88,6 +175,7 @@ export interface Property {
   rentalDetails?: RentalDetails
   saleDetails?: SaleDetails
   images?: PropertyImageEntry[]
+  videos?: PropertyVideoEntry[]
   phones?: PropertyPhoneEntry[]
   scores?: unknown
   createdAt: string
@@ -106,8 +194,6 @@ export interface PropertyPayload {
   toilets?: number
   kitchens?: number
   price?: number
-  margin?: number
-  statut?: PropertyStatut
   description?: string
   guarantee?: number
   unit?: RentalUnit
@@ -182,11 +268,21 @@ export const CLIENT_SCORE_LABELS: Record<ClientScore, string> = {
 
 export interface Client {
   idClient: number
+  // GOAL 6 — référence lisible/recherchable (ex. "CLI-2026-000042"),
+  // générée côté Backend à la création, jamais saisie manuellement.
+  dossierNumber?: string | null
   idPerson: number
   type: ClientType
   sousType?: ClientSousType | null
   source?: ClientSource | null
   sourceCommissionnaireCode?: string | null
+  // GOAL 4 — résolu côté Backend via l'association sur le code unique
+  // (jamais reconstruit à la main côté Frontend à partir du code seul).
+  commissionnaireSource?: {
+    idCommissionnaire: number
+    code: string
+    person?: { fullName: string }
+  } | null
   besoinTypeBien?: string | null
   besoinUsage?: ClientBesoinUsage | null
   localisationVille?: string | null
@@ -217,12 +313,16 @@ export interface ClientCreatePayload {
   type: ClientType
   sousType?: ClientSousType
   source?: ClientSource
+  sourceCommissionnaireCode?: string
 }
 
 export interface ClientUpdatePayload {
   sousType?: ClientSousType
   source?: ClientSource
-  sourceCommissionnaireCode?: string
+  // GOAL 4 — code du commissionnaire à l'origine du client (référence
+  // métier, jamais un idCommissionnaire interne). `null` retire
+  // explicitement l'attribution, `undefined` laisse le champ inchangé.
+  sourceCommissionnaireCode?: string | null
   besoinTypeBien?: string
   besoinUsage?: ClientBesoinUsage
   localisationVille?: string
@@ -239,6 +339,65 @@ export interface ClientUpdatePayload {
   dernierContact?: string
   prochaineRelance?: string
   notesAgent?: string
+}
+
+// GOAL 8 — plaintes client, distinctes des CommissionnaireIncident (terrain).
+export type ClientComplaintStatut = "OUVERTE" | "RESOLUE"
+
+export const CLIENT_COMPLAINT_STATUT_LABELS: Record<ClientComplaintStatut, string> = {
+  OUVERTE: "Ouverte",
+  RESOLUE: "Résolue",
+}
+
+export interface ClientComplaint {
+  idClientComplaint: number
+  idClient: number
+  subject: string
+  description?: string | null
+  statut: ClientComplaintStatut
+  resolution?: string | null
+  createdBy: number
+  resolvedBy?: number | null
+  resolvedAt?: string | null
+  creator?: { idUser: number; fullName: string }
+  resolver?: { idUser: number; fullName: string } | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClientComplaintCreatePayload {
+  subject: string
+  description?: string
+}
+
+// GOAL 8 — vue 360 : agrégat en lecture seule, jamais une entité en soi.
+export interface ClientDossierMatching {
+  idMatching: number
+  idClient: number
+  idProperty: number
+  statut: "EN_COURS" | "PROPOSE" | "VALIDE"
+  property?: Pick<
+    Property,
+    "idProperty" | "category" | "propertyType" | "quartier" | "avenue" | "statut" | "price"
+  >
+  createdAt: string
+}
+
+export interface ClientDossierProposal {
+  idProposal: number
+  idProperty: number
+  idClient?: number | null
+  message?: string | null
+  property?: Pick<Property, "idProperty" | "category" | "propertyType" | "quartier" | "avenue">
+  sentAt: string
+}
+
+export interface ClientDossier {
+  matchings: ClientDossierMatching[]
+  occupiedProperties: ClientDossierMatching[]
+  proposals: ClientDossierProposal[]
+  commissions: Commission[]
+  complaints: ClientComplaint[]
 }
 
 export type BailleurType = "PROPRIETAIRE" | "MANDATAIRE"
@@ -271,6 +430,8 @@ export const BAILLEUR_VALEUR_LABELS: Record<BailleurValeur, string> = {
 // Property.margin) — jamais présumer sa présence.
 export interface Bailleur {
   idBailleur: number
+  // GOAL 6 — voir Client.dossierNumber.
+  dossierNumber?: string | null
   idPerson: number
   type: BailleurType
   typeCollaboration?: BailleurTypeCollaboration | null
@@ -483,6 +644,21 @@ export interface Caisse {
   createdAt: string
 }
 
+// GOAL 10 — virement entre deux caisses, immuable une fois créé (pas de
+// correction possible, seulement un nouveau virement en sens inverse).
+export interface CaisseTransfer {
+  idCaisseTransfer: number
+  idCaisseSource: number
+  idCaisseDestination: number
+  currencyCode: string
+  amount: number
+  description?: string | null
+  caisseSource?: { idCaisse: number; label: string }
+  caisseDestination?: { idCaisse: number; label: string }
+  creator?: { idUser: number; fullName: string }
+  createdAt: string
+}
+
 export interface ExchangeRate {
   idExchangeRate: number
   fromCurrency: string
@@ -638,6 +814,15 @@ export interface Commission {
   commissionnaire?: { idCommissionnaire: number; code: string; person?: { fullName: string } } | null
   currency?: Currency
   caisse?: { idCaisse: number; label: string } | null
+  // GOAL 8 — associaton inverse (Commission.hasOne(Payment)), consultée en
+  // lecture seule sur la vue 360 client, jamais recalculée côté Frontend.
+  payment?: {
+    idPayment: number
+    amount: number
+    currencyCode: string
+    statut: PaymentStatut
+    createdAt: string
+  } | null
   createdAt: string
 }
 
@@ -650,4 +835,121 @@ export interface CommissionCreatePayload {
   currencyCode: string
   tauxCommission?: number
   montantCommission?: number
+}
+
+// --- Milestone 5 : Notifications/Alerts/Realtime (ADMIN-G07 — BACK-G17/G18) ---
+
+export interface Notification {
+  idNotification: number
+  idUser: number
+  type: string
+  title: string
+  message?: string | null
+  relatedEntityType?: string | null
+  relatedEntityId?: number | null
+  isRead: boolean
+  readAt?: string | null
+  pushStatus: "PENDING" | "SENT" | "FAILED" | "SKIPPED"
+  createdAt: string
+}
+
+export type AlertStatut = "OUVERTE" | "RECONNUE" | "ASSIGNEE" | "EN_COURS" | "RESOLUE" | "CLOTUREE"
+export type AlertSeverite = "INFO" | "AVERTISSEMENT" | "CRITIQUE"
+
+export const ALERT_STATUT_LABELS: Record<AlertStatut, string> = {
+  OUVERTE: "Ouverte",
+  RECONNUE: "Reconnue",
+  ASSIGNEE: "Assignée",
+  EN_COURS: "En cours",
+  RESOLUE: "Résolue",
+  CLOTUREE: "Clôturée",
+}
+
+export const ALERT_SEVERITE_LABELS: Record<AlertSeverite, string> = {
+  INFO: "Info",
+  AVERTISSEMENT: "Avertissement",
+  CRITIQUE: "Critique",
+}
+
+export interface Alert {
+  idAlert: number
+  type: string
+  title: string
+  description?: string | null
+  severite: AlertSeverite
+  statut: AlertStatut
+  assignee?: { idUser: number; fullName: string } | null
+  creator?: { idUser: number; fullName: string } | null
+  resolver?: { idUser: number; fullName: string } | null
+  createdAt: string
+  resolvedAt?: string | null
+}
+
+// --- Milestone 6 : Calendrier agrégé (ADMIN-G08 — BACK-G19) ---
+// Vue agrégée uniquement (CLAUDE.md §4) : chaque entrée référence sa
+// source d'origine, jamais une copie de son statut.
+export type CalendarSource = "TASK" | "REMINDER" | "RELANCE_CLIENT" | "EVENT"
+
+export interface CalendarEntry {
+  source: CalendarSource
+  id: number
+  title: string
+  description?: string | null
+  date: string
+  endDate?: string | null
+  statut?: string | null
+  priorite?: string | null
+  creator?: string | null
+  // GOAL 11 — personnes concernées par un rendez-vous (source EVENT
+  // uniquement), chacune notifiée automatiquement à l'assignation.
+  participants?: { idUser: number; fullName?: string }[]
+}
+
+export const CALENDAR_SOURCE_LABELS: Record<CalendarSource, string> = {
+  TASK: "Tâche",
+  REMINDER: "Rappel",
+  RELANCE_CLIENT: "Relance client",
+  EVENT: "Rendez-vous",
+}
+
+// --- ADMIN-G00 : statistiques réelles du tableau de bord ---
+// Chaque champ est optionnel : le Backend ne renvoie un bloc que si
+// l'utilisateur a la permission de lire le domaine correspondant (jamais
+// de logique d'autorisation dupliquée côté Frontend, CLAUDE.md §2.2).
+export type RecentActivityType = "PROPERTY" | "CLIENT" | "MISSION" | "REQUISITION"
+
+export interface RecentActivityEntry {
+  type: RecentActivityType
+  id: number
+  label: string
+  detail?: string | null
+  date: string
+}
+
+// --- GOAL 3 : Timeline complète ---
+export type TimelineEntityType = "PROPERTY" | "CLIENT" | "COMMISSIONNAIRE" | "BAILLEUR"
+
+export interface TimelineEvent {
+  idTimelineEvent: number
+  entityType: TimelineEntityType
+  entityId: number
+  eventType: string
+  title: string
+  description?: string | null
+  metadata?: Record<string, unknown> | null
+  actor?: { idUser: number; fullName: string } | null
+  occurredAt: string
+}
+
+export interface DashboardStats {
+  properties: { rentals: number; sales: number; totalImages: number }
+  favorites: number
+  clients?: number
+  proposals?: number
+  activeUsers?: number
+  pendingMissions?: number
+  pendingRequisitions?: number
+  openCaisses?: number
+  pendingCommissions?: number
+  recentActivity: RecentActivityEntry[]
 }

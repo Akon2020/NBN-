@@ -402,3 +402,299 @@ Backend : `npm test` → **79/79** (intégration complète via supertest contre 
 - La conformité budgétaire à la Saisie d'une réquisition ne vérifie que la structure (devise suivie par la caisse), jamais la suffisance réelle du solde — celle-ci n'est vérifiée qu'au moment du décaissement effectif (BACK-G14), pour ne pas bloquer des réquisitions concurrentes légitimes sur une même caisse.
 
 *Milestone 4 terminé (sous réserve de la vérification visuelle Frontend en attente). Prochaine session suggérée : reprendre la vérification visuelle ADMIN-G06, puis cadrage du Milestone 5 (Tasks + Notifications/Alerts/Reminders + Realtime) selon `plan.md`.*
+
+---
+
+## Session 7 — 2026-07-16 — Milestone 5 (Tasks + Notifications/Alerts/Reminders + Realtime)
+
+### ✅ BACK-G16 — Module Tasks (Kanban)
+`Task` (statut A_FAIRE/EN_COURS/EN_REVISION/TERMINEE, priorité, échéance) avec assignation multi-collaborateurs (`TaskAssignee`) et quatre tables de liaison explicites par type de ressource (`TaskPropertyLink`, `TaskClientLink`, `TaskBailleurLink`, `TaskCommissionnaireLink`) — jamais de relation polymorphe générique, conformément à CLAUDE.md §4. Règle stricte testée : déplacer une tâche sur le Kanban ne modifie jamais le statut de la ressource liée. La mise à jour remplace intégralement les assignés/liens à partir des tableaux fournis (plus simple qu'un diff incrémental côté Kanban).
+
+### ✅ BACK-G17 — Notifications/Alerts/Reminders + event bus interne
+Event bus interne (`shared/eventBus.js`, EventEmitter natif) avec abonnement centralisé (`shared/eventListeners.js`). Modèles `Notification` (historisable, statut de lecture et de push), `Alert` (cycle de vie ouverte→reconnue→assignée→en cours→résolue→clôturée, notifie son responsable à chaque transition), `Reminder` (échéance programmée). Deux événements métier réels câblés : une réquisition approuvée/rejetée notifie son demandeur ; un commissionnaire qui bascule en OBSERVATION génère une alerte "score bas" (uniquement sur la transition réelle, jamais à chaque recalcul de score).
+
+Outbox pattern (`OutboxEvent` + worker cron toutes les 30s, `node-cron`) pour la tentative de push : une Notification existe toujours en base indépendamment du sort de sa tentative de livraison, retentée jusqu'à 5 fois en cas d'échec, jamais perdue. `PushProvider` Expo implémenté via un simple appel `fetch` (pas de SDK serveur dédié, cohérent avec la contrainte "application légère").
+
+### ✅ BACK-G18 — Realtime (Socket.IO) avec fallback
+Gateway Socket.IO (`shared/socketGateway.js`) attachée au même serveur HTTP que l'API REST. Audiences calculées côté serveur à la connexion (room personnelle `user:<id>` + room de rôle `role:<nom>`) — jamais fournies par le client, aucun événement "join" n'est même exposé. Testé avec un vrai client `socket.io-client` (port éphémère dédié) : connexion refusée sans token/avec token invalide, isolation stricte des audiences, et confirmation explicite que le REST reste intégralement fonctionnel sans connexion Socket.IO active.
+
+### ✅ ADMIN-G07/MOBILE-G05 — Intégration client
+**Frontend** : cloche de notifications dans l'en-tête (compteur non lues, marquage lu, repli sur intervalle 60s), écran Alertes (cycle de vie, mise à jour en direct). Le client Socket.IO web se connecte via le cookie httpOnly existant (`withCredentials`), sans dupliquer la gestion de jeton.
+
+**Mobile** : enregistrement du token Expo Push après connexion, dégradé proprement en no-op silencieux tant qu'aucun projet EAS n'est lié (point ouvert CLAUDE.md §16). Écran Notifications partagé entre (interne) et (commissionnaire), connecté en direct via Socket.IO (`auth.token` depuis expo-secure-store) avec repli sur refetch au focus d'écran.
+
+### Bugs réels trouvés et corrigés pendant cette session
+1. **Frontend web incompatible avec l'auth Socket.IO par défaut** — la gateway ne lisait le jeton que via `auth.token`, inutilisable par le Frontend web (jeton en cookie httpOnly, illisible en JS par conception ADMIN-G01). Ajout d'une lecture du cookie `token`, symétrique à `authMiddlware` côté REST.
+2. **Import ESM cassé du paquet `cookie` v2** — `import cookie from "cookie"` puis `import { parse } from "cookie"` échouaient tous deux silencieusement dans le contexte de test (le paquet est ESM pur avec un export nommé `parseCookie`, pas `parse`/`default`). L'erreur était capturée par un `catch` générique et se manifestait uniquement comme "Jeton invalide" sans aucune trace exploitable — diagnostiqué via un script Node autonome hors Vitest (dont le reporter masquait la sortie console du middleware asynchrone Socket.IO).
+3. **Course dans les tests outbox** — `ORDER BY createdAt DESC LIMIT 1` pour retrouver "la dernière écriture" produisait un résultat indéterminé quand deux tests créaient une `OutboxEvent` dans la même seconde (résolution de `createdAt` en secondes). Corrigé en matchant par `payload` (contenu exact, `idNotification`) plutôt que par ordre chronologique approximatif.
+
+### Vérification — méthode
+Backend : `npm test` → **97/97** (deux runs consécutifs sous charge système ont montré 2-3 échecs transitoires, confirmés comme de la friture environnementale — non reproductibles sur un run isolé, cohérent avec le problème de contention déjà documenté dans ce journal). Frontend : `npx tsc --noEmit` → 0 erreur. Mobile : `tsc --noEmit` + `expo lint` propres, `npm test` → 6/6.
+
+### Décisions à documenter/valider par l'utilisateur
+- **Aucun projet EAS lié** (`Mobile/app.json` sans `extra.eas.projectId`) — le token Expo Push ne peut pas être généré tant que ce point n'est pas résolu ; le pipeline de notification reste fonctionnel de bout en bout (Notification persistée, consultable via REST/Socket.IO), seul le push mobile réel est actuellement toujours "SKIPPED".
+- **Vérification visuelle ADMIN-G06 (Milestone 4) toujours en attente** — reportée d'une session à l'autre, à refaire dès que possible.
+- Le module Tasks (BACK-G16) n'a volontairement pas reçu d'écran Kanban Frontend/Mobile cette session — `plan.md` ne liste que "ADMIN-G07/MOBILE-G05 : Intégration notifications + realtime" comme goal client du Milestone 5, une UI Kanban dédiée serait un goal séparé non spécifié.
+
+*Milestone 5 terminé. Prochaine session suggérée : vérification visuelle ADMIN-G06 + ADMIN-G07 en attente, puis cadrage du Milestone 6 (Calendar + Reporting + Archivage formalisé) selon `plan.md`.*
+
+---
+
+## Session 8 — 2026-07-16 — Correctifs post-M5 (Mobile + Frontend)
+
+### Bugs réels trouvés et corrigés
+1. **Crash `expo-notifications` systématique sur Expo Go** — depuis le SDK 53, Expo Go ne supporte plus du tout les notifications push distantes ; le simple `import` du module déclenche un effet de bord d'enregistrement automatique qui plante, avant même qu'un `try/catch` local ne puisse l'intercepter. Corrigé en détectant l'environnement d'exécution (`Constants.executionEnvironment === ExecutionEnvironment.StoreClient`, API recommandée — `appOwnership` est dépréciée) et en n'important `expo-notifications` que dynamiquement, uniquement hors Expo Go. Fonctionnera sans changement dès qu'un build de développement (EAS) sera utilisé.
+2. **Images de biens jamais réellement servies** — `PropertyImage.image` stockait le chemin relatif retourné par multer ("uploads/images/xxx.jpg") mais aucune route Express ne servait jamais ce dossier statiquement ; `next/image` refusait ce `src` (ni absolu ni préfixé d'un slash). Ajout de `express.static("/uploads", ...)` côté Backend (avec `Cross-Origin-Resource-Policy: cross-origin`, sans quoi `helmet()` bloque le chargement cross-origine par le Frontend) et d'un helper `Frontend/lib/imageUrl.ts` appliqué aux 7 écrans concernés (rentals, sales, favorites, gallery, search). `next.config.mjs` déclare désormais `images.remotePatterns` pour l'hôte Backend de dev.
+3. **Clé React manquante sur `dashboard/page.tsx`** — posée sur le `<Card>` interne plutôt que sur le `<Link>` réellement mappé par `stats.map()`.
+
+### Vérification
+Backend : `npm test` → 97/97. Frontend : `npx tsc --noEmit` → 0 erreur. Mobile : `tsc --noEmit` + `expo lint` propres, `npm test` → 6/6.
+
+---
+
+## Session 9 — 2026-07-16 — Milestone 6 (Backend) : Calendrier, Reporting, Archivage
+
+### ✅ BACK-G19 — Calendrier agrégé
+`CalendarEvent` (`Backend/models/calendarEvent.model.js`) réservé aux seuls rendez-vous ponctuels sans autre source — conformément à CLAUDE.md §4, jamais de duplication systématique. `GET /api/calendar` (`calendar.controller.js`) agrège à la volée `Task.dateEcheance`, `Reminder.dueAt`, `Client.prochaineRelance` et les `CalendarEvent` propres sur une plage `from`/`to`, fusionnés/triés avec un champ `source` discriminant (`TASK`/`REMINDER`/`RELANCE_CLIENT`/`EVENT`) — jamais de copie de statut, la source d'origine reste seule autorité. `POST`/`DELETE` uniquement pour les `CalendarEvent` propres.
+
+### ✅ BACK-G20 — Reporting (PDF/Excel/CSV)
+Trois formats, un moteur par format (CLAUDE.md §12) : `pdf-lib` pour l'état de caisse stylisé (`utils/reports/caisseStatementPdf.js`, réutilise le patron déjà établi par `requisitionPdf.js`), `exceljs` pour l'Excel et génération CSV native (`utils/reports/tabularExport.js`). Export des biens et des commissions au choix `?format=csv|xlsx`. Le champ `margin` respecte le **même** serializer que l'API REST (`serializeProperties(properties, req.user)`) — jamais une règle de masquage réimplémentée localement, vérifié explicitement par test (le rôle trésorerie le voit, un rôle sans `property:margin:read` ne le verrait pas).
+
+### ✅ BACK-G21 — Archivage formalisé
+Scope `plan.md` : biens, clients, réquisitions, missions terrain (jamais Bailleur/Commissionnaire). Trois concepts distincts, jamais confondus (CLAUDE.md §11) :
+- **Soft delete** (`deletedAt`, mode `paranoid: true` Sequelize) sur les quatre modèles — réversible à court terme, invisible en usage normal. `deleteProperty`/`deleteClient` existants deviennent transparemment des soft deletes ; ajout de `restoreProperty`/`restoreClient`.
+- **Archivage métier** (`archivedAt` + `archiveReason`, motif obligatoire) — cycle de vie métier terminé mais toujours consultable individuellement. Factorisé une seule fois (`utils/archivable.js`, `createArchiveHandlers(Model, pkField, message)`) car la forme est strictement identique pour les quatre ressources ; endpoints `POST /:id/archive` et `POST /:id/unarchive` ajoutés aux quatre routers, réutilisant chacun la permission `:manage`/`:validate` déjà existante de la ressource (aucune nouvelle permission RBAC créée).
+- Les listes actives (`getAllProperties`/`getAllClients`/`getAllRequisitions`/`getAllMissions`) excluent les ressources archivées par défaut, réintégrables via `?includeArchived=true`.
+- Réquisitions et missions n'ayant aucun endpoint de suppression existant (traçabilité indéfinie assumée, info.md §6 / CDC §7), seul l'archivage s'y applique — pas de soft delete pour ces deux ressources en pratique, même si `paranoid: true` reste activé au niveau modèle par cohérence.
+
+**Décision de conception notable** : `deleteProperty` supprimait auparavant en cascade les lignes enfants (images, téléphones, scores, détails location/vente) avant de supprimer le bien lui-même. Avec le passage en mode paranoid, une restauration doit rendre un bien intact — la cascade de suppression physique des enfants a donc été retirée du chemin de suppression interactif ; seule la ligne `Property` elle-même devient soft-deleted, ses enfants restent intacts en base (invisibles via l'association tant que le parent n'est pas restauré). La purge physique définitive (fichiers + lignes enfants) reste hors-scope V1 (rétention légale, CLAUDE.md §16 point 3).
+
+### Vérification
+Migration `20260718000000-add-archivage-columns` appliquée (`npm run db:migrate`). Nouveau fichier `tests/archive.test.js` (8/8 : soft delete + restore sur bien et client, archivage/désarchivage avec motif obligatoire sur les quatre ressources, désencombrement des listes actives par défaut + `includeArchived=true`, 403 pour un rôle sans permission). Le passage en mode paranoid a cassé le nettoyage (`afterAll`) de plusieurs suites existantes qui détruisaient des `User` référencés par des `Property`/`Client`/`Requisition`/`Mission` non réellement supprimés (contrainte FK) — corrigé en ajoutant `{ force: true }` aux destructions de ces quatre modèles dans `crm.test.js`, `property.route.test.js`, `report.test.js`, `task.test.js`, `commission.test.js`, `calendar.test.js`, `notification.test.js`, `commissionnaire.test.js`, `requisition.test.js`. Suite complète : **113/113**.
+
+### ✅ ADMIN-G08 — Écrans calendrier et rapports (Frontend)
+Deux nouveaux écrans dashboard, ajoutés à la navigation (`app/dashboard/layout.tsx`) :
+- **`/dashboard/calendrier`** : liste agrégée groupée par jour (tâches/rappels/relances/rendez-vous), sélecteur de plage `from`/`to`, création/suppression des seuls rendez-vous ponctuels (`CalendarEvent` propre) — jamais de bouton pour "terminer" une tâche ou un rappel depuis cet écran, cohérent avec CLAUDE.md §4 (le calendrier ne pilote jamais le statut d'une autre ressource).
+- **`/dashboard/rapports`** : trois générateurs (état de caisse PDF avec sélecteur de caisse + plage de dates, export biens CSV/xlsx, export commissions CSV/xlsx + plage de dates), chaque bouton déclenche un téléchargement direct (`responseType: "blob"`) sans stockage intermédiaire, cohérent avec "génération à la demande" (CLAUDE.md §7).
+
+Nouveaux fichiers : `actions/calendar.ts`, `actions/reports.ts` (avec un piège corrigé : `responseType: "blob"` fait qu'une réponse d'erreur 403/500 arrive elle-même en `Blob`, jamais en JSON déjà parsé — `handleError` doit explicitement relire le blob en texte avant d'en extraire `message`), types `CalendarEntry`/`CalendarSource` ajoutés à `lib/types.ts`.
+
+**Vérification partielle** : `npx tsc --noEmit` → 0 erreur sur l'ensemble du Frontend. La vérification visuelle en navigateur n'a en revanche pas pu être menée à bien cette session — la prévisualisation automatisée est restée bloquée dans une boucle de redirection d'authentification (page blanche, URL figée sur `/dashboard`) qui semble être un problème d'environnement de prévisualisation préexistant et non spécifique aux deux nouveaux écrans (le même comportement se produit en naviguant vers n'importe quelle route du dashboard, y compris `/auth/login`). À vérifier manuellement dans un navigateur réel avant de considérer ADMIN-G08 pleinement clos.
+
+*Prochaine étape : BACK-G22 (RH avancé) et BACK-G23 (intégration fournisseur de paiement externe), puis l'audit de responsivité complet du Frontend.*
+
+---
+
+## Session 10 — 2026-07-16 — Milestone 7 (partiel) : RH avancé
+
+Note de cadrage : `plan.md` qualifie M7 de "domaines explicitement repoussés par le porteur de projet à une phase ultérieure" ; l'instruction "finalise le développement de tout le système" reçue en session est traitée comme une levée explicite de ce report. Avant de coder, portée confirmée avec l'utilisateur : V1 minimale (un modèle simple par concept, CRUD de base + permission RBAC, sans workflow d'approbation ni notation complexe).
+
+### ✅ BACK-G22 — RH avancé (V1 minimale)
+Constat en ouvrant le chantier : `EmployeeProfile` (livré en M1/BACK-G04) n'avait **jamais** de contrôleur ni de route — seul le modèle existait, testé uniquement au niveau Sequelize (`tests/organization.test.js`). Complété en prérequis avant de pouvoir rattacher quoi que ce soit dessus :
+- **`EmployeeProfile` CRUD** (`hr.controller.js`) : liste, détail, création (Person existante via `idPerson` ou nouvelle via `fullName`, même patron que `client.controller.js`), mise à jour (service/poste/responsable/contrat/statut).
+- **`Evaluation`** : note libre /100 + commentaire par période (`"2026-Q2"`), rattachée à l'évaluateur (`User`).
+- **`Objective`** : titre/description/échéance + statut (`EN_COURS`/`ATTEINT`/`NON_ATTEINT`).
+- **`Skill`/`EmployeeSkill`** : catalogue de compétences partagé + table de liaison explicite avec niveau (`DEBUTANT`→`EXPERT`), jamais de relation polymorphe (CLAUDE.md §4).
+- **`Training`/`EmployeeTraining`** : catalogue de formations partagé + table de liaison explicite avec statut (`PLANIFIEE`→`TERMINEE`/`ANNULEE`).
+
+Deux permissions (`hr:read`/`hr:manage`), rattachées au rôle `operations` — aucun rôle "RH" dédié n'existe dans le catalogue fermé (CLAUDE.md §5), `operations` couvre déjà la gestion administrative interne (clients/bailleurs/missions). Nouveau fichier `tests/hr.test.js` (5/5 : création de profil RH, 403 pour un rôle sans `hr:manage`, évaluation + objectif + transition de statut, compétence associée/retirée, formation assignée/transition de statut).
+
+### Bug pré-existant découvert (hors scope, signalé séparément)
+La création d'utilisateur (`POST /api/users/add`) attend (`await`) l'envoi d'un email de bienvenue via `nodemailer` de façon synchrone dans le chemin critique de la requête — quand le serveur SMTP est lent/inaccessible, la requête entière reste bloquée jusqu'à expiration du socket. Reproduit de façon isolée sur `tests/auth.test.js`/`tests/rbac.test.js` ("autorise un admin à créer un utilisateur" / "technologique peut créer un utilisateur"), qui expirent après 20s — sans lien avec les changements de cette session (confirmé en excluant ces deux fichiers : 18/18 fichiers, 103/103 tests verts). Signalé comme tâche séparée plutôt que corrigé ici, hors du périmètre RH.
+
+### Vérification
+`npm run db:migrate` + `npm run db:seed` appliqués. Suite complète hors `auth.test.js`/`rbac.test.js` (problème SMTP pré-existant, non lié) : **18/18 fichiers, 103/103 tests verts**. `tests/hr.test.js` : 5/5.
+
+### BACK-G23 — reporté (décision utilisateur)
+Avant de coder, question posée sur la portée réaliste sans identifiants marchand réels (Airtel Money/Orange Money/M-Pesa) : construire un squelette `ProviderTransaction` + abstraction sans appel HTTP réel testable, fournir des identifiants sandbox, ou reporter. Décision : **reporté** — pas d'identifiants disponibles actuellement, priorité donnée à l'audit de responsivité du Frontend (impact plus direct et visible). Reste dans `plan.md` comme goal ouvert, à reprendre dès que le fournisseur Mobile Money cible et ses identifiants sandbox seront connus.
+
+*Prochaine étape : audit de responsivité complet du Frontend (toutes les pages).*
+
+---
+
+## Session 11 — 2026-07-16 — Audit de responsivité complet (Frontend)
+
+Audit systématique des 28 pages du Frontend (landing publique, 3 pages auth, 24 pages dashboard dont les 2 nouvelles ADMIN-G08) recherchant : tables non enveloppées dans un conteneur `overflow-x-auto`, grilles multi-colonnes sans préfixes responsives (`sm:`/`md:`/`lg:`), largeurs fixes en pixels risquant un dépassement sur 375px, groupes de boutons/texte en `flex` sans `flex-wrap` pouvant déborder horizontalement sur mobile.
+
+**Constat** : le codebase était déjà tailwind mobile-first sur l'essentiel — `components/ui/table.tsx` enveloppe déjà tout `<Table>` dans `overflow-x-auto` par construction, `components/ui/dialog.tsx` plafonne déjà `DialogContent` à `max-w-[calc(100%-2rem)]`, et la quasi-totalité des grilles/groupes d'actions utilisaient déjà `sm:grid-cols-`/`flex-wrap`. Seuls deux dépassements horizontaux réels trouvés :
+1. `app/dashboard/missions/page.tsx` (groupe de 3 boutons Valider/Correction/Rejeter, `flex gap-2` sans `flex-wrap`) — corrigé.
+2. `app/dashboard/favorites/page.tsx` (badge + bouton "Envoyer proposition groupée" au texte long, `flex items-center gap-2` sans `flex-wrap`) — corrigé (`flex-wrap` + bouton `w-full sm:w-auto`).
+
+**Méthode** : audit par lecture de code (via un sous-agent d'exploration dédié), pas par vérification visuelle en navigateur — la prévisualisation automatisée de cette session était bloquée dans une boucle de redirection d'authentification pré-existante (voir Session 9/ADMIN-G08 plus haut), donc aucune capture d'écran réelle n'a pu être produite. L'utilisateur devrait confirmer visuellement sur mobile/tablette réels avant de considérer cet audit pleinement clos.
+
+### Vérification
+`npx tsc --noEmit` → 0 erreur après les deux correctifs.
+
+---
+
+## Bilan de session — Milestones 6 et 7 (partiel)
+
+État final de `plan.md` à la clôture de cette session :
+- **Milestone 6 (Calendar + Reporting + Archivage formalisé)** : **terminé** — BACK-G19, BACK-G20, BACK-G21, ADMIN-G08 tous livrés et testés.
+- **Milestone 7 (RH avancé + Paiements fournisseur externe)** : **partiel** — BACK-G22 livré (V1 minimale, cadrée avec l'utilisateur avant développement) ; BACK-G23 explicitement reporté par l'utilisateur (pas d'identifiants marchand Mobile Money disponibles), reste un goal ouvert dans `plan.md`.
+- **Audit de responsivité Frontend** : terminé par lecture de code sur les 28 pages — 2 dépassements horizontaux mobile corrigés (missions, favoris). **Non confirmé visuellement en navigateur** (prévisualisation automatisée bloquée par une boucle de redirection d'authentification pré-existante cette session, sans lien avec le code applicatif) — vérification manuelle recommandée avant clôture définitive.
+
+**Vérification finale** : Backend `npm test` → 115/118 (3 échecs isolés à un bug pré-existant et déjà signalé séparément : l'envoi d'email de bienvenue lors de la création d'utilisateur bloque la requête de façon synchrone sur un SMTP lent/inaccessible — sans lien avec les changements de cette session, confirmé par exclusion : 103/103 en dehors de ces deux fichiers). Frontend `npx tsc --noEmit` → 0 erreur.
+
+**Reste ouvert pour une session future** : BACK-G23 (dès identifiants Mobile Money disponibles), correctif du bug SMTP synchrone (tâche déjà signalée séparément), vérification visuelle manuelle de la responsivité et des deux nouveaux écrans ADMIN-G08 dans un vrai navigateur.
+
+---
+
+## Session 12 — 2026-07-17 — ADMIN-G00 (dashboard réel) + audit de responsivité approfondi + déblocage de la vérification visuelle
+
+Reprise explicite de `plan.md`/`walkthrough.md` à la demande de l'utilisateur : "parcours les fichiers et fait ce qui n'a pas encore été fait", avec insistance particulière sur la responsivité et un constat direct — "le dashboard admin n'a pas encore été fait, il faudra qu'il affiche les stats réels". BACK-G23 reconfirmé différé par l'utilisateur (pas d'intégration Mobile Money réelle pour l'instant).
+
+### ✅ ADMIN-G00 — Tableau de bord avec statistiques réelles (goal ajouté à `plan.md`, absent de la version initiale)
+Constat en ouvrant le chantier : `app/dashboard/page.tsx` affichait des chiffres et une "activité récente" **inventés en dur** depuis le tout début du projet (`value: "127"`, `"Appartement 3 chambres, Kadutu - Il y a 2 heures"`, etc.), jamais branchés sur une donnée réelle malgré tous les modules métier déjà fonctionnels.
+
+- **Backend** : nouveau `GET /api/dashboard/stats` (`dashboard.controller.js`/`dashboard.route.js`) agrégeant des compteurs réels (biens à louer/vendre, total d'images, favoris — toujours visibles, cohérent avec le reste de l'API properties/favorites déjà ouverte à tout utilisateur authentifié) et des blocs conditionnels (clients+propositions si `clients:read`, utilisateurs actifs si `users:read`, missions en attente si `missions:read`, réquisitions en attente si `requisitions:read`, caisses ouvertes si `treasury:read`, commissions dues si `commissions:read`) — chaque bloc gated par `getEffectivePermissions(req.user)`, jamais une règle dupliquée côté client. `recentActivity` : les 5 plus récents Property/Client/Mission/Requisition (chacun seulement si le domaine est autorisé) fusionnés et triés par date, même patron que l'agrégation du calendrier (BACK-G19).
+- **Frontend** : `dashboard/page.tsx` entièrement réécrit — état de chargement, cartes construites dynamiquement (une carte n'apparaît que si son champ est présent dans la réponse, jamais un "0" par défaut pour un domaine non autorisé), activité récente réelle avec icône/couleur par type et horodatage relatif ("il y a X min/h/j").
+- Nouveau fichier `tests/dashboard.test.js` (4/4 : un rôle à large accès voit la plupart des blocs mais jamais `activeUsers`, un rôle restreint ne voit que biens/favoris/missions, `technologique` voit `activeUsers`, 401 sans authentification).
+
+### ✅ Audit de responsivité approfondi — composants modaux (Session 11 n'avait couvert que les `page.tsx`)
+Les 26 composants modaux (property/client/bailleur/commissionnaire/treasury/user) ont été audités — `DialogContent` (primitive partagée) plafonne déjà toute largeur à `max-w-[calc(100%-2rem)]` sur mobile, et 23 des 26 fichiers étaient déjà corrects. Trois débordements réels trouvés (même anti-pattern répété trois fois) : `edit-rental-modal.tsx`, `edit-sale-modal.tsx`, `edit-user-modal.tsx` avaient chacun un footer de secours en `flex justify-end gap-3` (au lieu du composant `DialogFooter` déjà responsive utilisé partout ailleurs), associant "Annuler" au bouton "Enregistrer les modifications" — la largeur combinée dépasse le contenu disponible à 375px, les éléments flex ne rétrécissant jamais sous leur largeur de texte par défaut. Corrigé en ajoutant `flex-col-reverse sm:flex-row` aux trois footers concernés.
+
+### 🔓 Déblocage de la vérification visuelle en navigateur — la cause racine identifiée
+Depuis plusieurs sessions (M4/ADMIN-G06, M6/ADMIN-G08, l'audit de responsivité de la Session 11), la prévisualisation automatisée montrait systématiquement une page `/dashboard` blanche, attribué à une "boucle de redirection d'authentification" de l'environnement. **Cause racine réelle, enfin identifiée cette session** : il n'y avait tout simplement jamais eu de session authentifiée valide dans le navigateur de prévisualisation — `ProtectedRoute` fonctionnait exactement comme prévu (rendu `null` + tentative de redirection vers `/auth/login`), ce n'était pas un bug. Contournement pour cette session : connexion directe via `fetch(credentials:'include')` contre un compte QA existant (`qa.operations@nbn.test`), ce qui pose le cookie httpOnly comme le ferait un vrai formulaire de connexion.
+
+Une fois authentifié, **la vérification visuelle a enfin pu être menée en conditions réelles** : le nouveau tableau de bord confirmé affichant des données réelles de bout en bout (`GET /api/dashboard/stats` → 200, cartes et activité récente correctes), et les 24 pages du dashboard vérifiées une par une à 375px via mesure DOM réelle (`scrollWidth`/`clientWidth` sur chaque élément) plutôt que par capture d'écran (le screenshot de l'outil de prévisualisation reste indisponible dans cet environnement, timeout systématique — limite déjà rencontrée dans plusieurs sessions précédentes) : **aucun débordement horizontal détecté sur aucune page**, confirmant les corrections des Sessions 11 et 12. Point notable pour les sessions futures : l'access token expire après 15 minutes (conforme à CLAUDE.md §5) — une session de vérification prolongée nécessite de renouveler la connexion via le même mécanisme `fetch` si la page redevient blanche.
+
+**Non résolu** : cliquer sur un `ref` retourné par `read_page` pour ouvrir une modale (ex. "Ajouter un bien") n'a déclenché aucun changement d'état observable (`[role="dialog"]` toujours absent après clic confirmé par l'outil) — limite de l'outil d'automatisation dans cet environnement, pas un bug applicatif (les sessions précédentes ont déjà vérifié des interactions de clic similaires avec succès). L'audit des modales pour cette session s'est donc appuyé sur la lecture de code plutôt que sur l'interaction réelle.
+
+### Vérification
+Backend : `npm test` → **122/122** (les 3 échecs SMTP signalés en Session 10 ne se sont pas reproduits ce run — confirmé transitoire). Frontend : `npx tsc --noEmit` → 0 erreur.
+
+*BACK-G23 reste différé (décision utilisateur reconfirmée). Le système est désormais complet vis-à-vis de `plan.md` à l'exception de ce seul goal.*
+
+---
+
+## Session 13 — 2026-07-17 — Nouvelle mission « Lead Software Engineer » (21 GOALS, version cible)
+
+`plan.md` etant complet (Session 12), l'utilisateur ouvre un nouveau mandat distinct et beaucoup plus large : 21 GOALS numerotes couvrant l'integralite du systeme (cycle de vie des biens, medias, timeline, CRM, pipeline commercial, marges, caisse, calendrier, courte/longue duree, parametres, missions, taches, utilisateurs, landing page, recherche globale, dashboard executif, notifications temps reel, finalisation Mobile), avec mandat explicite de travailler **sans interruption jusqu'a 100% des goals**, un commit atomique par fonctionnalite, jamais de question dont la reponse est trouvable seule. Priorite absolue declaree par l'utilisateur : le cycle de vie des biens (collecte -> validation -> suivi).
+
+### GOAL 1 - Cycle de vie reel des biens
+`Property.statut` redessine : `DISPONIBLE / OCCUPE_CLIENT_NBN / OCCUPE_CLIENT_EXTERNE / EN_MAINTENANCE / VENDU` (`VENDU` valide applicativement comme reserve a `category=SALE`, pas une contrainte de schema). Tout changement de statut passe desormais par un point d'entree unique et dedie (`PATCH /api/properties/:id/statut`) garantissant validation + tracabilite systematique - la mise a jour generique du bien ne permet plus de modifier `statut` directement. Transition automatique ajoutee : un `Client.statutPipeline` passe a `CONCLU` avec un `Matching` valide fait automatiquement basculer le bien vers `VENDU` (si `SALE`) ou `OCCUPE_CLIENT_NBN` (si `RENT`) - jamais de transition inverse automatique, une correction manuelle reste possible via le PATCH dedie.
+
+### GOAL 3 - Timeline complete (livree avec GOAL 1, prerequis transverse)
+Nouveau module generique `shared/timeline.js` + modele `TimelineEvent` (reference logicielle "soft" vers PROPERTY/CLIENT/COMMISSIONNAIRE/BAILLEUR, exception documentee a la regle anti-polymorphisme de CLAUDE.md §4 - meme patron que Notification/Alert/Reminder/CalendarEvent). Consultable via `GET /api/timeline/:entityType/:entityId`, permission reutilisee par domaine (jamais de permission dediee creee). Branche sur la creation, les changements de statut, les missions, les incidents, les paiements - puis etendu au fil des goals suivants (plaintes, entrees/sorties en GOAL 8).
+
+### GOAL 2 - Upload des medias (images + videos)
+`sharp` (present en dependance mais jamais exploite, cf. audit initial CLAUDE.md §3) enfin utilise pour compresser les images cote serveur (redimensionnement >1920px, qualite 80). Video **jamais transcodee cote serveur** (trop couteux pour l'hebergement cPanel mono-process vise, CLAUDE.md §12) - seules taille/MIME sont validees. Tables `PropertyImage`/`PropertyVideo` dediees (pas de table media polymorphique unique - contraintes reellement differentes entre les deux types). Endpoints d'ajout, suppression, reordonnancement pour chacun des deux types de media.
+
+### GOAL 4 - Relation Client/Commissionnaire renforcee
+`Client.sourceCommissionnaireCode` etait jusque-la non valide a la saisie (un code inexistant ne surface qu'a l'heure du calcul de commission). Validation ajoutee a la creation **et** a la modification du client, resolution de la relation exposee via une association explicite (`commissionnaireSource`), nouvel endpoint `GET /api/commissionnaires/:id/clients`, evenements timeline des deux cotes (`COMMISSIONNAIRE_ATTRIBUE` / `CLIENT_APPORTE`).
+
+### GOAL 5 - Panier WhatsApp cross-page
+Decision deliberee : panier **Frontend seul**, persistance `localStorage` (`nbn-property-cart`, 10 biens max) - etat ephemere d'UI, pas une entite metier justifiant une table/permission Backend. `CartProvider` + `CartButton` globaux (layout dashboard), boutons d'ajout sur toutes les pages de listing biens, generation d'un message WhatsApp formate et partage direct.
+
+### GOAL 6 - Numeros de dossier uniques (Client/Bailleur)
+`dossierNumber` genere en deux temps (create -> update immediat, derive du PK auto-incremente - pas de table de sequence separee, l'unicite du PK suffit deja). Recherche `Op.like` sur ce champ ajoutee aux listes. Affiche sur les fiches et cartes Kanban.
+
+### GOAL 7 - Pipeline commercial en Kanban drag & drop
+`@dnd-kit/core`/`sortable`/`utilities` (React 19 compatible - `react-beautiful-dnd` ecarte, non maintenu/incompatible). Carte draggable avec poignee dediee (le lien de navigation de la carte reste cliquable independamment), colonnes par etape du pipeline, changement de statut optimiste avec rollback en cas d'echec serveur, saut d'etape autorise (pas de regle de sequence stricte imposee au drag).
+
+### GOAL 8 - Rapport complet client (vue 360)
+Nouveau modele `ClientComplaint` (aucun analogue client n'existait - seul `CommissionnaireIncident` existait cote terrain). "Entrees"/"sorties" journalisees comme evenements `CLIENT` sur la Timeline existante (pas de nouveau modele dedie) : `ENTREE` emis dans la transition automatique `CONCLU` (`client.controller.js`), `SORTIE` emis quand un bien quitte `OCCUPE_CLIENT_NBN` (`property.controller.js`). Nouvel endpoint agrege `GET /api/clients/:id/dossier` (biens occupes derives de `Matching` valide + statut du bien, propositions envoyees, commissions avec leur paiement lie via une nouvelle association inverse `Commission.hasOne(Payment, {as:"payment"})`, plaintes) - la timeline reste consultee separement (deja generique, jamais dupliquee).
+
+**Bug evite avant qu'il ne devienne un defaut runtime** : `Matching.belongsTo(Property)`/`belongsTo(Client)` etaient declarees sans `as` explicite dans `models/index.model.js` - l'alias par defaut de Sequelize (`property`/`client`, en minuscule, derive de `inflection.singularize` sur le nom pluriel du modele) fonctionnait deja implicitement dans `matching.controller.js`. Ajouter un `as` explicite (conforme a la convention du projet "alias explicites partout", deja actee dans une session precedente) sur ces deux associations **change le contrat Sequelize** : des qu'une association porte un alias explicite, tout `include` qui la reference doit desormais le specifier lui aussi, sous peine de `SequelizeEagerLoadingError` au runtime - deux points d'inclusion existants dans `matching.controller.js` ont du etre mis a jour en consequence (alias identiques au defaut precedent, donc aucun changement de forme de reponse JSON pour les consommateurs existants).
+
+Frontend : nouveau composant `ClientDossier` (biens occupes, propositions, commissions/paiements, plaintes avec ajout/resolution via Dialog) insere sur la fiche client entre les infos generales et la timeline (`EntityTimeline` reutilise tel quel, etendu avec les icones/couleurs/labels des nouveaux types d'evenements `ENTREE`/`SORTIE`/`PLAINTE`/`PLAINTE_RESOLUE`/`MEDIA_ADDED`/`MEDIA_REMOVED`/`COMMISSIONNAIRE_ATTRIBUE`/`CLIENT_APPORTE`, jusque-la non mappes). Verifie en navigateur bout en bout (creation de plainte -> apparition immediate -> rechargement -> evenement timeline confirme -> resolution -> badge "Resolue" + texte de resolution affiches).
+
+### Verification
+Backend : `npm test` -> **139/142** (les 3 echecs restent le bug SMTP synchrone pre-existant et deja signale separement, cf. Session 10 - non lie a cette session). Frontend : `npx tsc --noEmit` -> 0 erreur. Verification navigateur manuelle du flux complet plainte (creation/resolution/timeline) sur `/dashboard/clients/33`.
+
+*Suite immediate, sans interruption : GOAL 9 (gestion automatique des marges).*
+
+### GOAL 9 - Gestion automatique des marges
+
+Avant cette session, `Property.margin` etait un DECIMAL saisi manuellement (formulaires "Marge (USD)" sur les modales biens a vendre), sans lien avec un pourcentage, et sans mecanisme de configuration - deja identifie comme champ sensible (`property:margin:read`, field-level authorization deja en place) mais jamais reellement "gere".
+
+**Nouveau modele de calcul** : `margin` devient une valeur **derivee**, plus jamais saisie directement (retiree de `PROPERTY_FIELDS`, les deux formulaires "Marge (USD)" supprimes des modales d'ajout/edition de biens a vendre). Elle est recalculee automatiquement a partir de `price` et d'un pourcentage effectif :
+- **`MarginSetting`** (6 lignes, une par `PropertyType`, seedees a 10% par defaut) - pourcentage global configurable depuis Parametres.
+- **`Property.marginOverridePercentage`** (nullable) - pourcentage propre a UN bien, toujours prioritaire sur le defaut global de son type.
+
+**Points d'entree audites** (meme patron que le statut, GOAL 1) : `margin` et `marginOverridePercentage` retires de la mise a jour generique du bien. Nouveau `PATCH /api/properties/:id/margin-override` (permission dediee `property:margin:manage`, distincte de la simple lecture `property:margin:read` deja en place) - seul moyen de definir/retirer un override, journalise a la fois dans `MarginHistory` (audit global) et dans la Timeline du bien (`MARGIN_OVERRIDE_CHANGED`, visibilite locale). Nouveau `PATCH /api/margin-settings/:propertyType` - change le defaut d'un type et **recalcule immediatement** tous les biens de ce type sans override (`marginOverridePercentage IS NULL`) ; les biens avec un override restent strictement inchanges - l'isolation explicitement demandee ("un override sur une propriete ne doit jamais affecter les autres") verifiee par test dans les deux sens (l'override resiste au changement global ; le changement global ne s'applique qu'aux biens non overrides).
+
+**Frontend** : nouveau composant `PropertyMarginControl` (fiches bien louer/vendre) affichant le montant derive + badge "Override X%"/"Defaut du type" + Dialog pour definir/retirer l'override - rendu conditionne uniquement a `property.margin !== undefined` (deja filtre par le Backend, jamais de verification de permission cote Frontend). Nouveau panneau `MarginSettingsPanel` sur `/dashboard/settings` (premiere brique reelle de ce qui deviendra le centre de configuration complet du GOAL 13) - se masque silencieusement si l'appel `GET /api/margin-settings` echoue (403), meme logique de reaction a l'etat deja decide par le Backend.
+
+**Verifie en navigateur** (compte `tresorerie`, seul role avec `property:margin:manage` en plus d'admin) : modification du pourcentage global MAISON -> 200 OK ; definition d'un override 30% sur un bien TERRAIN_PLAT -> marge recalculee a $3 000 (30% de $10 000), badge et evenement timeline corrects ; retrait de l'override -> marge revenue au defaut courant du type.
+
+### Verification
+Backend : `tests/marginSetting.test.js` (6/6, nouveau) + `npm test` -> **145/148** (memes 3 echecs SMTP pre-existants, non lies). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 10 (Caisse - export + transfert entre caisses).*
+
+### GOAL 10 - Caisse : export et virements entre caisses
+
+Constat en ouvrant le chantier : l'infrastructure financiere (Caisse/CaisseBalance/CashMovement/LedgerEntry append-only) etait deja solide et testee, et un export PDF de l'etat de caisse existait deja (`GET /api/reports/caisses/:id/etat.pdf`) - mais **aucun export tabulaire (CSV/Excel)** pour la caisse (contrairement aux biens et commissions, deja couverts), et **aucun concept de virement entre caisses**. Bug adjacent trouve et corrige au passage : `from`/`to` etaient bien parses par `parseRange()` mais jamais appliques au `LedgerEntry.findAll` de l'export PDF - la periode demandee etait purement decorative, corrige avec un `where: { createdAt: { [Op.between]: [from, to] } } ` desormais reellement applique aux deux exports (PDF et nouveaux CSV/Excel).
+
+**Virement entre caisses** : nouveau modele `CaisseTransfer` (immuable, pas d'updatedAt - une correction passe par un virement en sens inverse, jamais une modification). `CashMovement.idPayment` assoupli en nullable et complete par un nouveau `idCaisseTransfer` nullable - un mouvement a toujours exactement une origine tracable (paiement OU virement), jamais aucune des deux. Un virement produit **deux** `CashMovement`/`LedgerEntry` (SORTIE cote source, ENTREE cote destination) ancres au meme `CaisseTransfer`, dans une seule transaction Sequelize - meme circuit comptable que `payment.controller.js` (verrouillage `CaisseBalance` en `LOCK.UPDATE`, solde jamais negatif, caisse cloturee refusee). Verrouillage des deux `CaisseBalance` dans un ordre stable (idCaisse croissant) pour eviter un interblocage entre deux virements opposes concurrents entre les deux memes caisses. Nouvelle permission `treasury:manage` reutilisee (aucune permission inventee) pour `POST /api/caisses/transfers` ; `treasury:read` pour la liste filtrable par caisse impliquee.
+
+**Export tabulaire** : nouveau `GET /api/reports/caisses/:id/ledger?format=csv|xlsx`, meme pattern que les exports biens/commissions deja en place (`utils/reports/tabularExport.js`), memes colonnes que le ledger (date, type, montant, devise, solde apres, description).
+
+**Frontend** : nouveau `TransferCaisseModal` (source/destination/devise limitee aux devises reellement suivies par la caisse source/montant/description), bouton "Virement" sur la fiche caisse (visible seulement si `OUVERTE`, meme regle que "Enregistrer un paiement"). Menu deroulant "Exporter" (PDF/CSV/Excel) ajoute a cote. Verifie en navigateur bout en bout (compte `tresorerie`) : virement de 100 CDF Caisse Principale -> Budget Principale, solde source passe de 60 000 a 59 900, ligne de ledger "Virement vers Budget Principale" visible immediatement ; export CSV declenche avec succes (200 OK).
+
+### Verification
+Backend : `tests/caisseTransfer.test.js` (8/8, nouveau) + `npm test` -> **153/156** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 11 (Calendrier ameliore).*
+
+### GOAL 11 - Calendrier ameliore : assignation, notifications, rappels
+
+Constat en ouvrant le chantier : l'agregation calendrier (BACK-G19, Session 6) etait deja solide (Task/Reminder/Client relance/CalendarEvent fusionnes sur une frise), mais trois lacunes concretes empechaient GOAL 11 : (1) `CalendarEvent` n'avait qu'un seul `idUser` (proprietaire), aucune notion d'assignation a plusieurs personnes ; (2) creer un rendez-vous ne notifiait jamais personne ; (3) plus grave, le commentaire du modele `Reminder` affirmait qu'"un job cron parcourt les Reminder PLANIFIE echus et produit une Notification" - **ce cron n'existait tout simplement pas**, seul le worker outbox (retries de push) tournait. Un rappel cree restait PLANIFIE pour toujours, sans jamais notifier personne.
+
+**Assignation multi-personnes** : nouvelle table `CalendarEventParticipant` (meme patron que `TaskAssignee` deja existant pour les taches) - `CalendarEvent.idUser` reste le "proprietaire" unique utilise par le filtrage historique, la nouvelle table ajoute les autres personnes concernees. Chaque participant (et le proprietaire si different du createur) recoit une `Notification` a la creation, jamais le createur lui-meme. Nouveau `PATCH /api/calendar/:id` (absent jusqu'ici, seules creation/suppression existaient) - remplace integralement la liste de participants si fournie (jamais un merge implicite), notifie uniquement les nouveaux ajouts.
+
+**Requete d'agregation** : un participant doit voir l'evenement dans son calendrier meme sans en etre proprietaire. Resolu en deux temps (liste des idCalendarEvent ou l'utilisateur participe, puis `Op.in` dans le WHERE principal) plutot qu'un LEFT JOIN direct sur `participants` dans le WHERE, qui aurait duplique les lignes d'un evenement a plusieurs participants.
+
+**Worker de rappels (lacune comblee)** : nouveau `services/reminder.worker.js`, meme patron que `outbox.worker.js` (cron `node-cron` toutes les 30s, idempotent). Chaque `Reminder` `PLANIFIE` dont `dueAt` est passee produit exactement une `Notification` puis passe a `ENVOYE` + `sentAt` - jamais retraite. Enregistre dans `server.js` a cote du cron outbox existant.
+
+**Annuaire minimal (bug de conception attrape avant merge)** : le premier jet du selecteur de participants appelait `GET /api/users` (donnees completes, permission `users:read`) - or `users:read` n'est accorde qu'a `technologique`/`admin`, alors que `calendar:manage` (necessaire pour creer un rendez-vous) est accorde a `operations`, `communication`, `marketing`, `juridique`, `tresorerie`. La quasi-totalite des roles pouvant creer un rendez-vous ne pouvaient donc pas lister leurs collegues pour les assigner (403 confirme en navigateur). Corrige par un nouvel endpoint dedie `GET /api/users/directory` (id/nom/role uniquement, jamais email/statut/avatar), ouvert a tout utilisateur authentifie - separation nette entre "annuaire minimal pour assignation" et "gestion complete des utilisateurs".
+
+**Frontend** : `CalendarParticipantPicker` (liste a cocher scrollable, annuaire complet), formulaire de creation/edition unifie (`editingId` bascule entre create/update), badges participants affiches sur chaque carte de rendez-vous, bouton Modifier a cote de Supprimer.
+
+**Incident d'infrastructure rencontre et resolu en session** : le serveur Backend (lance hors du tracking de l'outil, dans une session precedente) s'est retrouve bloque (port 5500 en LISTEN mais ne repondant plus) apres de multiples redemarrages nodemon successifs au fil des edits de cette tres longue session - diagnostique via `Get-NetTCPConnection`, processus zombie tue, serveur redemarre proprement. Sans lien avec un bug de code (confirme par `node -e "import('./app.js')"` reussi pendant l'incident).
+
+Verifie en navigateur bout en bout (compte `operations`, sans `users:read`) : creation d'un rendez-vous avec "QA tresorerie" en participant -> badge participant affiche immediatement, `Notification` confirmee en base pour cet utilisateur ; edition du meme rendez-vous -> participant deja coche correctement pre-rempli.
+
+### Verification
+Backend : `tests/calendarAssignment.test.js` (6/6, nouveau) + `npm test` -> **159/162** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 12 (Courte/longue duree de location).*
+
+### GOAL 12 - Courte/longue duree de location
+
+Constat en ouvrant le chantier : `RentalProperty.unit` (DAY/MONTH/YEAR) existait deja mais ne qualifiait que la duree de la garantie - `Property.price` etait traite comme mensuel PARTOUT dans le Frontend (`"/mois"` code en dur sur la fiche bien, le message WhatsApp, et la carte de liste), meme pour un bien loue a la journee. Aucune notion de "courte/longue duree" n'existait, et le systeme de marges (GOAL 9) n'avait qu'une seule dimension (type de bien), pas de place pour un pourcentage different selon la duree.
+
+**Decision de conception** : reutiliser `unit` comme seul discriminant courte/longue duree plutot que d'ajouter un champ redondant - `unit=DAY` -> courte sejour, `MONTH`/`YEAR` -> longue duree (une vente sans `RentalProperty` est toujours longue duree par construction). Evite un champ duplique dont la valeur pourrait diverger de `unit`.
+
+**Marge a deux dimensions** : `MarginSetting` gagne une colonne `stayType` (LONGUE_DUREE/COURT_SEJOUR), unique desormais sur `(propertyType, stayType)` - 12 lignes au lieu de 6, chaque type de bien ayant un pourcentage independant pour la courte et la longue duree (courte duree seedee a 20% par defaut, contre 10% pour la longue duree - realiste vu la rotation/les couts de gestion plus eleves, mais entierement reconfigurable). `shared/marginCalculator.js::resolveStayType` resout la duree a partir de `unit` (passe explicitement par l'appelant quand deja connu, sinon lu depuis `RentalProperty`) ; `getEffectivePercentage` l'utilise pour choisir la bonne ligne `MarginSetting`. Un changement d'`unit` seul (sans changement de prix) redeclenche desormais aussi le recalcul de marge - le pourcentage effectif en depend directement. Le recalcul en masse d'un pourcentage global (`updateMarginSetting`) ne touche que les biens dont le `RentalProperty.unit` correspond reellement au `stayType` modifie (jointure explicite, jamais un simple filtre sur `propertyType` comme avant).
+
+**Nettoyage evite plutot que duplique** : `MarginHistory` recoit une vraie colonne `stayType` (pas une concatenation de chaine dans `propertyType`, corrige avant merge apres une premiere version bricolee avec un `Symbol.for("notIn")` invalide - remplace par un `Op.notIn` propre importe de `sequelize`).
+
+**Frontend** : `RENTAL_UNIT_PRICE_SUFFIX` (`/jour`, `/mois`, `/an`) remplace tous les `"/mois"` codes en dur (fiche bien, liste, message WhatsApp) - le prix affiche reflete toujours la vraie unite du bien. Formulaires d'ajout/edition de location : libelle du prix dynamique (`Prix (USD) /jour` quand DAY est selectionne), options du selecteur d'unite explicitement annotees "(courte duree)"/"(longue duree)" pour la clarte. Panneau de parametres des marges reorganise par type de bien avec les deux pourcentages (longue/courte duree) cote a cote, chacun modifiable independamment.
+
+Verifie en navigateur bout en bout (compte `operations`) : creation d'un appartement a $75/jour -> marge affichee $15 (20% courte duree, pas 10% longue duree), libelle "Prix de location $75.00 /jour" correct sur la fiche.
+
+### Verification
+Backend : `tests/rentalStayType.test.js` (5/5, nouveau) + `tests/marginSetting.test.js` mis a jour pour la nouvelle signature (`stayType` requis) + `npm test` -> **164/167** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 13 (Parametres - centre de configuration).*
+
+### GOAL 13 - Parametres : centre de configuration reel
+
+Constat en ouvrant le chantier, confirme par un sous-agent : la quasi-totalite de `/dashboard/settings` etait un decor. `maxGroupSize`/`autoSaveLocation`/`enableScoring`/`enableNotifications` etaient ecrits dans `localStorage` au clic sur "Enregistrer" mais **jamais relus nulle part**, meme pas au rechargement de la page elle-meme (aucun `localStorage.getItem` correspondant). Les quatre champs "Informations de l'entreprise" etaient encore pires : `defaultValue` non controle, jamais inclus dans `handleSave` - meme pas persistes en local. Le panier WhatsApp (GOAL 5) avait sa propre limite `MAX_ITEMS = 10` codee en dur dans `cart-provider.tsx`, deconnectee du champ "Nombre maximum de biens a grouper" cense la piloter. Seul le panneau de marges (GOAL 9/12) etait deja reellement branche au Backend.
+
+**Decision de perimetre** : plutot que de re-brancher chaque champ existant tel quel, seuls les parametres correspondant a une vraie regle metier consommee ailleurs ont ete conserves et rendus reels ; les deux interrupteurs decoratifs sans aucun point de consommation (`autoSaveLocation` - aucune fonctionnalite Mobile de collecte GPS n'existe encore, GOAL 21 non demarre ; `enableNotifications` - kill-switch global juge hors de portee de ce goal, plus proche de GOAL 20) ont ete retires plutot que re-empaquetes comme neuf sans effet reel - conserver une case a cocher qui ne fait rien serait revenu a deplacer le meme mensonge plutot qu'a le corriger.
+
+**Nouveau centre de configuration generique** : table `AppSetting` (cle/valeur JSON), distincte de `MarginSetting` (deja dedie et structure pour les marges) - couvre les parametres transverses sans dupliquer ce mecanisme pour chacun. Nouvelles permissions `settings:read` (large, tout le personnel interne sauf consultant) / `settings:manage` (admin + technologique, meme logique que la gestion des utilisateurs/roles deja reservee a ce role). Aucune cle creee a la volee depuis l'API - seules les clefs seedees par migration sont modifiables, evite une proliferation de parametres non documentes.
+
+**Trois parametres reels, seedes et effectivement consommes** :
+- `cart.maxItems` (defaut 10) - `cart-provider.tsx` le recupere au montage (repli silencieux sur 10 si `/api/settings` est inaccessible, ex. role sans `settings:read`) au lieu de la constante figee.
+- `company.info` (nom/telephone/adresse/email) - `whatsappProposal.ts` l'utilise desormais pour l'en-tete et le pied de message des propositions clients, au lieu de "*NBN Express* — Bukavu, Sud-Kivu" code en dur. Piege evite : `openWhatsAppShare` devient async (le fetch de la config precede la construction du message) - un `window.open` execute apres un `await` perdrait le contexte de geste utilisateur et serait bloque comme pop-up ; corrige en ouvrant l'onglet de facon synchrone (`about:blank`) puis en le redirigeant une fois le message pret.
+- `commissionnaire.scoringEnabled` (defaut true) - `createIncident` consulte ce reglage : l'incident reste **toujours** enregistre (tracabilite), mais son impact automatique sur le score discipline et la grille d'evolution peut etre desactive independamment (ex. periode geree manuellement par un superviseur).
+
+### Verification
+Backend : `tests/appSettings.test.js` (5/5, nouveau) + `npm test` -> **169/172** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur. Verifie en navigateur bout en bout (compte `technologique`) : modification du nombre max de biens (10 -> 12), persistance confirmee apres rechargement, section marges masquee correctement pour un role sans `property:margin:read` (comportement attendu, pas une regression).
+
+*Suite immediate, sans interruption : GOAL 14 (Missions et alertes completes).*

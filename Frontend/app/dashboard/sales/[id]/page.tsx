@@ -12,7 +12,6 @@ import {
   Bath,
   HomeIcon,
   Phone,
-  DollarSign,
   Calendar,
   Edit,
   Trash2,
@@ -26,9 +25,14 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditSaleModal } from "@/components/property-modals/edit-sale-modal"
 import { DeleteSaleModal } from "@/components/property-modals/delete-sale-modal"
+import { PropertyStatutControl } from "@/components/property-statut-control"
+import { PropertyMarginControl } from "@/components/property-margin-control"
+import { PropertyMediaManager } from "@/components/property-media-manager"
+import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import { LAND_PROPERTY_TYPES, PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
+import { getImageUrl } from "@/lib/imageUrl"
 import { toast } from "sonner"
 
 export default function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -156,7 +160,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
             <div className="relative aspect-video bg-muted">
               {images.length > 0 ? (
                 <Image
-                  src={images[currentImageIndex]?.image || "/placeholder.svg"}
+                  src={getImageUrl(images[currentImageIndex]?.image)}
                   alt={`Image ${currentImageIndex + 1} du bien`}
                   fill
                   className="object-cover"
@@ -178,7 +182,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
                     }`}
                   >
                     <Image
-                      src={image.image || "/placeholder.svg"}
+                      src={getImageUrl(image.image)}
                       alt={`Miniature ${index + 1}`}
                       fill
                       className="object-cover"
@@ -203,7 +207,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
                   <Badge className="bg-secondary text-secondary-foreground whitespace-nowrap">
                     {PROPERTY_TYPE_LABELS[property.propertyType]}
                   </Badge>
-                  <Badge variant="secondary">{property.statut}</Badge>
+                  <PropertyStatutControl property={property} onChanged={setProperty} />
                 </div>
               </div>
             </CardHeader>
@@ -281,17 +285,10 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-secondary">${property.price.toLocaleString()}</span>
               </div>
-              {property.margin !== undefined && (
-                <div className="p-3 rounded-lg bg-muted">
-                  <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    <span className="text-muted-foreground">Marge:</span>
-                    <span className="font-semibold">${property.margin.toLocaleString()}</span>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
+
+          <PropertyMarginControl property={property} onChanged={setProperty} />
 
           <Card className="border-border">
             <CardHeader>
@@ -332,6 +329,10 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
           </Card>
         </div>
       </div>
+
+      <PropertyMediaManager property={property} onChanged={setProperty} />
+
+      <EntityTimeline key={property.updatedAt} entityType="PROPERTY" entityId={property.idProperty} />
 
       <EditSaleModal open={showEditModal} onOpenChange={setShowEditModal} property={property} onEdit={handleEdit} />
       <DeleteSaleModal

@@ -9,6 +9,9 @@ import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2 } from "lucide-
 import { getAllProperties } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import type { Property } from "@/lib/types"
+import { getImageUrl } from "@/lib/imageUrl"
+import { openWhatsAppShare } from "@/lib/whatsappProposal"
+import { AddToCartButton } from "@/components/add-to-cart-button"
 import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -55,12 +58,7 @@ export default function GalleryPage() {
     }
   }
 
-  const handlePropose = (property: Property) => {
-    const message = `🏠 *Proposition Nyumbani Express*\n\n${property.category === "RENT" ? "À louer" : "À vendre"}\n📍 ${property.quartier}, ${property.avenue}\n💰 Prix: $${property.price}${property.category === "RENT" ? "/mois" : ""}\n\n${property.description || "Belle propriété disponible"}\n\n📞 Contact: ${property.phones?.[0]?.phoneNumber || ""}`
-
-    const encodedMessage = encodeURIComponent(message)
-    window.open(`https://wa.me/?text=${encodedMessage}`, "_blank")
-  }
+  const handlePropose = (property: Property) => openWhatsAppShare([property])
 
   return (
     <div className="space-y-6">
@@ -93,7 +91,7 @@ export default function GalleryPage() {
             <Card key={property.idProperty} className="border-border overflow-hidden group relative">
               <div className="relative aspect-square overflow-hidden">
                 <Image
-                  src={property.images?.[0]?.image || "/placeholder.svg"}
+                  src={getImageUrl(property.images?.[0]?.image)}
                   alt={`Property in ${property.quartier || ""}`}
                   fill
                   className="object-cover transition-transform group-hover:scale-105"
@@ -139,6 +137,7 @@ export default function GalleryPage() {
                       <Eye className="h-3 w-3" />
                     </Link>
                   </Button>
+                  <AddToCartButton property={property} className="h-8 w-8" />
                 </div>
               </div>
               <CardContent className="p-3">

@@ -30,6 +30,13 @@ import taskRouter from "./routes/task.route.js";
 import notificationRouter from "./routes/notification.route.js";
 import alertRouter from "./routes/alert.route.js";
 import reminderRouter from "./routes/reminder.route.js";
+import calendarRouter from "./routes/calendar.route.js";
+import reportRouter from "./routes/report.route.js";
+import hrRouter from "./routes/hr.route.js";
+import dashboardRouter from "./routes/dashboard.route.js";
+import timelineRouter from "./routes/timeline.route.js";
+import marginSettingRouter from "./routes/marginSetting.route.js";
+import appSettingRouter from "./routes/appSetting.route.js";
 import { registerEventListeners } from "./shared/eventListeners.js";
 import { registerRealtimeListeners } from "./shared/socketGateway.js";
 
@@ -78,6 +85,23 @@ app.use(
   })
 );
 
+// SEC-G06 (complément) — les fichiers uploadés (multer, `file.path` =
+// "uploads/images/xxx.jpg") n'étaient jamais servis statiquement : la
+// route existait en théorie via PropertyImage.image mais aucune requête
+// HTTP ne pouvait jamais les atteindre. `Cross-Origin-Resource-Policy`
+// explicitement relâché ici (contrairement au reste de l'API) : Frontend
+// et Backend tournent sur des origines différentes en dev, et
+// `helmet()` pose `same-origin` par défaut, ce qui bloquerait le
+// chargement de ces images par <Image> / <img> côté Frontend sinon.
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+  },
+  express.static(path.join(process.cwd(), "uploads"))
+);
+
 setupSwagger(app);
 
 app.get("/", (req, res) => {
@@ -108,6 +132,13 @@ app.use("/api/tasks", taskRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/alerts", alertRouter);
 app.use("/api/reminders", reminderRouter);
+app.use("/api/calendar", calendarRouter);
+app.use("/api/reports", reportRouter);
+app.use("/api/hr", hrRouter);
+app.use("/api/dashboard", dashboardRouter);
+app.use("/api/timeline", timelineRouter);
+app.use("/api/margin-settings", marginSettingRouter);
+app.use("/api/settings", appSettingRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

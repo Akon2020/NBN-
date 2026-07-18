@@ -41,7 +41,6 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
     toilets: "",
     kitchens: "",
     price: "",
-    margin: "",
     description: "",
   })
 
@@ -59,7 +58,6 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
       toilets: "",
       kitchens: "",
       price: "",
-      margin: "",
       description: "",
     })
     setPhones(["", ""])
@@ -83,7 +81,6 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
         toilets: isLand ? 0 : Number.parseInt(formData.toilets) || 0,
         kitchens: isLand ? 0 : Number.parseInt(formData.kitchens) || 0,
         price: Number.parseFloat(formData.price),
-        margin: Number.parseFloat(formData.margin),
         phones: phones.filter((p) => p.trim() !== ""),
         description: formData.description,
       })
@@ -230,31 +227,20 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="price">Prix (USD)</Label>
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                placeholder="85000"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="margin">Marge (USD)</Label>
-              <Input
-                id="margin"
-                type="number"
-                min="0"
-                placeholder="5000"
-                value={formData.margin}
-                onChange={(e) => setFormData({ ...formData, margin: e.target.value })}
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="price">Prix (USD)</Label>
+            <Input
+              id="price"
+              type="number"
+              min="0"
+              placeholder="85000"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              required
+            />
+            {/* GOAL 9 — la marge est désormais calculée automatiquement à
+                partir du pourcentage par défaut du type de bien (réglable
+                depuis Paramètres) ou d'un override spécifique au bien. */}
           </div>
 
           <div className="space-y-2">

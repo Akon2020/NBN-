@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { api } from './api';
 import { clearTokens, getRefreshToken, saveTokens } from './secureStore';
+import { registerPushToken } from './notifications';
 
 export type AuthUser = {
   idUser: number;
@@ -22,6 +23,12 @@ export async function login(email: string, password: string): Promise<AuthUser> 
 
   const { token, refreshToken, userInfo } = res.data.data;
   await saveTokens(token, refreshToken);
+
+  // Ne bloque jamais la connexion — l'enregistrement du token push est un
+  // effet secondaire best-effort (lib/notifications.ts avale déjà ses
+  // propres erreurs, mais on isole quand même l'appel ici par prudence).
+  registerPushToken().catch(() => {});
+
   return userInfo;
 }
 
