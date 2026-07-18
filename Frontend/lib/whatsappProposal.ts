@@ -1,4 +1,4 @@
-import { PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
+import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_PRICE_SUFFIX, type Property } from "@/lib/types"
 
 // GOAL 5 — un seul générateur de message, réutilisé partout où un
 // partage WhatsApp est proposé (jamais reconstruit à la main par écran).
@@ -26,7 +26,10 @@ export const buildWhatsAppProposalMessage = (properties: Property[]): string => 
       if (property.toilets) parts.push(`🚿 ${property.toilets} douches`)
       lines.push(parts.join(" · "))
     }
-    const priceSuffix = property.category === "RENT" ? "/mois" : ""
+    const priceSuffix =
+      property.category === "RENT" && property.rentalDetails
+        ? RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]
+        : ""
     lines.push(`💰 $${Number(property.price).toLocaleString("fr-FR")}${priceSuffix}`)
     lines.push("")
   })

@@ -57,7 +57,7 @@ afterAll(async () => {
   await MarginHistory.destroy({ where: { propertyType: "TERRAIN_PLAT" } });
   await MarginSetting.update(
     { defaultPercentage: 10, updatedBy: null },
-    { where: { propertyType: "TERRAIN_PLAT" } }
+    { where: { propertyType: "TERRAIN_PLAT", stayType: "LONGUE_DUREE" } }
   );
   if (createdUserIds.length) {
     await User.destroy({ where: { idUser: createdUserIds } });
@@ -73,7 +73,9 @@ describe("GOAL 9 - Gestion automatique des marges", () => {
       .get("/api/margin-settings")
       .set("Authorization", `Bearer ${tresorerieLogin.body.data.token}`);
     expect(settingsRes.status).toBe(200);
-    const terrainSetting = settingsRes.body.data.find((s) => s.propertyType === "TERRAIN_PLAT");
+    const terrainSetting = settingsRes.body.data.find(
+      (s) => s.propertyType === "TERRAIN_PLAT" && s.stayType === "LONGUE_DUREE"
+    );
     expect(terrainSetting).toBeDefined();
 
     const propRes = await request(app)
@@ -145,7 +147,7 @@ describe("GOAL 9 - Gestion automatique des marges", () => {
     const updateRes = await request(app)
       .patch("/api/margin-settings/TERRAIN_PLAT")
       .set("Authorization", `Bearer ${login.body.data.token}`)
-      .send({ percentage: 15 });
+      .send({ percentage: 15, stayType: "LONGUE_DUREE" });
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.propertiesRecalculated).toBeGreaterThanOrEqual(1);
 
@@ -167,7 +169,7 @@ describe("GOAL 9 - Gestion automatique des marges", () => {
     const res = await request(app)
       .patch("/api/margin-settings/TERRAIN_PLAT")
       .set("Authorization", `Bearer ${login.body.data.token}`)
-      .send({ percentage: 20 });
+      .send({ percentage: 20, stayType: "LONGUE_DUREE" });
     expect(res.status).toBe(403);
   });
 

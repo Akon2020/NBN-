@@ -661,3 +661,22 @@ Verifie en navigateur bout en bout (compte `operations`, sans `users:read`) : cr
 Backend : `tests/calendarAssignment.test.js` (6/6, nouveau) + `npm test` -> **159/162** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
 
 *Suite immediate, sans interruption : GOAL 12 (Courte/longue duree de location).*
+
+### GOAL 12 - Courte/longue duree de location
+
+Constat en ouvrant le chantier : `RentalProperty.unit` (DAY/MONTH/YEAR) existait deja mais ne qualifiait que la duree de la garantie - `Property.price` etait traite comme mensuel PARTOUT dans le Frontend (`"/mois"` code en dur sur la fiche bien, le message WhatsApp, et la carte de liste), meme pour un bien loue a la journee. Aucune notion de "courte/longue duree" n'existait, et le systeme de marges (GOAL 9) n'avait qu'une seule dimension (type de bien), pas de place pour un pourcentage different selon la duree.
+
+**Decision de conception** : reutiliser `unit` comme seul discriminant courte/longue duree plutot que d'ajouter un champ redondant - `unit=DAY` -> courte sejour, `MONTH`/`YEAR` -> longue duree (une vente sans `RentalProperty` est toujours longue duree par construction). Evite un champ duplique dont la valeur pourrait diverger de `unit`.
+
+**Marge a deux dimensions** : `MarginSetting` gagne une colonne `stayType` (LONGUE_DUREE/COURT_SEJOUR), unique desormais sur `(propertyType, stayType)` - 12 lignes au lieu de 6, chaque type de bien ayant un pourcentage independant pour la courte et la longue duree (courte duree seedee a 20% par defaut, contre 10% pour la longue duree - realiste vu la rotation/les couts de gestion plus eleves, mais entierement reconfigurable). `shared/marginCalculator.js::resolveStayType` resout la duree a partir de `unit` (passe explicitement par l'appelant quand deja connu, sinon lu depuis `RentalProperty`) ; `getEffectivePercentage` l'utilise pour choisir la bonne ligne `MarginSetting`. Un changement d'`unit` seul (sans changement de prix) redeclenche desormais aussi le recalcul de marge - le pourcentage effectif en depend directement. Le recalcul en masse d'un pourcentage global (`updateMarginSetting`) ne touche que les biens dont le `RentalProperty.unit` correspond reellement au `stayType` modifie (jointure explicite, jamais un simple filtre sur `propertyType` comme avant).
+
+**Nettoyage evite plutot que duplique** : `MarginHistory` recoit une vraie colonne `stayType` (pas une concatenation de chaine dans `propertyType`, corrige avant merge apres une premiere version bricolee avec un `Symbol.for("notIn")` invalide - remplace par un `Op.notIn` propre importe de `sequelize`).
+
+**Frontend** : `RENTAL_UNIT_PRICE_SUFFIX` (`/jour`, `/mois`, `/an`) remplace tous les `"/mois"` codes en dur (fiche bien, liste, message WhatsApp) - le prix affiche reflete toujours la vraie unite du bien. Formulaires d'ajout/edition de location : libelle du prix dynamique (`Prix (USD) /jour` quand DAY est selectionne), options du selecteur d'unite explicitement annotees "(courte duree)"/"(longue duree)" pour la clarte. Panneau de parametres des marges reorganise par type de bien avec les deux pourcentages (longue/courte duree) cote a cote, chacun modifiable independamment.
+
+Verifie en navigateur bout en bout (compte `operations`) : creation d'un appartement a $75/jour -> marge affichee $15 (20% courte duree, pas 10% longue duree), libelle "Prix de location $75.00 /jour" correct sur la fiche.
+
+### Verification
+Backend : `tests/rentalStayType.test.js` (5/5, nouveau) + `tests/marginSetting.test.js` mis a jour pour la nouvelle signature (`stayType` requis) + `npm test` -> **164/167** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 13 (Parametres - centre de configuration).*

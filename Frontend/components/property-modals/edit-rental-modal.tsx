@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { updateProperty } from "@/actions/properties";
-import type { Property, PropertyType, RentalUnit } from "@/lib/types";
+import { RENTAL_UNIT_PRICE_SUFFIX, type Property, type PropertyType, type RentalUnit } from "@/lib/types";
 import { toast } from "sonner";
 
 interface EditRentalModalProps {
@@ -219,7 +219,9 @@ export function EditRentalModal({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="edit-price">Prix de location ($) *</Label>
+              <Label htmlFor="edit-price">
+                Prix de location (${RENTAL_UNIT_PRICE_SUFFIX[unit]}) *
+              </Label>
               <Input
                 id="edit-price"
                 type="number"
@@ -251,9 +253,9 @@ export function EditRentalModal({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="DAY">Jours</SelectItem>
-                    <SelectItem value="MONTH">Mois</SelectItem>
-                    <SelectItem value="YEAR">Ans</SelectItem>
+                    <SelectItem value="DAY">Jours (courte durée)</SelectItem>
+                    <SelectItem value="MONTH">Mois (longue durée)</SelectItem>
+                    <SelectItem value="YEAR">Ans (longue durée)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

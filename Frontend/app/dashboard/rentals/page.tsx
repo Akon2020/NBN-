@@ -20,6 +20,7 @@ import {
   PROPERTY_STATUT_LABELS,
   PROPERTY_TYPE_LABELS,
   RENTAL_UNIT_LABELS,
+  RENTAL_UNIT_PRICE_SUFFIX,
   type Property,
 } from "@/lib/types";
 import { AddToCartButton } from "@/components/add-to-cart-button";
@@ -167,6 +168,11 @@ export default function RentalsPage() {
                   <div>
                     <div className="text-2xl font-bold text-primary">
                       ${property.price}
+                      {property.rentalDetails && (
+                        <span className="text-sm font-normal text-muted-foreground">
+                          {RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]}
+                        </span>
+                      )}
                     </div>
                     {property.rentalDetails && (
                       <div className="text-xs text-muted-foreground">

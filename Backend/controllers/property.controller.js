@@ -200,7 +200,9 @@ export const createProperty = async (req, res, next) => {
     // GOAL 9 — `margin` est toujours dérivée, calculée dès la création à
     // partir du prix et du pourcentage effectif de son type (aucun override
     // possible à la création, cf. updatePropertyMarginOverride).
-    await recalculatePropertyMargin(property, { transaction });
+    // GOAL 12 — `unit` transmis explicitement (déjà connu ici) pour éviter
+    // une requête RentalProperty superflue dans resolveStayType.
+    await recalculatePropertyMargin(property, { transaction, unit: category === "RENT" ? unit : undefined });
 
     await transaction.commit();
 
@@ -246,13 +248,6 @@ export const updateProperty = async (req, res, next) => {
     });
     await property.update(propertyData, { transaction });
 
-    // GOAL 9 — un changement de prix doit toujours se refléter dans la
-    // marge dérivée, override ou pas (l'override porte sur le pourcentage,
-    // jamais sur le montant final).
-    if (req.body.price !== undefined) {
-      await recalculatePropertyMargin(property, { transaction });
-    }
-
     if (property.category === "RENT" && (req.body.guarantee !== undefined || req.body.unit !== undefined)) {
       const rentalData = {};
       if (req.body.guarantee !== undefined) rentalData.guarantee = req.body.guarantee;
@@ -261,6 +256,18 @@ export const updateProperty = async (req, res, next) => {
         where: { idProperty: id },
         transaction,
       });
+    }
+
+    // GOAL 9 — un changement de prix doit toujours se refléter dans la
+    // marge dérivée, override ou pas (l'override porte sur le pourcentage,
+    // jamais sur le montant final).
+    // GOAL 12 — un changement d'`unit` seul (ex. passage longue durée →
+    // courte durée) doit aussi redéclencher le calcul : le pourcentage
+    // effectif en dépend désormais, même si le prix n'a pas bougé.
+    // RentalProperty étant déjà à jour ci-dessus, `resolveStayType` lit la
+    // bonne valeur sans avoir besoin qu'on la lui passe explicitement.
+    if (req.body.price !== undefined || req.body.unit !== undefined) {
+      await recalculatePropertyMargin(property, { transaction });
     }
 
     await transaction.commit();

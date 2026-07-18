@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import axios from "axios";
-import { MarginHistoryEntry, MarginSetting, PropertyType } from "@/lib/types";
+import { MarginHistoryEntry, MarginSetting, PropertyType, StayType } from "@/lib/types";
 
 export const getMarginSettings = async (): Promise<MarginSetting[]> => {
   try {
@@ -18,12 +18,13 @@ export const getMarginSettings = async (): Promise<MarginSetting[]> => {
 
 export const updateMarginSetting = async (
   propertyType: PropertyType,
+  stayType: StayType,
   percentage: number
 ): Promise<MarginSetting> => {
   try {
     const res = await api.patch<{ message: string; data: MarginSetting }>(
       `/api/margin-settings/${propertyType}`,
-      { percentage }
+      { percentage, stayType }
     );
     return res.data.data;
   } catch (error) {

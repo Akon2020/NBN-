@@ -13,7 +13,7 @@ const marginSettingRouter = Router();
  * @swagger
  * /api/margin-settings:
  *   get:
- *     summary: Liste les pourcentages de marge par défaut par type de bien (GOAL 9)
+ *     summary: Liste les pourcentages de marge par défaut par type de bien et type de séjour (GOAL 9, GOAL 12)
  *     tags: [MarginSettings]
  *     responses:
  *       200:
@@ -47,7 +47,7 @@ marginSettingRouter.get(
  * @swagger
  * /api/margin-settings/{propertyType}:
  *   patch:
- *     summary: Change le pourcentage de marge par défaut d'un type de bien (GOAL 9) — recalcule tous les biens de ce type sans override
+ *     summary: Change le pourcentage de marge par défaut d'un type de bien pour un type de séjour donné (GOAL 9, GOAL 12) — recalcule tous les biens concernés sans override
  *     tags: [MarginSettings]
  *     parameters:
  *       - in: path
@@ -62,17 +62,20 @@ marginSettingRouter.get(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [percentage]
+ *             required: [percentage, stayType]
  *             properties:
  *               percentage:
  *                 type: number
+ *               stayType:
+ *                 type: string
+ *                 enum: [LONGUE_DUREE, COURT_SEJOUR]
  *     responses:
  *       200:
  *         description: Pourcentage mis à jour
  *       400:
  *         description: Pourcentage invalide ou déjà appliqué
  *       404:
- *         description: Type de bien non trouvé
+ *         description: Type de bien/séjour non trouvé
  */
 marginSettingRouter.patch(
   "/:propertyType",

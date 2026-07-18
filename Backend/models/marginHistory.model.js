@@ -23,6 +23,12 @@ const MarginHistory = db.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    // GOAL 12 — uniquement renseigné pour scope=GLOBAL (un changement de
+    // pourcentage par défaut concerne toujours un couple type/séjour précis).
+    stayType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     idProperty: {
       type: DataTypes.BIGINT,
       allowNull: true,

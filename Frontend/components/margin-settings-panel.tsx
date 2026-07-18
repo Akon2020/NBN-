@@ -1,22 +1,33 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Loader2, Percent } from "lucide-react"
 import { toast } from "sonner"
-import { PROPERTY_TYPE_LABELS, type MarginSetting } from "@/lib/types"
+import {
+  PROPERTY_TYPE_LABELS,
+  STAY_TYPE_LABELS,
+  type MarginSetting,
+  type PropertyType,
+  type StayType,
+} from "@/lib/types"
 import { getMarginSettings, updateMarginSetting } from "@/actions/marginSettings"
 
-// GOAL 9 — centre de configuration des marges (préfigure GOAL 13). Ce
+const draftKey = (propertyType: PropertyType, stayType: StayType) => `${propertyType}:${stayType}`
+
+// GOAL 9/12 — centre de configuration des marges (préfigure GOAL 13). Ce
 // panneau n'apparaît que si le Backend a effectivement renvoyé des
 // données (property:margin:read) — jamais de vérification de permission
 // côté Frontend, uniquement une réaction à ce que l'API a déjà décidé.
+// Chaque type de bien a deux pourcentages indépendants : longue durée
+// (location classique/vente) et courte durée (location à la journée).
 export function MarginSettingsPanel() {
   const [settings, setSettings] = useState<MarginSetting[] | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
-  const [savingType, setSavingType] = useState<string | null>(null)
+  const [savingKey, setSavingKey] = useState<string | null>(null)
   const [visible, setVisible] = useState(true)
 
   useEffect(() => {
@@ -25,7 +36,9 @@ export function MarginSettingsPanel() {
         const data = await getMarginSettings()
         setSettings(data)
         setDrafts(
-          Object.fromEntries(data.map((s) => [s.propertyType, String(s.defaultPercentage)]))
+          Object.fromEntries(
+            data.map((s) => [draftKey(s.propertyType, s.stayType), String(s.defaultPercentage)])
+          )
         )
       } catch {
         setVisible(false)
@@ -34,26 +47,44 @@ export function MarginSettingsPanel() {
     load()
   }, [])
 
+  const grouped = useMemo(() => {
+    if (!settings) return []
+    const byType = new Map<PropertyType, MarginSetting[]>()
+    for (const setting of settings) {
+      const list = byType.get(setting.propertyType) || []
+      list.push(setting)
+      byType.set(setting.propertyType, list)
+    }
+    return Array.from(byType.entries())
+  }, [settings])
+
   if (!visible) return null
 
-  const handleSave = async (propertyType: MarginSetting["propertyType"]) => {
-    const raw = drafts[propertyType]
+  const handleSave = async (propertyType: PropertyType, stayType: StayType) => {
+    const key = draftKey(propertyType, stayType)
+    const raw = drafts[key]
     const numeric = Number(raw)
     if (raw === "" || Number.isNaN(numeric) || numeric < 0 || numeric > 100) {
       toast.error("Le pourcentage doit être un nombre entre 0 et 100.")
       return
     }
-    setSavingType(propertyType)
+    setSavingKey(key)
     try {
-      const updated = await updateMarginSetting(propertyType, numeric)
+      const updated = await updateMarginSetting(propertyType, stayType, numeric)
       setSettings((prev) =>
-        prev ? prev.map((s) => (s.propertyType === propertyType ? updated : s)) : prev
+        prev
+          ? prev.map((s) =>
+              s.propertyType === propertyType && s.stayType === stayType ? updated : s
+            )
+          : prev
       )
-      toast.success(`Marge par défaut mise à jour pour ${PROPERTY_TYPE_LABELS[propertyType]}`)
+      toast.success(
+        `Marge ${STAY_TYPE_LABELS[stayType].toLowerCase()} mise à jour pour ${PROPERTY_TYPE_LABELS[propertyType]}`
+      )
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur inconnue")
     } finally {
-      setSavingType(null)
+      setSavingKey(null)
     }
   }
 
@@ -66,7 +97,8 @@ export function MarginSettingsPanel() {
         </CardTitle>
         <CardDescription>
           Pourcentage appliqué automatiquement au prix pour calculer la marge de chaque bien
-          nouvellement créé, sauf override spécifique sur ce bien.
+          nouvellement créé, sauf override spécifique sur ce bien. La courte durée (location à la
+          journée) a son propre pourcentage, indépendant de la longue durée.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -75,36 +107,43 @@ export function MarginSettingsPanel() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="space-y-3">
-            {settings.map((setting) => (
-              <div
-                key={setting.propertyType}
-                className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-border p-3"
-              >
-                <span className="font-medium text-sm">
-                  {PROPERTY_TYPE_LABELS[setting.propertyType]}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="0.01"
-                    value={drafts[setting.propertyType] ?? ""}
-                    onChange={(e) =>
-                      setDrafts((prev) => ({ ...prev, [setting.propertyType]: e.target.value }))
-                    }
-                    className="w-24"
-                  />
-                  <span className="text-sm text-muted-foreground">%</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleSave(setting.propertyType)}
-                    disabled={savingType === setting.propertyType}
-                  >
-                    {savingType === setting.propertyType ? "..." : "Enregistrer"}
-                  </Button>
+          <div className="space-y-4">
+            {grouped.map(([propertyType, typeSettings]) => (
+              <div key={propertyType} className="rounded-lg border border-border p-3 space-y-3">
+                <span className="font-medium text-sm">{PROPERTY_TYPE_LABELS[propertyType]}</span>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {typeSettings.map((setting) => {
+                    const key = draftKey(setting.propertyType, setting.stayType)
+                    return (
+                      <div key={key} className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          {STAY_TYPE_LABELS[setting.stayType]}
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="0.01"
+                            value={drafts[key] ?? ""}
+                            onChange={(e) =>
+                              setDrafts((prev) => ({ ...prev, [key]: e.target.value }))
+                            }
+                            className="w-24"
+                          />
+                          <span className="text-sm text-muted-foreground">%</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSave(setting.propertyType, setting.stayType)}
+                            disabled={savingKey === key}
+                          >
+                            {savingKey === key ? "..." : "Enregistrer"}
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             ))}

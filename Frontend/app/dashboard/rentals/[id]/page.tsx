@@ -31,7 +31,12 @@ import { PropertyMediaManager } from "@/components/property-media-manager"
 import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
-import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_LABELS, type Property } from "@/lib/types"
+import {
+  PROPERTY_TYPE_LABELS,
+  RENTAL_UNIT_LABELS,
+  RENTAL_UNIT_PRICE_SUFFIX,
+  type Property,
+} from "@/lib/types"
 import { getImageUrl } from "@/lib/imageUrl"
 import { toast } from "sonner"
 
@@ -112,7 +117,10 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
     const guarantee = property.rentalDetails
       ? `${property.rentalDetails.guarantee ?? 0} ${RENTAL_UNIT_LABELS[property.rentalDetails.unit].toLowerCase()}`
       : "N/A"
-    const message = `Bonjour! Je vous propose ce bien à louer:\n\n${PROPERTY_TYPE_LABELS[property.propertyType]}\nAdresse: ${property.avenue}, ${property.quartier}, Bukavu\n${property.bedrooms ?? 0} chambres, ${property.livingRooms ?? 0} salons, ${property.toilets ?? 0} douches, ${property.kitchens ?? 0} cuisines\nPrix: $${property.price}/mois\nGarantie: ${guarantee}\n\nPour plus d'informations, contactez-nous!`
+    const priceSuffix = property.rentalDetails
+      ? RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]
+      : ""
+    const message = `Bonjour! Je vous propose ce bien à louer:\n\n${PROPERTY_TYPE_LABELS[property.propertyType]}\nAdresse: ${property.avenue}, ${property.quartier}, Bukavu\n${property.bedrooms ?? 0} chambres, ${property.livingRooms ?? 0} salons, ${property.toilets ?? 0} douches, ${property.kitchens ?? 0} cuisines\nPrix: $${property.price}${priceSuffix}\nGarantie: ${guarantee}\n\nPour plus d'informations, contactez-nous!`
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, "_blank")
@@ -283,7 +291,11 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
             <CardContent className="space-y-4">
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-primary">${property.price}</span>
-                <span className="text-muted-foreground">/mois</span>
+                <span className="text-muted-foreground">
+                  {property.rentalDetails
+                    ? RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]
+                    : ""}
+                </span>
               </div>
               {property.rentalDetails && (
                 <div className="p-3 rounded-lg bg-muted">

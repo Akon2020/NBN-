@@ -47,9 +47,21 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
 // GOAL 9 — gestion automatique des marges. `MarginSetting` n'est visible
 // que via /api/margin-settings, déjà filtré côté Backend par
 // property:margin:read (jamais présumer sa présence côté Frontend).
+// GOAL 12 — une location facturée à la journée (RentalProperty.unit=DAY)
+// est une courte durée ; tout le reste (MONTH/YEAR, ou une vente) reste
+// longue durée. Chaque combinaison type de bien × type de séjour a son
+// propre pourcentage configurable indépendamment.
+export type StayType = "LONGUE_DUREE" | "COURT_SEJOUR"
+
+export const STAY_TYPE_LABELS: Record<StayType, string> = {
+  LONGUE_DUREE: "Longue durée",
+  COURT_SEJOUR: "Courte durée",
+}
+
 export interface MarginSetting {
   idMarginSetting: number
   propertyType: PropertyType
+  stayType: StayType
   defaultPercentage: number
   updatedBy?: number | null
   createdAt: string
@@ -62,6 +74,7 @@ export interface MarginHistoryEntry {
   idMarginHistory: number
   scope: MarginHistoryScope
   propertyType?: string | null
+  stayType?: StayType | null
   idProperty?: number | null
   previousPercentage?: number | null
   newPercentage?: number | null
@@ -84,6 +97,15 @@ export const RENTAL_UNIT_LABELS: Record<RentalUnit, string> = {
   DAY: "Jours",
   MONTH: "Mois",
   YEAR: "Ans",
+}
+
+// GOAL 12 — `price` est le tarif dans l'unité du bien (jamais implicitement
+// mensuel) : ce suffixe reflète toujours `unit`, plus jamais "/mois" codé
+// en dur indépendamment de sa valeur réelle.
+export const RENTAL_UNIT_PRICE_SUFFIX: Record<RentalUnit, string> = {
+  DAY: "/jour",
+  MONTH: "/mois",
+  YEAR: "/an",
 }
 
 export interface RentalDetails {
