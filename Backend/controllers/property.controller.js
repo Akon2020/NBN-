@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import {
   Property,
   RentalProperty,
@@ -20,7 +21,9 @@ import { deleteFile } from "../utils/deletefile.js";
 import { compressImageInPlace } from "../utils/imageCompression.js";
 import { recalculatePropertyMargin } from "../shared/marginCalculator.js";
 
-const PROPERTY_INCLUDES = [
+// GOAL 18 — exporté pour être réutilisé tel quel par `search.controller.js`
+// (recherche globale), jamais un include dupliqué/divergent pour les biens.
+export const PROPERTY_INCLUDES = [
   { model: RentalProperty, as: "rentalDetails" },
   { model: SaleProperty, as: "saleDetails" },
   { model: PropertyImage, as: "images", separate: true, order: [["order", "ASC"]] },
@@ -73,9 +76,41 @@ export const getPublicProperty = async (req, res, next) => {
 // consultables mais se désencombrent des listes actives par défaut ;
 // `?includeArchived=true` les réintègre explicitement (jamais confondu
 // avec `deletedAt`, exclu automatiquement par Sequelize en mode paranoid).
+// GOAL 18 — filtres optionnels appliqués côté serveur (jamais obligatoires,
+// rétrocompatible avec tout appelant qui listait déjà tout le catalogue) :
+// évite de télécharger l'intégralité des biens pour filtrer côté client,
+// contrainte "connexion faible" du CLAUDE.md §1.
 export const getAllProperties = async (req, res, next) => {
   try {
-    const where = req.query.includeArchived === "true" ? {} : { archivedAt: null };
+    const {
+      includeArchived,
+      q,
+      category,
+      propertyType,
+      statut,
+      quartier,
+      minPrice,
+      maxPrice,
+      bedrooms,
+    } = req.query;
+
+    const where = includeArchived === "true" ? {} : { archivedAt: null };
+
+    if (q) {
+      where[Op.or] = [
+        { quartier: { [Op.like]: `%${q}%` } },
+        { avenue: { [Op.like]: `%${q}%` } },
+        { description: { [Op.like]: `%${q}%` } },
+      ];
+    }
+    if (category) where.category = category;
+    if (propertyType) where.propertyType = propertyType;
+    if (statut) where.statut = statut;
+    if (quartier) where.quartier = { [Op.like]: `%${quartier}%` };
+    if (minPrice) where.price = { ...where.price, [Op.gte]: Number(minPrice) };
+    if (maxPrice) where.price = { ...where.price, [Op.lte]: Number(maxPrice) };
+    if (bedrooms) where.bedrooms = { [Op.gte]: Number(bedrooms) };
+
     const properties = await Property.findAll({ where, include: PROPERTY_INCLUDES });
     const propertiesInfo = await serializeProperties(properties, req.user);
     return res.status(200).json({

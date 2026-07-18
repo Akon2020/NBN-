@@ -1079,3 +1079,13 @@ export interface UserSession {
   createdAt: string
   expiresAt: string
 }
+
+// --- GOAL 18 : Recherche globale ---
+
+export interface GlobalSearchResults {
+  properties: Property[]
+  clients: Client[]
+  bailleurs: Bailleur[]
+  commissionnaires: Commissionnaire[]
+  tasks: Task[]
+}

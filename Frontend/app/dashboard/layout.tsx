@@ -9,6 +9,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { GlobalSearchCommand } from "@/components/global-search-command";
 import { CartButton } from "@/components/cart-button";
 import { CartProvider } from "@/components/cart-provider";
 import {
@@ -212,6 +213,7 @@ export default function DashboardLayout({
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex-1" />
+          <GlobalSearchCommand />
           <CartButton />
           <NotificationBell />
           <ThemeToggle />

@@ -37,6 +37,7 @@ import dashboardRouter from "./routes/dashboard.route.js";
 import timelineRouter from "./routes/timeline.route.js";
 import marginSettingRouter from "./routes/marginSetting.route.js";
 import appSettingRouter from "./routes/appSetting.route.js";
+import searchRouter from "./routes/search.route.js";
 import { registerEventListeners } from "./shared/eventListeners.js";
 import { registerRealtimeListeners } from "./shared/socketGateway.js";
 
@@ -139,6 +140,7 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api/timeline", timelineRouter);
 app.use("/api/margin-settings", marginSettingRouter);
 app.use("/api/settings", appSettingRouter);
+app.use("/api/search", searchRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);
