@@ -2,12 +2,14 @@ import app from "./app.js";
 import { PORT, HOST_URL } from "./config/env.js";
 import { syncModels } from "./models/index.model.js";
 import { startOutboxCron } from "./services/outbox.worker.js";
+import { startReminderCron } from "./services/reminder.worker.js";
 import { initSocketGateway } from "./shared/socketGateway.js";
 
 const server = app.listen(PORT, async () => {
   try {
     await syncModels();
     startOutboxCron();
+    startReminderCron();
     // BACK-G18 — attaché au même serveur HTTP que l'API REST (pas un port
     // séparé). Si l'hébergement cible ne supporte pas les WebSocket
     // persistants (cPanel, CLAUDE.md §12 point ouvert), cette ligne est le

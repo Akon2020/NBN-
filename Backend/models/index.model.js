@@ -48,6 +48,7 @@ import Alert from "./alert.model.js";
 import Reminder from "./reminder.model.js";
 import OutboxEvent from "./outboxEvent.model.js";
 import CalendarEvent from "./calendarEvent.model.js";
+import CalendarEventParticipant from "./calendarEventParticipant.model.js";
 import Evaluation from "./evaluation.model.js";
 import Objective from "./objective.model.js";
 import Skill from "./skill.model.js";
@@ -342,6 +343,11 @@ Reminder.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 CalendarEvent.belongsTo(User, { foreignKey: "idUser", as: "owner" });
 CalendarEvent.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
+// GOAL 11 — assignation multi-personnes d'un rendez-vous.
+CalendarEvent.hasMany(CalendarEventParticipant, { foreignKey: "idCalendarEvent", as: "participants" });
+CalendarEventParticipant.belongsTo(CalendarEvent, { foreignKey: "idCalendarEvent" });
+CalendarEventParticipant.belongsTo(User, { foreignKey: "idUser", as: "user" });
+
 // BACK-G22 — RH avancé (évaluations, objectifs, compétences, formations),
 // tout rattaché à EmployeeProfile (jamais à User directement, CLAUDE.md §4
 // — un employé peut ne pas avoir de compte de connexion).
@@ -437,6 +443,7 @@ export {
   Reminder,
   OutboxEvent,
   CalendarEvent,
+  CalendarEventParticipant,
   Evaluation,
   Objective,
   Skill,

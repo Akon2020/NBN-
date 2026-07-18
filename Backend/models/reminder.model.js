@@ -2,9 +2,9 @@ import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
 // CLAUDE.md §4 — programmé à partir d'une échéance/règle. Un job cron
-// (outbox.worker.js) parcourt les Reminder PLANIFIE dont `dueAt` est
-// passée et produit une Notification au moment voulu, sans dépendance à
-// ce que l'utilisateur ait l'app ouverte.
+// (services/reminder.worker.js, GOAL 11) parcourt les Reminder PLANIFIE
+// dont `dueAt` est passée et produit une Notification au moment voulu,
+// sans dépendance à ce que l'utilisateur ait l'app ouverte.
 const Reminder = db.define(
   "reminders",
   {

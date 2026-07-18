@@ -878,6 +878,9 @@ export interface CalendarEntry {
   statut?: string | null
   priorite?: string | null
   creator?: string | null
+  // GOAL 11 — personnes concernées par un rendez-vous (source EVENT
+  // uniquement), chacune notifiée automatiquement à l'assignation.
+  participants?: { idUser: number; fullName?: string }[]
 }
 
 export const CALENDAR_SOURCE_LABELS: Record<CalendarSource, string> = {

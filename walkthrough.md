@@ -638,3 +638,26 @@ Constat en ouvrant le chantier : l'infrastructure financiere (Caisse/CaisseBalan
 Backend : `tests/caisseTransfer.test.js` (8/8, nouveau) + `npm test` -> **153/156** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
 
 *Suite immediate, sans interruption : GOAL 11 (Calendrier ameliore).*
+
+### GOAL 11 - Calendrier ameliore : assignation, notifications, rappels
+
+Constat en ouvrant le chantier : l'agregation calendrier (BACK-G19, Session 6) etait deja solide (Task/Reminder/Client relance/CalendarEvent fusionnes sur une frise), mais trois lacunes concretes empechaient GOAL 11 : (1) `CalendarEvent` n'avait qu'un seul `idUser` (proprietaire), aucune notion d'assignation a plusieurs personnes ; (2) creer un rendez-vous ne notifiait jamais personne ; (3) plus grave, le commentaire du modele `Reminder` affirmait qu'"un job cron parcourt les Reminder PLANIFIE echus et produit une Notification" - **ce cron n'existait tout simplement pas**, seul le worker outbox (retries de push) tournait. Un rappel cree restait PLANIFIE pour toujours, sans jamais notifier personne.
+
+**Assignation multi-personnes** : nouvelle table `CalendarEventParticipant` (meme patron que `TaskAssignee` deja existant pour les taches) - `CalendarEvent.idUser` reste le "proprietaire" unique utilise par le filtrage historique, la nouvelle table ajoute les autres personnes concernees. Chaque participant (et le proprietaire si different du createur) recoit une `Notification` a la creation, jamais le createur lui-meme. Nouveau `PATCH /api/calendar/:id` (absent jusqu'ici, seules creation/suppression existaient) - remplace integralement la liste de participants si fournie (jamais un merge implicite), notifie uniquement les nouveaux ajouts.
+
+**Requete d'agregation** : un participant doit voir l'evenement dans son calendrier meme sans en etre proprietaire. Resolu en deux temps (liste des idCalendarEvent ou l'utilisateur participe, puis `Op.in` dans le WHERE principal) plutot qu'un LEFT JOIN direct sur `participants` dans le WHERE, qui aurait duplique les lignes d'un evenement a plusieurs participants.
+
+**Worker de rappels (lacune comblee)** : nouveau `services/reminder.worker.js`, meme patron que `outbox.worker.js` (cron `node-cron` toutes les 30s, idempotent). Chaque `Reminder` `PLANIFIE` dont `dueAt` est passee produit exactement une `Notification` puis passe a `ENVOYE` + `sentAt` - jamais retraite. Enregistre dans `server.js` a cote du cron outbox existant.
+
+**Annuaire minimal (bug de conception attrape avant merge)** : le premier jet du selecteur de participants appelait `GET /api/users` (donnees completes, permission `users:read`) - or `users:read` n'est accorde qu'a `technologique`/`admin`, alors que `calendar:manage` (necessaire pour creer un rendez-vous) est accorde a `operations`, `communication`, `marketing`, `juridique`, `tresorerie`. La quasi-totalite des roles pouvant creer un rendez-vous ne pouvaient donc pas lister leurs collegues pour les assigner (403 confirme en navigateur). Corrige par un nouvel endpoint dedie `GET /api/users/directory` (id/nom/role uniquement, jamais email/statut/avatar), ouvert a tout utilisateur authentifie - separation nette entre "annuaire minimal pour assignation" et "gestion complete des utilisateurs".
+
+**Frontend** : `CalendarParticipantPicker` (liste a cocher scrollable, annuaire complet), formulaire de creation/edition unifie (`editingId` bascule entre create/update), badges participants affiches sur chaque carte de rendez-vous, bouton Modifier a cote de Supprimer.
+
+**Incident d'infrastructure rencontre et resolu en session** : le serveur Backend (lance hors du tracking de l'outil, dans une session precedente) s'est retrouve bloque (port 5500 en LISTEN mais ne repondant plus) apres de multiples redemarrages nodemon successifs au fil des edits de cette tres longue session - diagnostique via `Get-NetTCPConnection`, processus zombie tue, serveur redemarre proprement. Sans lien avec un bug de code (confirme par `node -e "import('./app.js')"` reussi pendant l'incident).
+
+Verifie en navigateur bout en bout (compte `operations`, sans `users:read`) : creation d'un rendez-vous avec "QA tresorerie" en participant -> badge participant affiche immediatement, `Notification` confirmee en base pour cet utilisateur ; edition du meme rendez-vous -> participant deja coche correctement pre-rempli.
+
+### Verification
+Backend : `tests/calendarAssignment.test.js` (6/6, nouveau) + `npm test` -> **159/162** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
+
+*Suite immediate, sans interruption : GOAL 12 (Courte/longue duree de location).*

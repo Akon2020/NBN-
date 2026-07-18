@@ -20,12 +20,20 @@ import {
   Bell as BellIcon,
   UserRound,
   Plus,
+  Pencil,
   Trash2,
   Loader2,
   ShieldAlert,
+  Users,
 } from "lucide-react"
 import { CALENDAR_SOURCE_LABELS, type CalendarEntry, type CalendarSource } from "@/lib/types"
-import { createCalendarEvent, deleteCalendarEvent, getCalendarEvents } from "@/actions/calendar"
+import {
+  createCalendarEvent,
+  deleteCalendarEvent,
+  getCalendarEvents,
+  updateCalendarEvent,
+} from "@/actions/calendar"
+import { CalendarParticipantPicker } from "@/components/calendar-participant-picker"
 import { toast } from "sonner"
 
 const SOURCE_ICON: Record<CalendarSource, typeof CheckSquare> = {
@@ -43,6 +51,14 @@ const SOURCE_BADGE_CLASS: Record<CalendarSource, string> = {
 }
 
 const toIsoDate = (date: Date) => date.toISOString().slice(0, 10)
+
+// `datetime-local` attend l'heure locale du navigateur, jamais l'UTC brut
+// de `toISOString()` (décalerait l'affichage selon le fuseau).
+const toDatetimeLocal = (iso: string) => {
+  const date = new Date(iso)
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16)
+}
 
 const groupByDay = (entries: CalendarEntry[]) => {
   const groups = new Map<string, CalendarEntry[]>()
@@ -74,6 +90,8 @@ export default function CalendrierPage() {
   const [description, setDescription] = useState("")
   const [startAt, setStartAt] = useState("")
   const [endAt, setEndAt] = useState("")
+  const [participantUserIds, setParticipantUserIds] = useState<number[]>([])
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const load = async () => {
     setIsLoading(true)
@@ -101,22 +119,51 @@ export default function CalendrierPage() {
     setDescription("")
     setStartAt("")
     setEndAt("")
+    setParticipantUserIds([])
+    setEditingId(null)
   }
 
-  const handleCreate = async () => {
+  const handleOpenCreate = () => {
+    resetForm()
+    setShowModal(true)
+  }
+
+  const handleOpenEdit = (entry: CalendarEntry) => {
+    setEditingId(entry.id)
+    setTitle(entry.title)
+    setDescription(entry.description || "")
+    setStartAt(toDatetimeLocal(entry.date))
+    setEndAt(entry.endDate ? toDatetimeLocal(entry.endDate) : "")
+    setParticipantUserIds((entry.participants || []).map((p) => p.idUser))
+    setShowModal(true)
+  }
+
+  const handleSubmit = async () => {
     if (!title.trim() || !startAt) {
       toast.error("Le titre et la date de début sont obligatoires")
       return
     }
     setSubmitting(true)
     try {
-      await createCalendarEvent({
-        title: title.trim(),
-        description: description.trim() || undefined,
-        startAt: new Date(startAt).toISOString(),
-        endAt: endAt ? new Date(endAt).toISOString() : undefined,
-      })
-      toast.success("Rendez-vous créé avec succès")
+      if (editingId) {
+        await updateCalendarEvent(editingId, {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          startAt: new Date(startAt).toISOString(),
+          endAt: endAt ? new Date(endAt).toISOString() : undefined,
+          participantUserIds,
+        })
+        toast.success("Rendez-vous mis à jour avec succès")
+      } else {
+        await createCalendarEvent({
+          title: title.trim(),
+          description: description.trim() || undefined,
+          startAt: new Date(startAt).toISOString(),
+          endAt: endAt ? new Date(endAt).toISOString() : undefined,
+          participantUserIds,
+        })
+        toast.success("Rendez-vous créé avec succès")
+      }
       setShowModal(false)
       resetForm()
       load()
@@ -161,7 +208,7 @@ export default function CalendrierPage() {
             l&apos;autorité de son propre statut.
           </p>
         </div>
-        <Button onClick={() => setShowModal(true)} className="gap-2 shrink-0">
+        <Button onClick={handleOpenCreate} className="gap-2 shrink-0">
           <Plus className="h-4 w-4" />
           Nouveau rendez-vous
         </Button>
@@ -220,17 +267,36 @@ export default function CalendrierPage() {
                               {new Date(entry.date).toLocaleString("fr-FR")}
                               {entry.creator ? ` · ${entry.creator}` : ""}
                             </p>
+                            {entry.source === "EVENT" && entry.participants && entry.participants.length > 0 && (
+                              <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                {entry.participants.map((p) => (
+                                  <Badge key={p.idUser} variant="outline" className="text-xs">
+                                    {p.fullName || `Utilisateur #${p.idUser}`}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                         {entry.source === "EVENT" && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="shrink-0 text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(entry)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleOpenEdit(entry)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(entry)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         )}
                       </CardContent>
                     </Card>
@@ -245,7 +311,7 @@ export default function CalendrierPage() {
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nouveau rendez-vous</DialogTitle>
+            <DialogTitle>{editingId ? "Modifier le rendez-vous" : "Nouveau rendez-vous"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -266,13 +332,20 @@ export default function CalendrierPage() {
                 <Input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Personnes concernées (notifiées automatiquement)</Label>
+              <CalendarParticipantPicker
+                selectedUserIds={participantUserIds}
+                onChange={setParticipantUserIds}
+              />
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => setShowModal(false)}>
               Annuler
             </Button>
-            <Button onClick={handleCreate} disabled={submitting}>
-              {submitting ? "Création..." : "Créer"}
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "Enregistrement..." : editingId ? "Enregistrer" : "Créer"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -25,12 +25,33 @@ export const createCalendarEvent = async (payload: {
   description?: string;
   startAt: string;
   endAt?: string;
+  participantUserIds?: number[];
 }): Promise<CalendarEntry> => {
   try {
     const res = await api.post<{ data: CalendarEntry }>("/api/calendar", payload);
     return res.data.data;
   } catch (error) {
     return handleError(error, "Erreur lors de la création du rendez-vous");
+  }
+};
+
+// GOAL 11 — modification d'un rendez-vous existant, notamment sa liste de
+// participants (chaque ajout notifie la personne concernée côté Backend).
+export const updateCalendarEvent = async (
+  id: number,
+  payload: {
+    title?: string;
+    description?: string;
+    startAt?: string;
+    endAt?: string;
+    participantUserIds?: number[];
+  }
+): Promise<CalendarEntry> => {
+  try {
+    const res = await api.patch<{ data: CalendarEntry }>(`/api/calendar/${id}`, payload);
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors de la modification du rendez-vous");
   }
 };
 

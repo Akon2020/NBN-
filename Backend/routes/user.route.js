@@ -5,6 +5,7 @@ import {
   getAllUsers,
   getSingleUser,
   getUserByEmail,
+  getUsersDirectory,
   updateUserPassword,
   updateUser,
 } from "../controllers/user.controller.js";
@@ -28,6 +29,18 @@ const userRouter = Router();
  *         description: Erreur serveur
  */
 userRouter.get("/", authMiddlware, requirePermission("users:read"), getAllUsers);
+
+/**
+ * @swagger
+ * /api/users/directory:
+ *   get:
+ *     summary: Annuaire minimal (id/nom/rôle) pour les sélecteurs d'assignation, ouvert à tout utilisateur authentifié (GOAL 11)
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Liste récupérée avec succès
+ */
+userRouter.get("/directory", authMiddlware, getUsersDirectory);
 
 /**
  * @swagger
