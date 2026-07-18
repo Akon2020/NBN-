@@ -2,22 +2,17 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: "admin" | "agent" | "consultant"
-  status: "active" | "inactive"
-  createdAt: Date
-}
+import { ASSIGNABLE_ROLES, ROLE_LABELS } from "@/lib/types"
+import { updateUser } from "@/actions/users"
+import { User } from "@/types/type"
+import { toast } from "sonner"
 
 interface EditUserModalProps {
   open: boolean
@@ -27,34 +22,34 @@ interface EditUserModalProps {
 }
 
 export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModalProps) {
-  const [name, setName] = useState("")
+  const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
-  const [role, setRole] = useState<"admin" | "agent" | "consultant">("agent")
-  const [status, setStatus] = useState<"active" | "inactive">("active")
+  const [role, setRole] = useState<string>("operations")
+  const [status, setStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE")
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (user) {
-      setName(user.name)
+      setFullName(user.fullName)
       setEmail(user.email)
       setRole(user.role)
       setStatus(user.status)
     }
   }, [user])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (user) {
-      const updatedUser: User = {
-        ...user,
-        name,
-        email,
-        role,
-        status,
-      }
-
-      onEdit(updatedUser)
+    if (!user) return
+    setSubmitting(true)
+    try {
+      const updated = await updateUser(user.idUser, { fullName, email, role, status })
+      onEdit(updated)
       onOpenChange(false)
+      toast.success("Utilisateur mis à jour")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -64,8 +59,8 @@ export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Modifier l'utilisateur</DialogTitle>
-          <DialogDescription>Mettez à jour les informations de l'utilisateur</DialogDescription>
+          <DialogTitle>Modifier l&apos;utilisateur</DialogTitle>
+          <DialogDescription>Mettez à jour les informations de l&apos;utilisateur</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -74,8 +69,8 @@ export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModa
             <Input
               id="edit-name"
               placeholder="Jean Mukendi"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               required
             />
           </div>
@@ -94,14 +89,16 @@ export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModa
 
           <div className="space-y-2">
             <Label htmlFor="edit-role">Rôle *</Label>
-            <Select value={role} onValueChange={(value: any) => setRole(value)}>
+            <Select value={role} onValueChange={setRole}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="agent">Agent terrain</SelectItem>
-                <SelectItem value="consultant">Consultant</SelectItem>
-                <SelectItem value="admin">Administrateur</SelectItem>
+                {ASSIGNABLE_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -110,13 +107,15 @@ export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModa
             <div className="space-y-1">
               <Label htmlFor="edit-status">Statut du compte</Label>
               <p className="text-sm text-muted-foreground">
-                {status === "active" ? "L'utilisateur peut se connecter" : "L'accès est bloqué"}
+                {status === "ACTIVE"
+                  ? "L'utilisateur peut se connecter"
+                  : "L'accès est bloqué, toutes ses sessions seront révoquées"}
               </p>
             </div>
             <Switch
               id="edit-status"
-              checked={status === "active"}
-              onCheckedChange={(checked) => setStatus(checked ? "active" : "inactive")}
+              checked={status === "ACTIVE"}
+              onCheckedChange={(checked) => setStatus(checked ? "ACTIVE" : "INACTIVE")}
             />
           </div>
 
@@ -124,8 +123,8 @@ export function EditUserModal({ open, onOpenChange, user, onEdit }: EditUserModa
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
-            <Button type="submit" className="bg-primary text-primary-foreground">
-              Enregistrer les modifications
+            <Button type="submit" className="bg-primary text-primary-foreground" disabled={submitting}>
+              {submitting ? "Enregistrement..." : "Enregistrer les modifications"}
             </Button>
           </div>
         </form>

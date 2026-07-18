@@ -5,7 +5,10 @@ import {
   getAllUsers,
   getSingleUser,
   getUserByEmail,
+  getUserSessions,
   getUsersDirectory,
+  resetUserPassword,
+  revokeUserSessions,
   updateUserPassword,
   updateUser,
 } from "../controllers/user.controller.js";
@@ -219,6 +222,92 @@ userRouter.patch(
  *         description: Erreur serveur
  */
 userRouter.patch("/update/:id/password", authMiddlware, updateUserPassword);
+
+/**
+ * @swagger
+ * /api/users/update/{id}/reset-password:
+ *   patch:
+ *     summary: Réinitialise le mot de passe d'un utilisateur (admin, sans ancien mot de passe) — révoque toutes ses sessions
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newPassword
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Mot de passe réinitialisé
+ *       404:
+ *         description: Utilisateur non trouvé
+ */
+userRouter.patch(
+  "/update/:id/reset-password",
+  authMiddlware,
+  requirePermission("users:manage"),
+  resetUserPassword
+);
+
+/**
+ * @swagger
+ * /api/users/{id}/sessions:
+ *   get:
+ *     summary: Liste les sessions actives d'un utilisateur (admin)
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sessions récupérées
+ *       404:
+ *         description: Utilisateur non trouvé
+ */
+userRouter.get(
+  "/:id/sessions",
+  authMiddlware,
+  requirePermission("users:manage"),
+  getUserSessions
+);
+
+/**
+ * @swagger
+ * /api/users/{id}/sessions/revoke-all:
+ *   patch:
+ *     summary: Révoque toutes les sessions actives d'un utilisateur (admin)
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sessions révoquées
+ *       404:
+ *         description: Utilisateur non trouvé
+ */
+userRouter.patch(
+  "/:id/sessions/revoke-all",
+  authMiddlware,
+  requirePermission("users:manage"),
+  revokeUserSessions
+);
 
 /**
  * @swagger

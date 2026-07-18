@@ -1036,3 +1036,46 @@ export interface TaskComment {
   createdAt: string
   updatedAt: string
 }
+
+// --- GOAL 16 : Gestion des utilisateurs ---
+
+// Catalogue reel des roles (Backend/seeders/20260714200000-seed-rbac-catalog.cjs)
+// — distinct du RoleEnum de types/type.ts (identique en valeurs), garde ici
+// pour fournir des libelles lisibles sans dupliquer la logique RBAC.
+export const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrateur",
+  communication: "Communication",
+  marketing: "Marketing",
+  operations: "Opérations",
+  technologique: "Technologique",
+  juridique: "Juridique",
+  tresorerie: "Trésorerie",
+  commissionnaire: "Commissionnaire",
+  consultant: "Consultant",
+}
+
+export const ASSIGNABLE_ROLES = [
+  "admin",
+  "communication",
+  "marketing",
+  "operations",
+  "technologique",
+  "juridique",
+  "tresorerie",
+  "commissionnaire",
+  "consultant",
+] as const
+
+export const USER_STATUS_LABELS: Record<"ACTIVE" | "INACTIVE", string> = {
+  ACTIVE: "Actif",
+  INACTIVE: "Inactif",
+}
+
+export interface UserSession {
+  idSession: number
+  platform: "web" | "ios" | "android"
+  deviceLabel?: string | null
+  lastActiveAt: string
+  createdAt: string
+  expiresAt: string
+}
