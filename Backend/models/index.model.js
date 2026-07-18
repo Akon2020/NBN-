@@ -58,6 +58,7 @@ import EmployeeTraining from "./employeeTraining.model.js";
 import TimelineEvent from "./timelineEvent.model.js";
 import ClientComplaint from "./clientComplaint.model.js";
 import MarginSetting from "./marginSetting.model.js";
+import AppSetting from "./appSetting.model.js";
 import MarginHistory from "./marginHistory.model.js";
 
 // User - Property
@@ -381,6 +382,9 @@ ClientComplaint.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
 
 // GOAL 9 — gestion automatique des marges.
 MarginSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
+
+// GOAL 13 — centre de configuration générique.
+AppSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
 MarginHistory.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
 MarginHistory.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
 
@@ -453,6 +457,7 @@ export {
   TimelineEvent,
   ClientComplaint,
   MarginSetting,
+  AppSetting,
   MarginHistory,
   syncModels,
 };

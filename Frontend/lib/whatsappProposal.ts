@@ -1,10 +1,33 @@
 import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_PRICE_SUFFIX, type Property } from "@/lib/types"
+import { getAppSettings, type CompanyInfo } from "@/actions/appSettings"
+
+const DEFAULT_COMPANY: CompanyInfo = {
+  name: "Nyumbani Express",
+  phone: "",
+  address: "Bukavu, Sud-Kivu",
+  email: "",
+}
+
+// GOAL 13 — coordonnées de l'agence configurables depuis Paramètres
+// (company.info), plutôt qu'un nom/ville codés en dur ici.
+const getCompanyInfo = async (): Promise<CompanyInfo> => {
+  try {
+    const settings = await getAppSettings()
+    const setting = settings.find((s) => s.key === "company.info")
+    return (setting?.value as CompanyInfo) || DEFAULT_COMPANY
+  } catch {
+    return DEFAULT_COMPANY
+  }
+}
 
 // GOAL 5 — un seul générateur de message, réutilisé partout où un
 // partage WhatsApp est proposé (jamais reconstruit à la main par écran).
-export const buildWhatsAppProposalMessage = (properties: Property[]): string => {
+export const buildWhatsAppProposalMessage = (
+  properties: Property[],
+  company: CompanyInfo = DEFAULT_COMPANY
+): string => {
   const lines: string[] = []
-  lines.push("🏡 *Sélection Nyumbani Express*")
+  lines.push(`🏡 *Sélection ${company.name}*`)
   lines.push("")
   lines.push(
     properties.length > 1
@@ -34,15 +57,29 @@ export const buildWhatsAppProposalMessage = (properties: Property[]): string => 
     lines.push("")
   })
 
-  lines.push("📞 Contactez-nous pour organiser une visite")
-  lines.push("*NBN Express* — Bukavu, Sud-Kivu")
+  lines.push(
+    company.phone
+      ? `📞 Contactez-nous au ${company.phone} pour organiser une visite`
+      : "📞 Contactez-nous pour organiser une visite"
+  )
+  lines.push(`*${company.name}* — ${company.address}`)
 
   return lines.join("\n")
 }
 
-export const openWhatsAppShare = (properties: Property[], phoneNumber?: string) => {
-  const message = buildWhatsAppProposalMessage(properties)
+// L'onglet est ouvert de façon synchrone (dans le même tick que le clic
+// utilisateur) puis redirigé une fois les coordonnées de l'agence
+// récupérées — un `window.open` après un `await` perdrait le contexte de
+// geste utilisateur et serait bloqué par le navigateur comme pop-up.
+export const openWhatsAppShare = async (properties: Property[], phoneNumber?: string) => {
+  const tab = window.open("about:blank", "_blank")
+  const company = await getCompanyInfo()
+  const message = buildWhatsAppProposalMessage(properties, company)
   const encoded = encodeURIComponent(message)
   const target = phoneNumber ? `https://wa.me/${phoneNumber}?text=${encoded}` : `https://wa.me/?text=${encoded}`
-  window.open(target, "_blank")
+  if (tab) {
+    tab.location.href = target
+  } else {
+    window.open(target, "_blank")
+  }
 }

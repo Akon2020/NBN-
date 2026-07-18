@@ -14,6 +14,7 @@ import { revokeAllUserSessions } from "../utils/session.utils.js";
 import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
 import { eventBus } from "../shared/eventBus.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
+import { getSettingValue } from "../shared/appSettings.js";
 
 // BACK-G17 — n'émet l'alerte que sur la transition réelle vers
 // OBSERVATION (jamais à chaque recalcul de score qui laisse le statut
@@ -311,13 +312,20 @@ export const createIncident = async (req, res, next) => {
       createdBy: req.user.idUser,
     });
 
-    commissionnaire.scoreDiscipline = clampSubScore(
-      Number(commissionnaire.scoreDiscipline) - Number(impactDiscipline ?? 0)
-    );
-    const previousStatut = commissionnaire.statut;
-    applyEvolutionGrid(commissionnaire);
-    await commissionnaire.save();
-    emitScoreLowIfNewlyObserved(commissionnaire, previousStatut);
+    // GOAL 13 — l'incident reste toujours enregistré (traçabilité), mais
+    // son impact automatique sur le score/la grille d'évolution peut être
+    // désactivé (ex. période de gestion manuelle assumée par un
+    // superviseur) sans perdre l'historique des incidents eux-mêmes.
+    const scoringEnabled = await getSettingValue("commissionnaire.scoringEnabled", true);
+    if (scoringEnabled) {
+      commissionnaire.scoreDiscipline = clampSubScore(
+        Number(commissionnaire.scoreDiscipline) - Number(impactDiscipline ?? 0)
+      );
+      const previousStatut = commissionnaire.statut;
+      applyEvolutionGrid(commissionnaire);
+      await commissionnaire.save();
+      emitScoreLowIfNewlyObserved(commissionnaire, previousStatut);
+    }
 
     await recordTimelineEvent({
       entityType: "COMMISSIONNAIRE",

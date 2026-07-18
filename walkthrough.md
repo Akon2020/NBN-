@@ -680,3 +680,21 @@ Verifie en navigateur bout en bout (compte `operations`) : creation d'un apparte
 Backend : `tests/rentalStayType.test.js` (5/5, nouveau) + `tests/marginSetting.test.js` mis a jour pour la nouvelle signature (`stayType` requis) + `npm test` -> **164/167** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
 
 *Suite immediate, sans interruption : GOAL 13 (Parametres - centre de configuration).*
+
+### GOAL 13 - Parametres : centre de configuration reel
+
+Constat en ouvrant le chantier, confirme par un sous-agent : la quasi-totalite de `/dashboard/settings` etait un decor. `maxGroupSize`/`autoSaveLocation`/`enableScoring`/`enableNotifications` etaient ecrits dans `localStorage` au clic sur "Enregistrer" mais **jamais relus nulle part**, meme pas au rechargement de la page elle-meme (aucun `localStorage.getItem` correspondant). Les quatre champs "Informations de l'entreprise" etaient encore pires : `defaultValue` non controle, jamais inclus dans `handleSave` - meme pas persistes en local. Le panier WhatsApp (GOAL 5) avait sa propre limite `MAX_ITEMS = 10` codee en dur dans `cart-provider.tsx`, deconnectee du champ "Nombre maximum de biens a grouper" cense la piloter. Seul le panneau de marges (GOAL 9/12) etait deja reellement branche au Backend.
+
+**Decision de perimetre** : plutot que de re-brancher chaque champ existant tel quel, seuls les parametres correspondant a une vraie regle metier consommee ailleurs ont ete conserves et rendus reels ; les deux interrupteurs decoratifs sans aucun point de consommation (`autoSaveLocation` - aucune fonctionnalite Mobile de collecte GPS n'existe encore, GOAL 21 non demarre ; `enableNotifications` - kill-switch global juge hors de portee de ce goal, plus proche de GOAL 20) ont ete retires plutot que re-empaquetes comme neuf sans effet reel - conserver une case a cocher qui ne fait rien serait revenu a deplacer le meme mensonge plutot qu'a le corriger.
+
+**Nouveau centre de configuration generique** : table `AppSetting` (cle/valeur JSON), distincte de `MarginSetting` (deja dedie et structure pour les marges) - couvre les parametres transverses sans dupliquer ce mecanisme pour chacun. Nouvelles permissions `settings:read` (large, tout le personnel interne sauf consultant) / `settings:manage` (admin + technologique, meme logique que la gestion des utilisateurs/roles deja reservee a ce role). Aucune cle creee a la volee depuis l'API - seules les clefs seedees par migration sont modifiables, evite une proliferation de parametres non documentes.
+
+**Trois parametres reels, seedes et effectivement consommes** :
+- `cart.maxItems` (defaut 10) - `cart-provider.tsx` le recupere au montage (repli silencieux sur 10 si `/api/settings` est inaccessible, ex. role sans `settings:read`) au lieu de la constante figee.
+- `company.info` (nom/telephone/adresse/email) - `whatsappProposal.ts` l'utilise desormais pour l'en-tete et le pied de message des propositions clients, au lieu de "*NBN Express* — Bukavu, Sud-Kivu" code en dur. Piege evite : `openWhatsAppShare` devient async (le fetch de la config precede la construction du message) - un `window.open` execute apres un `await` perdrait le contexte de geste utilisateur et serait bloque comme pop-up ; corrige en ouvrant l'onglet de facon synchrone (`about:blank`) puis en le redirigeant une fois le message pret.
+- `commissionnaire.scoringEnabled` (defaut true) - `createIncident` consulte ce reglage : l'incident reste **toujours** enregistre (tracabilite), mais son impact automatique sur le score discipline et la grille d'evolution peut etre desactive independamment (ex. periode geree manuellement par un superviseur).
+
+### Verification
+Backend : `tests/appSettings.test.js` (5/5, nouveau) + `npm test` -> **169/172** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur. Verifie en navigateur bout en bout (compte `technologique`) : modification du nombre max de biens (10 -> 12), persistance confirmee apres rechargement, section marges masquee correctement pour un role sans `property:margin:read` (comportement attendu, pas une regression).
+
+*Suite immediate, sans interruption : GOAL 14 (Missions et alertes completes).*

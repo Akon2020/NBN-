@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import type { Property } from "@/lib/types"
+import { getAppSettings } from "@/actions/appSettings"
 
 // GOAL 5 — panier immobilier transversal (biens à louer, à vendre,
 // favoris, recherche...). Volontairement Frontend-only et persistant en
@@ -9,7 +10,10 @@ import type { Property } from "@/lib/types"
 // partage WhatsApp, jamais une entité métier — rien à tracer côté
 // Backend, pas de permission à vérifier.
 const STORAGE_KEY = "nbn-property-cart"
-const MAX_ITEMS = 10
+// GOAL 13 — valeur de repli si /api/settings est inaccessible (rôle sans
+// settings:read, ou hors-ligne) ; la vraie limite vient de
+// cart.maxItems, configurable depuis Paramètres.
+const DEFAULT_MAX_ITEMS = 10
 
 interface CartContextValue {
   items: Property[]
@@ -26,6 +30,7 @@ const CartContext = createContext<CartContextValue | null>(null)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Property[]>([])
   const [hydrated, setHydrated] = useState(false)
+  const [maxItems, setMaxItems] = useState(DEFAULT_MAX_ITEMS)
 
   useEffect(() => {
     try {
@@ -35,6 +40,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Panier vide par défaut si le stockage local est corrompu/inaccessible.
     }
     setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    getAppSettings()
+      .then((settings) => {
+        const setting = settings.find((s) => s.key === "cart.maxItems")
+        if (typeof setting?.value === "number" && setting.value > 0) {
+          setMaxItems(setting.value)
+        }
+      })
+      .catch(() => {
+        // Rôle sans settings:read, ou hors-ligne : DEFAULT_MAX_ITEMS reste actif.
+      })
   }, [])
 
   useEffect(() => {
@@ -48,7 +66,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       addItem: (property) => {
         setItems((prev) => {
           if (prev.some((p) => p.idProperty === property.idProperty)) return prev
-          if (prev.length >= MAX_ITEMS) return prev
+          if (prev.length >= maxItems) return prev
           return [...prev, property]
         })
       },
@@ -60,15 +78,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
           if (prev.some((p) => p.idProperty === property.idProperty)) {
             return prev.filter((p) => p.idProperty !== property.idProperty)
           }
-          if (prev.length >= MAX_ITEMS) return prev
+          if (prev.length >= maxItems) return prev
           return [...prev, property]
         })
       },
       isInCart: (idProperty) => items.some((p) => p.idProperty === idProperty),
       clear: () => setItems([]),
-      maxItems: MAX_ITEMS,
+      maxItems,
     }),
-    [items]
+    [items, maxItems]
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
