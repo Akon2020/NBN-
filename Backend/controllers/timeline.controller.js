@@ -8,6 +8,7 @@ const ENTITY_PERMISSION = {
   COMMISSIONNAIRE: "commissionnaires:read",
   BAILLEUR: "bailleurs:read",
   MISSION: "missions:read",
+  TASK: "tasks:read",
 };
 
 // GOAL 3 — lecture filtrable de la timeline d'une entité. Réutilise la
@@ -20,7 +21,7 @@ export const getEntityTimeline = async (req, res, next) => {
 
     if (!Object.keys(ENTITY_PERMISSION).includes(entityType)) {
       return res.status(400).json({
-        message: "entityType invalide (PROPERTY, CLIENT, COMMISSIONNAIRE, BAILLEUR, MISSION).",
+        message: "entityType invalide (PROPERTY, CLIENT, COMMISSIONNAIRE, BAILLEUR, MISSION, TASK).",
       });
     }
 

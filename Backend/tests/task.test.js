@@ -2,7 +2,17 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import bcrypt from "bcryptjs";
 import app from "../app.js";
-import { User, Property, Task, TaskAssignee, TaskPropertyLink } from "../models/index.model.js";
+import {
+  User,
+  Property,
+  Task,
+  TaskAssignee,
+  TaskPropertyLink,
+  TaskComment,
+  Notification,
+  Reminder,
+  TimelineEvent,
+} from "../models/index.model.js";
 
 const suffix = Date.now();
 const testPassword = "TestPass@123";
@@ -13,6 +23,8 @@ const createdTaskIds = [];
 let operationsEmail;
 let operationsUserId;
 let commissionnaireEmail;
+let commissionnaireUserId;
+let otherReaderEmail;
 let propertyId;
 
 const loginCache = new Map();
@@ -50,7 +62,18 @@ beforeAll(async () => {
     role: "commissionnaire",
     status: "ACTIVE",
   });
+  commissionnaireUserId = commissionnaire.idUser;
   createdUserIds.push(commissionnaire.idUser);
+
+  otherReaderEmail = `other.reader.task.${suffix}@nbn.test`;
+  const otherReader = await User.create({
+    fullName: "Other Reader Task Test",
+    email: otherReaderEmail,
+    password: hashed,
+    role: "commissionnaire",
+    status: "ACTIVE",
+  });
+  createdUserIds.push(otherReader.idUser);
 
   const property = await Property.create({
     category: "SALE",
@@ -66,6 +89,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (createdTaskIds.length) {
+    await TaskComment.destroy({ where: { idTask: createdTaskIds } });
+    await Reminder.destroy({ where: { relatedEntityType: "Task", relatedEntityId: createdTaskIds } });
+    await Notification.destroy({ where: { relatedEntityType: "Task", relatedEntityId: createdTaskIds } });
+    await TimelineEvent.destroy({ where: { entityType: "TASK", entityId: createdTaskIds } });
     await TaskAssignee.destroy({ where: { idTask: createdTaskIds } });
     await TaskPropertyLink.destroy({ where: { idTask: createdTaskIds } });
     await Task.destroy({ where: { idTask: createdTaskIds } });
@@ -193,5 +220,205 @@ describe("BACK-G16 - Module Tasks (Kanban)", () => {
       .get(`/api/tasks/${create.body.data.idTask}`)
       .set("Authorization", `Bearer ${login.body.data.token}`);
     expect(getRes.status).toBe(404);
+  });
+});
+
+describe("GOAL 15 - Commentaires, historique, notifications et rappels de tâche", () => {
+  it("créer une tâche avec assigné journalise CREATED et notifie l'assigné (pas le créateur)", async () => {
+    const login = await loginAs(operationsEmail);
+
+    const create = await request(app)
+      .post("/api/tasks")
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .send({ title: "Tâche assignée notifiée", assigneeUserIds: [commissionnaireUserId] });
+    expect(create.status).toBe(201);
+    createdTaskIds.push(create.body.data.idTask);
+
+    const timelineEvent = await TimelineEvent.findOne({
+      where: { entityType: "TASK", entityId: create.body.data.idTask, eventType: "CREATED" },
+    });
+    expect(timelineEvent).not.toBeNull();
+
+    const notif = await Notification.findOne({
+      where: {
+        idUser: commissionnaireUserId,
+        relatedEntityType: "Task",
+        relatedEntityId: create.body.data.idTask,
+        type: "task:assigned",
+      },
+    });
+    expect(notif).not.toBeNull();
+
+    const creatorNotif = await Notification.findOne({
+      where: {
+        idUser: operationsUserId,
+        relatedEntityType: "Task",
+        relatedEntityId: create.body.data.idTask,
+        type: "task:assigned",
+      },
+    });
+    expect(creatorNotif).toBeNull();
+  });
+
+  it("changer le statut notifie les assignés concernés, jamais l'acteur", async () => {
+    const login = await loginAs(operationsEmail);
+
+    const create = await request(app)
+      .post("/api/tasks")
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .send({ title: "Tâche statut notifié", assigneeUserIds: [commissionnaireUserId] });
+    createdTaskIds.push(create.body.data.idTask);
+
+    const move = await request(app)
+      .patch(`/api/tasks/${create.body.data.idTask}/statut`)
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .send({ statut: "EN_COURS" });
+    expect(move.status).toBe(200);
+
+    const notif = await Notification.findOne({
+      where: {
+        idUser: commissionnaireUserId,
+        relatedEntityType: "Task",
+        relatedEntityId: create.body.data.idTask,
+        type: "task:status_changed",
+      },
+    });
+    expect(notif).not.toBeNull();
+
+    const timelineEvent = await TimelineEvent.findOne({
+      where: { entityType: "TASK", entityId: create.body.data.idTask, eventType: "STATUT_CHANGED" },
+    });
+    expect(timelineEvent).not.toBeNull();
+  });
+
+  it("un rappel d'échéance PLANIFIE est créé pour chaque assigné, et retiré si l'assigné est retiré", async () => {
+    const login = await loginAs(operationsEmail);
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const create = await request(app)
+      .post("/api/tasks")
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .send({
+        title: "Tâche avec échéance",
+        dateEcheance: tomorrow,
+        assigneeUserIds: [commissionnaireUserId],
+      });
+    createdTaskIds.push(create.body.data.idTask);
+
+    const reminder = await Reminder.findOne({
+      where: {
+        idUser: commissionnaireUserId,
+        relatedEntityType: "Task",
+        relatedEntityId: create.body.data.idTask,
+        statut: "PLANIFIE",
+      },
+    });
+    expect(reminder).not.toBeNull();
+
+    const update = await request(app)
+      .patch(`/api/tasks/${create.body.data.idTask}`)
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .send({ assigneeUserIds: [] });
+    expect(update.status).toBe(200);
+
+    const remindersAfter = await Reminder.findAll({
+      where: {
+        relatedEntityType: "Task",
+        relatedEntityId: create.body.data.idTask,
+        statut: "PLANIFIE",
+      },
+    });
+    expect(remindersAfter).toHaveLength(0);
+  });
+
+  it("ajouter un commentaire notifie les assignés et le créateur (pas l'auteur), et journalise un événement", async () => {
+    const opsLogin = await loginAs(operationsEmail);
+    const commissionnaireLogin = await loginAs(commissionnaireEmail);
+
+    const create = await request(app)
+      .post("/api/tasks")
+      .set("Authorization", `Bearer ${opsLogin.body.data.token}`)
+      .send({ title: "Tâche commentée", assigneeUserIds: [commissionnaireUserId] });
+    createdTaskIds.push(create.body.data.idTask);
+
+    const comment = await request(app)
+      .post(`/api/tasks/${create.body.data.idTask}/comments`)
+      .set("Authorization", `Bearer ${commissionnaireLogin.body.data.token}`)
+      .send({ content: "Je m'en occupe cet après-midi." });
+    expect(comment.status).toBe(201);
+    expect(comment.body.data.content).toBe("Je m'en occupe cet après-midi.");
+
+    const creatorNotif = await Notification.findOne({
+      where: {
+        idUser: operationsUserId,
+        relatedEntityType: "Task",
+        relatedEntityId: create.body.data.idTask,
+        type: "task:comment",
+      },
+    });
+    expect(creatorNotif).not.toBeNull();
+
+    const authorNotif = await Notification.findOne({
+      where: {
+        idUser: commissionnaireUserId,
+        relatedEntityType: "Task",
+        relatedEntityId: create.body.data.idTask,
+        type: "task:comment",
+      },
+    });
+    expect(authorNotif).toBeNull();
+
+    const timelineEvent = await TimelineEvent.findOne({
+      where: { entityType: "TASK", entityId: create.body.data.idTask, eventType: "COMMENT" },
+    });
+    expect(timelineEvent).not.toBeNull();
+
+    const list = await request(app)
+      .get(`/api/tasks/${create.body.data.idTask}/comments`)
+      .set("Authorization", `Bearer ${opsLogin.body.data.token}`);
+    expect(list.status).toBe(200);
+    expect(list.body.data).toHaveLength(1);
+  });
+
+  it("un commentaire vide est refusé (400)", async () => {
+    const login = await loginAs(operationsEmail);
+    const create = await request(app)
+      .post("/api/tasks")
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .send({ title: "Tâche commentaire vide" });
+    createdTaskIds.push(create.body.data.idTask);
+
+    const comment = await request(app)
+      .post(`/api/tasks/${create.body.data.idTask}/comments`)
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .send({ content: "   " });
+    expect(comment.status).toBe(400);
+  });
+
+  it("seul l'auteur ou un titulaire de tasks:manage peut supprimer un commentaire", async () => {
+    const opsLogin = await loginAs(operationsEmail);
+    const commissionnaireLogin = await loginAs(commissionnaireEmail);
+    const otherLogin = await loginAs(otherReaderEmail);
+
+    const create = await request(app)
+      .post("/api/tasks")
+      .set("Authorization", `Bearer ${opsLogin.body.data.token}`)
+      .send({ title: "Tâche modération commentaire" });
+    createdTaskIds.push(create.body.data.idTask);
+
+    const comment = await request(app)
+      .post(`/api/tasks/${create.body.data.idTask}/comments`)
+      .set("Authorization", `Bearer ${commissionnaireLogin.body.data.token}`)
+      .send({ content: "Commentaire à modérer" });
+
+    const forbidden = await request(app)
+      .delete(`/api/tasks/${create.body.data.idTask}/comments/${comment.body.data.idTaskComment}`)
+      .set("Authorization", `Bearer ${otherLogin.body.data.token}`);
+    expect(forbidden.status).toBe(403);
+
+    const managedDelete = await request(app)
+      .delete(`/api/tasks/${create.body.data.idTask}/comments/${comment.body.data.idTaskComment}`)
+      .set("Authorization", `Bearer ${opsLogin.body.data.token}`);
+    expect(managedDelete.status).toBe(200);
   });
 });

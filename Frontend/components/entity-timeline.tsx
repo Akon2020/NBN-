@@ -22,6 +22,7 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  MessageSquare,
   MessageSquareWarning,
   Percent,
   Plus,
@@ -56,6 +57,8 @@ const EVENT_ICON: Record<string, typeof History> = {
   REJETEE: X,
   CORRECTION_DEMANDEE: Edit3,
   PROGRESSION: TrendingUp,
+  UPDATED: Edit3,
+  COMMENT: MessageSquare,
 }
 
 const EVENT_COLOR: Record<string, string> = {
@@ -80,6 +83,8 @@ const EVENT_COLOR: Record<string, string> = {
   REJETEE: "bg-error-500 text-white",
   CORRECTION_DEMANDEE: "bg-warning-500 text-neutral-900",
   PROGRESSION: "bg-primary-900 text-white",
+  UPDATED: "bg-primary-900 text-white",
+  COMMENT: "bg-secondary-600 text-white",
 }
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -104,6 +109,8 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   REJETEE: "Rejetée",
   CORRECTION_DEMANDEE: "Correction demandée",
   PROGRESSION: "Avancement",
+  UPDATED: "Mise à jour",
+  COMMENT: "Commentaire",
 }
 
 const formatDate = (iso: string) =>

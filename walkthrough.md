@@ -719,3 +719,27 @@ Verifie en navigateur bout en bout (compte `operations`) : declaration d'avancem
 Backend : `tests/missionAlert.test.js` (9/9, nouveau) + `npm test` -> **178/181** (memes 3 echecs SMTP pre-existants). Frontend : `npx tsc --noEmit` -> 0 erreur.
 
 *Suite immediate, sans interruption : GOAL 15 (Module de gestion des taches complet).*
+
+### GOAL 15 - Module de gestion des taches complet
+
+Constat en ouvrant le chantier, confirme par un sous-agent : l'infrastructure de liaison (`TaskAssignee`, `TaskPropertyLink`, `TaskClientLink`, `TaskBailleurLink`, `TaskCommissionnaireLink`) et le Kanban de statut (A_FAIRE/EN_COURS/EN_REVISION/TERMINEE) existaient deja et fonctionnaient (BACK-G16), mais quatre lacunes empechaient de considerer le module "complet" au sens du cahier des charges (assignation, collaborateurs, echeances, priorites, notifications, historique, commentaires) :
+1. **Aucun commentaire** - pas de modele, pas de route, aucune notion de discussion sur une tache.
+2. **Zero historique** - `recordTimelineEvent` deja disponible (GOAL 3/14) mais jamais appele depuis `task.controller.js`.
+3. **Zero notification** - ni a l'assignation, ni au changement de statut, ni sur un commentaire.
+4. **Aucun rappel d'echeance** - `Task.dateEcheance` existait depuis le debut mais rien ne l'exploitait, contrairement au `Reminder`/`reminder.worker.js` deja construit pour le calendrier (GOAL 11).
+5. **Frontend totalement absent** - aucune page, aucun type, aucun fichier d'actions ; le module n'existait que cote API.
+
+**Commentaires** : nouveau modele `TaskComment` (idTask, authorId, content), fil append-only - jamais d'edition, seule la suppression est permise (par l'auteur, ou par un titulaire de `tasks:manage` en moderation). Ouvert a quiconque a `tasks:read` (pas reserve a `tasks:manage`) - lire une tache inclut la participation a sa discussion, meme principe deja retenu pour le calendrier.
+
+**Historique** : `TASK` ajoute comme 6e type d'entite a la Timeline generique (GOAL 3, deja etendue a MISSION en GOAL 14) - meme migration `changeColumn` sur `timelineEvents.entityType`. Journalise : creation, mise a jour, changement de statut, commentaire.
+
+**Notifications** : helper `notifyUsers` unique (jamais l'acteur qui vient de declencher l'evenement) - assignation (nouveaux assignes uniquement, pas de spam sur ceux deja notifies lors d'une mise a jour), changement de statut (assignes actuels), nouveau commentaire (assignes + createur, jamais l'auteur du commentaire).
+
+**Rappels d'echeance** : plutot que construire un cron parallele, reutilisation directe de l'infrastructure `Reminder`/`reminder.worker.js` deja existante (GOAL 11) - un `Reminder` par assigne est cree/regenere a chaque creation ou mise a jour de tache ayant une `dateEcheance`, et retire des que l'assigne est retire ou l'echeance effacee (seuls les rappels pas encore envoyes, statut PLANIFIE, sont concernes - jamais l'historique deja envoye).
+
+**Frontend, construit integralement (rien n'existait avant)** : Kanban `/dashboard/tasks` en `@dnd-kit/core`, meme patron exact que le pipeline commercial (GOAL 7) - glisser une carte appelle directement `PATCH /api/tasks/:id/statut`, aucune regle de transition cote Frontend (CLAUDE.md §4). Modale de creation reutilisant `CalendarParticipantPicker` (GOAL 11) tel quel pour l'assignation - deja generique, evite une duplication de composant. Page de detail `/dashboard/tasks/[id]` : statut/priorite editables, echeance, assignes, ressources liees en lecture seule, fil de commentaires (ajout/suppression selon droits), `EntityTimeline` reutilise tel quel avec `entityType="TASK"`. Nouvelle entree "Taches" dans la navigation laterale.
+
+### Verification
+Backend : `tests/task.test.js` etendu (12/12, dont 6 nouveaux tests GOAL 15 : notification a l'assignation hors createur, notification de changement de statut hors acteur, cycle de vie complet du rappel d'echeance, notification + historique sur commentaire, rejet d'un commentaire vide, moderation de suppression auteur/tasks:manage) + `npm test` -> **184/187** (memes 3 echecs SMTP pre-existants, aucune regression). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie avec les deux nouvelles routes (`/dashboard/tasks`, `/dashboard/tasks/[id]`) generees sans erreur. Verification navigateur non concluante cette session : le rendu du Browser pane est reste bloque (captures d'ecran et navigations sans effet, y compris apres redemarrage du serveur de previsualisation) - probleme d'outillage constate independamment du code (confirme via `next build` reussi), pas une regression applicative.
+
+*Suite immediate, sans interruption : GOAL 16 (Finalisation gestion des utilisateurs).*
