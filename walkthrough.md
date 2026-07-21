@@ -808,3 +808,22 @@ Constat en ouvrant le chantier, confirme par un sous-agent : `GET /api/dashboard
 Backend : `tests/dashboardCharts.test.js` (2/2, nouveau - un role avec toutes les permissions recoit les six blocs, un consultant sans permission de base ne recoit que les repartitions de biens) + `npm test` -> **196/199** (memes 3 echecs SMTP pre-existants, aucune regression). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie.
 
 *Suite immediate, sans interruption : GOAL 20 (Finalisation notifications/alertes/temps reel).*
+
+### GOAL 20 - Finalisation notifications/alertes/temps reel
+
+Constat en ouvrant le chantier, confirme par un sous-agent : ce domaine etait deja largement solide, contrairement aux goals precedents. Confirme reel et fonctionnel : livraison push Expo (`pushProvider.js` fait un vrai appel HTTP a l'API Expo, pas un stub), les crons outbox/reminder (30s, demarres reellement dans `server.js`), Socket.IO effectivement initialise sur le vrai serveur HTTP (le commentaire "sans effet tant que initSocketGateway n'a pas ete appele" ne s'applique qu'aux tests Supertest qui importent `app.js` isolement, jamais au serveur reel), et la couverture temps reel deja generique et automatique pour tout domaine qui passe par `createNotification`/`createAlert`/`transitionAlert` (structurelle, pas une liste a maintenir manuellement).
+
+**Deux lacunes concretes identifiees** :
+1. `POST /api/alerts` (creation manuelle d'alerte, permission `alerts:manage`) existait cote Backend, complet et teste, mais jamais appele par le Frontend - aucune UI pour creer une alerte autrement que par generation automatique du systeme.
+2. Aucune page d'historique complet des notifications - seule la cloche existait, plafonnee a un apercu deroulant (100 lignes max, sans marquage groupe).
+
+**Backend** : nouveau `PATCH /api/notifications/toutes/lues` - marque uniquement les notifications de l'utilisateur connecte (jamais un idUser arbitraire), utile des qu'une vraie page d'historique existe au-dela de la cloche.
+
+**Frontend** : nouvelle page `/dashboard/notifications` - historique complet groupe par jour (meme patron que le calendrier), marquage individuel ou groupe, navigation directe vers l'entite liee quand une route existe (Task/Mission/Requisition/CalendarEvent/Alert). Cloche enrichie d'un bouton "Tout lire" et d'un lien "Voir toutes les notifications" vers cette page. Page Alertes : nouveau bouton "Nouvelle alerte" + formulaire (type, titre, description, severite, assignation optionnelle) branche sur l'endpoint deja existant.
+
+**Bug d'hygiene de tests decouvert et corrige en cours de route** : sur une suite complete (200+ tests), les `OutboxEvent` crees par des notifications d'autres fichiers de test s'accumulent (aucun cron ne tourne pendant les tests, seul `server.js` le demarre) - `processOutboxEvents()` traite un lot borne (20, le plus ancien d'abord), donc au-dela de 20 lignes en attente, un evenement fraichement cree par un test n'entre jamais dans le lot traite. Purge defensive ajoutee au debut des deux tests qui appellent `processOutboxEvents()` directement, plus nettoyage ponctuel des 182+26 lignes deja accumulees en base de developpement (jetable, CLAUDE.md §2 point 10) - comportement du worker lui-meme non modifie, uniquement l'isolation des tests concernes.
+
+### Verification
+Backend : `tests/notification.test.js` etendu (7/7, dont 1 nouveau test GOAL 20 - marquage groupe scope au bon utilisateur, jamais un tiers) + `npm test` -> **197/200** (memes 3 echecs SMTP pre-existants, aucune regression - confirme apres correction de la flakiness outbox decouverte en cours de route). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie avec la nouvelle route `/dashboard/notifications`.
+
+*Suite immediate, sans interruption : GOAL 21 (Finalisation complete application Mobile).*

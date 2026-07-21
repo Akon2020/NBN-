@@ -4,6 +4,9 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -11,7 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, ShieldAlert, Bell, Check, UserPlus } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Loader2, ShieldAlert, Bell, Check, Plus, UserPlus } from "lucide-react"
 import {
   ALERT_SEVERITE_LABELS,
   ALERT_STATUT_LABELS,
@@ -19,7 +29,7 @@ import {
   type AlertSeverite,
   type AlertStatut,
 } from "@/lib/types"
-import { getAllAlerts, assignAlert, transitionAlertStatus } from "@/actions/alerts"
+import { createAlert, getAllAlerts, assignAlert, transitionAlertStatus } from "@/actions/alerts"
 import { getUsersDirectory, type UserDirectoryEntry } from "@/actions/users"
 import { getSocket } from "@/lib/socket"
 import { toast } from "sonner"
@@ -43,6 +53,13 @@ export default function AlertesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
   const [directory, setDirectory] = useState<UserDirectoryEntry[]>([])
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [newType, setNewType] = useState("")
+  const [newTitle, setNewTitle] = useState("")
+  const [newDescription, setNewDescription] = useState("")
+  const [newSeverite, setNewSeverite] = useState<AlertSeverite>("AVERTISSEMENT")
+  const [newAssignedTo, setNewAssignedTo] = useState<string>("")
 
   const load = async () => {
     try {
@@ -92,6 +109,39 @@ export default function AlertesPage() {
     }
   }
 
+  const resetCreateForm = () => {
+    setNewType("")
+    setNewTitle("")
+    setNewDescription("")
+    setNewSeverite("AVERTISSEMENT")
+    setNewAssignedTo("")
+  }
+
+  const handleCreate = async () => {
+    if (!newType.trim() || !newTitle.trim()) {
+      toast.error("Le type et le titre sont obligatoires")
+      return
+    }
+    setSubmitting(true)
+    try {
+      const created = await createAlert({
+        type: newType.trim(),
+        title: newTitle.trim(),
+        description: newDescription.trim() || undefined,
+        severite: newSeverite,
+        assignedTo: newAssignedTo ? Number(newAssignedTo) : undefined,
+      })
+      setAlerts((prev) => [created, ...prev])
+      toast.success("Alerte créée avec succès")
+      setShowCreateModal(false)
+      resetCreateForm()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleAssign = async (alert: Alert, idUser: string) => {
     try {
       const updated = await assignAlert(alert.idAlert, Number(idUser))
@@ -116,11 +166,17 @@ export default function AlertesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-balance">Alertes</h1>
-        <p className="text-muted-foreground mt-2">
-          Suivi en direct — mises à jour automatiques via Socket.IO, avec repli REST
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Alertes</h1>
+          <p className="text-muted-foreground mt-2">
+            Suivi en direct — mises à jour automatiques via Socket.IO, avec repli REST
+          </p>
+        </div>
+        <Button onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          Nouvelle alerte
+        </Button>
       </div>
 
       {isLoading ? (
@@ -184,6 +240,74 @@ export default function AlertesPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouvelle alerte</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Input
+                value={newType}
+                onChange={(e) => setNewType(e.target.value)}
+                placeholder="ex. incident:securite"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Titre</Label>
+              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optionnelle)</Label>
+              <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Sévérité</Label>
+                <Select value={newSeverite} onValueChange={(v) => setNewSeverite(v as AlertSeverite)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ALERT_SEVERITE_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {directory.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Assigner à (optionnel)</Label>
+                  <Select value={newAssignedTo} onValueChange={setNewAssignedTo}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Personne" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {directory.map((user) => (
+                        <SelectItem key={user.idUser} value={String(user.idUser)}>
+                          {user.fullName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreate} disabled={submitting}>
+              {submitting ? "Création..." : "Créer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

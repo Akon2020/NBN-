@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import axios from "axios";
-import { Alert, AlertStatut } from "@/lib/types";
+import { Alert, AlertSeverite, AlertStatut } from "@/lib/types";
 
 const handleError = (error: unknown, fallback: string): never => {
   if (axios.isAxiosError(error)) {
@@ -15,6 +15,26 @@ export const getAllAlerts = async (): Promise<Alert[]> => {
     return res.data.data;
   } catch (error) {
     return handleError(error, "Erreur lors de la récupération des alertes");
+  }
+};
+
+export interface AlertInput {
+  type: string;
+  title: string;
+  description?: string;
+  severite?: AlertSeverite;
+  assignedTo?: number;
+}
+
+// GOAL 20 — POST /api/alerts (alerts:manage) existait déjà côté Backend
+// sans jamais être appelé par le Frontend — permet la création manuelle
+// d'une alerte, en plus des alertes générées automatiquement par le système.
+export const createAlert = async (input: AlertInput): Promise<Alert> => {
+  try {
+    const res = await api.post<{ message: string; data: Alert }>("/api/alerts", input);
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors de la création de l'alerte");
   }
 };
 
