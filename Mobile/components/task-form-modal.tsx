@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { createTask, updateTask, TASK_PRIORITE_LABELS, type Task, type TaskPriorite } from '@/lib/tasks';
 import { UserMultiSelect } from '@/components/user-multi-select';
+import { DateField } from '@/components/date-field';
 import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
 
 const PRIORITES: TaskPriorite[] = ['BASSE', 'NORMALE', 'HAUTE', 'URGENTE'];
@@ -185,22 +186,7 @@ export function TaskFormModal({ visible, onClose, task, onSaved }: TaskFormModal
               <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 13, color: APP_COLORS.foreground }}>
                 Échéance (optionnelle)
               </Text>
-              <TextInput
-                value={dateEcheance}
-                onChangeText={setDateEcheance}
-                placeholder="AAAA-MM-JJ"
-                placeholderTextColor={APP_COLORS.mutedForeground}
-                style={{
-                  borderWidth: 1,
-                  borderColor: APP_COLORS.border,
-                  borderRadius: APP_RADIUS.md,
-                  paddingHorizontal: 14,
-                  paddingVertical: 12,
-                  fontFamily: 'Inter_400Regular',
-                  fontSize: 14,
-                  color: APP_COLORS.foreground,
-                }}
-              />
+              <DateField value={dateEcheance} onChange={setDateEcheance} />
             </View>
 
             <View style={{ gap: 8 }}>
