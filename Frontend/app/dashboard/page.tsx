@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAuthUser } from "@/lib/auth";
 import { getDashboardStats } from "@/actions/dashboard";
+import { DashboardCharts } from "@/components/dashboard-charts";
 import type { DashboardStats, RecentActivityEntry, RecentActivityType } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -222,6 +223,8 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
+
+          <DashboardCharts />
 
           <Card className="border-border">
             <CardHeader>

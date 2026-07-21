@@ -1089,3 +1089,54 @@ export interface GlobalSearchResults {
   commissionnaires: Commissionnaire[]
   tasks: Task[]
 }
+
+// --- GOAL 19 : Dashboard exécutif (graphiques) ---
+
+export interface PropertiesByTypeEntry {
+  propertyType: PropertyType
+  count: number
+}
+
+export interface PropertiesByStatutEntry {
+  statut: PropertyStatut
+  count: number
+}
+
+export interface ClientPipelineEntry {
+  statutPipeline: ClientStatutPipeline
+  count: number
+}
+
+export interface CashflowByMonthEntry {
+  month: string
+  currencyCode: string
+  type: "ENTREE" | "SORTIE"
+  total: number
+}
+
+export interface CommissionsByMonthEntry {
+  month: string
+  currencyCode: string
+  statut: CommissionStatut
+  total: number
+}
+
+export interface CommissionnairePerformanceEntry {
+  idCommissionnaire: number
+  fullName: string
+  code: string
+  scoreGlobal: number
+}
+
+// GOAL 19 — chaque champ est optionnel : absent de la réponse si
+// l'appelant n'a pas la permission de lecture du domaine correspondant
+// (même principe que DashboardStats, jamais un tableau vide qui laisserait
+// croire "aucune donnée" là où c'est en réalité "accès non autorisé").
+export interface DashboardCharts {
+  propertiesByType: PropertiesByTypeEntry[]
+  propertiesByStatut: PropertiesByStatutEntry[]
+  clientPipeline?: ClientPipelineEntry[]
+  cashflowByMonth?: CashflowByMonthEntry[]
+  commissionsByMonth?: CommissionsByMonthEntry[]
+  commissionnairePerformance?: CommissionnairePerformanceEntry[]
+}

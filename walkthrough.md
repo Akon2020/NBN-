@@ -791,3 +791,20 @@ Constat en ouvrant le chantier, confirme par un sous-agent : `/dashboard/search`
 Backend : `tests/search.test.js` (4/4, nouveau - recherche trop courte rejetee, un role avec toutes les permissions de lecture recoit tous les types de resultats, un consultant sans permission de base ne recoit que les biens, filtres serveur sur `/api/properties` verifies avec et sans plage de prix) + `npm test` -> **194/197** (memes 3 echecs SMTP pre-existants, aucune regression). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie.
 
 *Suite immediate, sans interruption : GOAL 19 (Dashboard executif intelligent).*
+
+### GOAL 19 - Dashboard executif intelligent (graphiques)
+
+Constat en ouvrant le chantier, confirme par un sous-agent : `GET /api/dashboard/stats` etait deja un vrai endpoint agrege (ADMIN-G00 avait deja remplace les chiffres inventes cote Frontend), avec un gating RBAC par bloc deja correct (chaque champ absent si l'appelant n'a pas la permission du domaine). Mais tout etait un instantane a un seul chiffre - aucune requete groupee par date nulle part dans le Backend, `recharts` deja en dependance et un wrapper `components/ui/chart.tsx` deja present, mais consomme par aucune page (`grep` confirme zero import ailleurs) - la premiere vraie utilisation de graphiques dans tout le Frontend.
+
+**Backend** : nouveau `GET /api/dashboard/charts`, meme patron RBAC que `/stats` (permissions resolues une seule fois via `getEffectivePermissions`, un helper `can()` local plutot qu'un appel `hasPermission` repete par bloc). Six repartitions/tendances :
+- Biens par type et par statut (toujours visibles, coherent avec le reste de l'API properties).
+- Pipeline commercial clients (`clients:read`).
+- Tresorerie mensuelle entrees/sorties (`treasury:read`) et commissions par mois (`commissions:read`) - groupees par `(mois, currencyCode)` via `DATE_FORMAT` + `SUM`, jamais fusionnees entre devises differentes (CLAUDE.md §4 - aucune somme implicite USD+CDF).
+- Top 8 commissionnaires par score global (`commissionnaires:read`), nouveau bloc jamais surface par le dashboard jusqu'ici.
+
+**Frontend** : nouveau composant `DashboardCharts` (PieChart biens par type, BarChart biens par statut/pipeline/top commissionnaires, LineChart tresorerie, BarChart commissions) branche sous les cartes de statistiques existantes sur `/dashboard`. Selecteur de devise affiche uniquement si plusieurs devises sont reellement presentes dans les donnees (jamais un selecteur decoratif a une seule option). Palette derivee des tokens de marque NBN mesures (CLAUDE.md §10) plutot que les couleurs shadcn generiques, coherent avec la decision prise au GOAL 17 pour la landing page.
+
+### Verification
+Backend : `tests/dashboardCharts.test.js` (2/2, nouveau - un role avec toutes les permissions recoit les six blocs, un consultant sans permission de base ne recoit que les repartitions de biens) + `npm test` -> **196/199** (memes 3 echecs SMTP pre-existants, aucune regression). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie.
+
+*Suite immediate, sans interruption : GOAL 20 (Finalisation notifications/alertes/temps reel).*

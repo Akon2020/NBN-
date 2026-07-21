@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import axios from "axios";
-import { DashboardStats } from "@/lib/types";
+import { DashboardCharts, DashboardStats } from "@/lib/types";
 
 const handleError = (error: unknown, fallback: string): never => {
   if (axios.isAxiosError(error)) {
@@ -15,5 +15,14 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     return res.data.data;
   } catch (error) {
     return handleError(error, "Erreur lors de la récupération des statistiques");
+  }
+};
+
+export const getDashboardCharts = async (): Promise<DashboardCharts> => {
+  try {
+    const res = await api.get<{ data: DashboardCharts }>("/api/dashboard/charts");
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "Erreur lors de la récupération des graphiques");
   }
 };
