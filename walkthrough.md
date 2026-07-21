@@ -827,3 +827,23 @@ Constat en ouvrant le chantier, confirme par un sous-agent : ce domaine etait de
 Backend : `tests/notification.test.js` etendu (7/7, dont 1 nouveau test GOAL 20 - marquage groupe scope au bon utilisateur, jamais un tiers) + `npm test` -> **197/200** (memes 3 echecs SMTP pre-existants, aucune regression - confirme apres correction de la flakiness outbox decouverte en cours de route). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie avec la nouvelle route `/dashboard/notifications`.
 
 *Suite immediate, sans interruption : GOAL 21 (Finalisation complete application Mobile).*
+
+### GOAL 21 - Finalisation complete application Mobile
+
+Constat en ouvrant le chantier, confirme par un sous-agent : contrairement a l'hypothese de depart ("jamais touchee cette session"), l'application Mobile n'etait pas a l'etat d'ebauche - cinq milestones (MOBILE-G01 a G05) etaient deja livres avant le debut de cette session (commits anterieurs au 2026-07-16), avec une architecture offline-first reellement construite et testee : vrai Repository SQLite (`lib/repository/missionRepository.ts`), vrai moteur de synchronisation FIFO avec reprise sans duplication sur coupure reseau (`lib/sync/syncEngine.ts`, couvert par des tests unitaires reels), authentification par `expo-secure-store` (jamais AsyncStorage pour les tokens), compression+hash de dedoublonnage des photos avant stockage local. `npx tsc --noEmit` et `npx jest` (6/6) passaient deja avant toute intervention.
+
+**Deux lacunes concretes identifiees**, les deux dans l'arborescence "Interne" (staff/admin, distincte de l'arborescence "Commissionnaire" deja complete) : `(interne)/dashboard.tsx` et `(interne)/taches.tsx` etaient des `RoleScreenPlaceholder` litteraux, explicitement annotes "(a venir : Milestone 5)" - le seul ecran reellement construit dans cette arborescence etait "Biens".
+
+**Decision de perimetre** : les nombreux autres modules Backend sans aucune surface Mobile (paiements, RH, calendrier, requisitions, matching/propositions, alertes, recherche globale) ne sont mentionnes nulle part dans la classification offline/online du CLAUDE.md §8, qui ne couvre que les cas d'usage terrain (collecte, consultation, favoris) et un sous-ensemble d'actions "online-only" precis - confirme comme hors perimetre volontaire de l'app Mobile plutot qu'un oubli a combler.
+
+**Nouveaux ecrans reels** :
+- `(interne)/dashboard.tsx` - meme endpoint que le Frontend Admin (`GET /api/dashboard/stats`, deja reel et filtre par permission depuis ADMIN-G00) : cartes de statistiques (biens, clients, missions/requisitions en attente, caisses ouvertes, commissions dues, utilisateurs actifs - chacune n'apparaissant que si le champ correspondant est present dans la reponse) et flux d'activite recente, pull-to-refresh.
+- `(interne)/taches.tsx` - liste reelle des taches (`GET /api/tasks`, module GOAL 15), filtrable par statut et par "mes taches", avec avancement de statut au tap (`PATCH /api/tasks/:id/statut`). Le Kanban glisser-deposer du Frontend Admin n'a pas d'equivalent tactile naturel en mobile - remplace par une liste filtrable avec un bouton "statut suivant" par carte, pattern natif mobile plutot qu'un portage litteral du DnD.
+- Nouveaux `lib/dashboard.ts` et `lib/tasks.ts`, meme convention que les modules existants (`lib/properties.ts`, `lib/notifications.ts`) - types + fonctions fines au-dessus de l'instance axios partagee, jamais de logique metier dupliquee du Backend.
+
+**Reconciliation de CLAUDE.md** (regle du fichier lui-meme : toute divergence doit d'abord etre documentee) : §12 corrige pour refleter la stack Mobile reellement retenue et deja testee - formulaires en `useState` manuel plutot que `react-hook-form`/`zod`, appels reseau directs plutot que `@tanstack/react-query` (decision deja prise avant cette session, jamais actee dans le document), tests actuels au niveau logique/service uniquement. §16 gagne un point ouvert sur l'absence de `projectId` EAS (le chemin de code d'enregistrement du push existe et est correct mais n'a jamais rien a lire, sans effet negatif observe - juste inerte).
+
+### Verification
+Mobile : `npx tsc --noEmit` -> 0 erreur, `npx jest` -> 6/6 (suite existante inchangee, aucune regression), `npm run lint` -> 0 erreur. Verification navigateur non applicable (application Mobile Expo, hors perimetre du Browser pane).
+
+*Vingt et un objectifs traites sur vingt et un. Fin de la sequence de goals de cette session.*
