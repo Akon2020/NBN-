@@ -52,3 +52,26 @@ export async function updateTaskStatus(idTask: number, statut: TaskStatut): Prom
   const res = await api.patch(`/api/tasks/${idTask}/statut`, { statut });
   return res.data.data;
 }
+
+export interface TaskInput {
+  title: string;
+  description?: string;
+  priorite?: TaskPriorite;
+  dateEcheance?: string | null;
+  assigneeUserIds?: number[];
+}
+
+// POST /api/tasks (tasks:manage) — les assignés fournis sont notifiés
+// automatiquement côté Backend (GOAL 15), jamais reconstruit ici.
+export async function createTask(input: TaskInput): Promise<Task> {
+  const res = await api.post('/api/tasks', input);
+  return res.data.data;
+}
+
+// PATCH /api/tasks/:id (tasks:manage) — remplace intégralement les
+// assignés fournis (même contrat que le Frontend Admin), jamais un ajout
+// incrémental.
+export async function updateTask(idTask: number, input: Partial<TaskInput>): Promise<Task> {
+  const res = await api.patch(`/api/tasks/${idTask}`, input);
+  return res.data.data;
+}

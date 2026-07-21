@@ -7,22 +7,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   getAllTasks,
   updateTaskStatus,
-  TASK_PRIORITE_LABELS,
   TASK_STATUT_LABELS,
   TASK_STATUT_ORDER,
   type Task,
   type TaskStatut,
 } from '@/lib/tasks';
-import { APP_COLORS, APP_RADIUS } from '@/constants/theme-app';
+import { TaskFormModal } from '@/components/task-form-modal';
+import { TaskDetailModal } from '@/components/task-detail-modal';
+import { APP_COLORS } from '@/constants/theme-app';
 
-// GOAL 21 — liste réelle des tâches pour l'arborescence "Interne", jusqu'ici
-// un `RoleScreenPlaceholder`. Le Kanban glisser-déposer du Frontend Admin
-// n'a pas d'équivalent tactile naturel en mobile — remplacé par une liste
-// filtrable par statut avec avancement au tap, pattern natif mobile plutôt
-// qu'un portage littéral du DnD.
-const PRIORITE_COLOR: Record<Task['priorite'], string> = {
+// GOAL 21 (post-mission) — refonte façon Microsoft To Do : ligne minimale
+// avec case à cocher (bascule rapide terminée/à faire), titre barré une
+// fois terminée, plutôt que les cartes lourdes de la première version.
+// Le détail complet (priorité, échéance, assignés, tous les statuts
+// intermédiaires) reste accessible au tap sur la ligne, via TaskDetailModal.
+const PRIORITE_DOT: Record<Task['priorite'], string> = {
   BASSE: APP_COLORS.mutedForeground,
-  NORMALE: APP_COLORS.foreground,
+  NORMALE: APP_COLORS.primary,
   HAUTE: APP_COLORS.warning,
   URGENTE: APP_COLORS.destructive,
 };
@@ -32,86 +33,92 @@ const STATUT_FILTERS: { key: TaskStatut | 'all'; label: string }[] = [
   ...TASK_STATUT_ORDER.map((statut) => ({ key: statut, label: TASK_STATUT_LABELS[statut] })),
 ];
 
-function nextStatut(statut: TaskStatut): TaskStatut | null {
-  const index = TASK_STATUT_ORDER.indexOf(statut);
-  return index >= 0 && index < TASK_STATUT_ORDER.length - 1 ? TASK_STATUT_ORDER[index + 1] : null;
-}
-
-function TaskCard({ task, onAdvance }: { task: Task; onAdvance: (task: Task) => void }) {
-  const next = nextStatut(task.statut);
+function TaskRow({
+  task,
+  onToggleDone,
+  onPress,
+}: {
+  task: Task;
+  onToggleDone: () => void;
+  onPress: () => void;
+}) {
+  const done = task.statut === 'TERMINEE';
   return (
-    <View
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
       style={{
-        marginBottom: 12,
-        borderRadius: APP_RADIUS.lg,
-        backgroundColor: APP_COLORS.card,
-        borderWidth: 1,
-        borderColor: APP_COLORS.border,
-        padding: 16,
-        gap: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: APP_COLORS.border,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <TouchableOpacity onPress={onToggleDone} hitSlop={10}>
+        <MaterialIcons
+          name={done ? 'check-circle' : 'radio-button-unchecked'}
+          size={24}
+          color={done ? APP_COLORS.success : PRIORITE_DOT[task.priorite]}
+        />
+      </TouchableOpacity>
+
+      <View style={{ flex: 1 }}>
         <Text
+          numberOfLines={1}
           style={{
             fontFamily: 'Inter_500Medium',
-            fontSize: 11,
-            color: PRIORITE_COLOR[task.priorite],
+            fontSize: 14.5,
+            color: done ? APP_COLORS.mutedForeground : APP_COLORS.foreground,
+            textDecorationLine: done ? 'line-through' : 'none',
           }}
         >
-          {TASK_PRIORITE_LABELS[task.priorite]}
+          {task.title}
         </Text>
-        <View
-          style={{
-            borderRadius: 999,
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            backgroundColor: APP_COLORS.muted,
-          }}
-        >
-          <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, color: APP_COLORS.mutedForeground }}>
-            {TASK_STATUT_LABELS[task.statut]}
-          </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 }}>
+          {!done && (
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11.5, color: APP_COLORS.mutedForeground }}>
+              {TASK_STATUT_LABELS[task.statut]}
+            </Text>
+          )}
+          {task.dateEcheance && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <MaterialIcons name="event" size={11} color={APP_COLORS.mutedForeground} />
+              <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 11.5, color: APP_COLORS.mutedForeground }}>
+                {new Date(task.dateEcheance).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
-      <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 15, color: APP_COLORS.foreground }}>
-        {task.title}
-      </Text>
-      {task.description && (
-        <Text
-          numberOfLines={2}
-          style={{ fontFamily: 'Inter_400Regular', fontSize: 13, color: APP_COLORS.mutedForeground }}
-        >
-          {task.description}
-        </Text>
+
+      {task.assignees.length > 0 && (
+        <View style={{ flexDirection: 'row' }}>
+          {task.assignees.slice(0, 3).map((a, index) => (
+            <View
+              key={a.idUser}
+              style={{
+                height: 26,
+                width: 26,
+                borderRadius: 999,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: APP_COLORS.muted,
+                borderWidth: 2,
+                borderColor: APP_COLORS.background,
+                marginLeft: index === 0 ? 0 : -8,
+              }}
+            >
+              <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 10, color: APP_COLORS.foreground }}>
+                {(a.user?.fullName || '?').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          ))}
+        </View>
       )}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-        <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 12, color: APP_COLORS.mutedForeground }}>
-          {task.assignees.length > 0
-            ? task.assignees.map((a) => a.user?.fullName).filter(Boolean).join(', ')
-            : 'Non assignée'}
-        </Text>
-        {next && (
-          <TouchableOpacity
-            onPress={() => onAdvance(task)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-              borderRadius: 999,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              backgroundColor: APP_COLORS.primary,
-            }}
-          >
-            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 12, color: APP_COLORS.primaryForeground }}>
-              {TASK_STATUT_LABELS[next]}
-            </Text>
-            <MaterialIcons name="arrow-forward" size={14} color={APP_COLORS.primaryForeground} />
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -121,6 +128,9 @@ export default function TachesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [statutFilter, setStatutFilter] = useState<TaskStatut | 'all'>('all');
   const [assignedToMe, setAssignedToMe] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -142,22 +152,43 @@ export default function TachesScreen() {
     }, [load])
   );
 
-  const handleAdvance = async (task: Task) => {
-    const next = nextStatut(task.statut);
-    if (!next) return;
-    setTasks((prev) => prev.map((t) => (t.idTask === task.idTask ? { ...t, statut: next } : t)));
+  const applyUpdate = (updated: Task) => {
+    setTasks((prev) => {
+      const exists = prev.some((t) => t.idTask === updated.idTask);
+      if (!exists) return [updated, ...prev];
+      return prev.map((t) => (t.idTask === updated.idTask ? updated : t));
+    });
+    setDetailTask((prev) => (prev && prev.idTask === updated.idTask ? updated : prev));
+  };
+
+  const handleToggleDone = async (task: Task) => {
+    const nextStatut: TaskStatut = task.statut === 'TERMINEE' ? 'A_FAIRE' : 'TERMINEE';
+    setTasks((prev) => prev.map((t) => (t.idTask === task.idTask ? { ...t, statut: nextStatut } : t)));
     try {
-      await updateTaskStatus(task.idTask, next);
+      const updated = await updateTaskStatus(task.idTask, nextStatut);
+      applyUpdate(updated);
     } catch {
       load();
     }
+  };
+
+  const openCreate = () => {
+    setEditingTask(null);
+    setShowForm(true);
+  };
+
+  const openEditFromDetail = () => {
+    if (!detailTask) return;
+    setEditingTask(detailTask);
+    setDetailTask(null);
+    setShowForm(true);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: APP_COLORS.background }}>
       <View style={{ gap: 12, paddingHorizontal: 20, paddingTop: insets.top + 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontFamily: 'Manrope_600SemiBold', fontSize: 22, color: APP_COLORS.foreground }}>
+          <Text style={{ fontFamily: 'Manrope_700Bold', fontSize: 24, color: APP_COLORS.foreground }}>
             Tâches
           </Text>
           <TouchableOpacity
@@ -204,7 +235,9 @@ export default function TachesScreen() {
                   borderRadius: 999,
                   paddingHorizontal: 14,
                   paddingVertical: 8,
-                  backgroundColor: active ? APP_COLORS.foreground : APP_COLORS.muted,
+                  borderWidth: 1,
+                  borderColor: active ? APP_COLORS.foreground : APP_COLORS.border,
+                  backgroundColor: active ? APP_COLORS.foreground : 'transparent',
                 }}
               >
                 <Text
@@ -230,9 +263,15 @@ export default function TachesScreen() {
         <FlatList
           data={tasks}
           keyExtractor={(item) => String(item.idTask)}
-          contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 100 }}
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={load} />}
-          renderItem={({ item }) => <TaskCard task={item} onAdvance={handleAdvance} />}
+          renderItem={({ item }) => (
+            <TaskRow
+              task={item}
+              onToggleDone={() => handleToggleDone(item)}
+              onPress={() => setDetailTask(item)}
+            />
+          )}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', gap: 8, paddingVertical: 64 }}>
               <MaterialIcons name="checklist" size={40} color={APP_COLORS.mutedForeground} />
@@ -243,6 +282,47 @@ export default function TachesScreen() {
           }
         />
       )}
+
+      <TouchableOpacity
+        onPress={openCreate}
+        style={{
+          position: 'absolute',
+          bottom: insets.bottom + 20,
+          right: 24,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          paddingHorizontal: 20,
+          paddingVertical: 14,
+          borderRadius: 999,
+          backgroundColor: APP_COLORS.primary,
+          shadowColor: '#000',
+          shadowOpacity: 0.25,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 5,
+        }}
+      >
+        <MaterialIcons name="add" size={20} color={APP_COLORS.primaryForeground} />
+        <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: APP_COLORS.primaryForeground }}>
+          Nouvelle tâche
+        </Text>
+      </TouchableOpacity>
+
+      <TaskFormModal
+        visible={showForm}
+        onClose={() => setShowForm(false)}
+        task={editingTask}
+        onSaved={applyUpdate}
+      />
+
+      <TaskDetailModal
+        visible={detailTask !== null}
+        onClose={() => setDetailTask(null)}
+        task={detailTask}
+        onUpdated={applyUpdate}
+        onEdit={openEditFromDetail}
+      />
     </View>
   );
 }
