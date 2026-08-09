@@ -36,6 +36,7 @@ import {
   CalendarDays,
   FileBarChart,
   ListChecks,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -75,6 +76,7 @@ export default function DashboardLayout({
     { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
     { name: "Biens à louer", href: "/dashboard/rentals", icon: Home },
     { name: "Biens à vendre", href: "/dashboard/sales", icon: Building2 },
+    { name: "Demandes reçues", href: "/dashboard/demandes", icon: ClipboardList },
     { name: "Clients", href: "/dashboard/clients", icon: UserRound },
     { name: "Bailleurs", href: "/dashboard/bailleurs", icon: Handshake },
     { name: "Commissionnaires", href: "/dashboard/commissionnaires", icon: Compass },

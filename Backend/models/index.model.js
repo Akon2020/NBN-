@@ -58,6 +58,7 @@ import Training from "./training.model.js";
 import EmployeeTraining from "./employeeTraining.model.js";
 import TimelineEvent from "./timelineEvent.model.js";
 import ClientComplaint from "./clientComplaint.model.js";
+import RentalRequest from "./rentalRequest.model.js";
 import MarginSetting from "./marginSetting.model.js";
 import AppSetting from "./appSetting.model.js";
 import MarginHistory from "./marginHistory.model.js";
@@ -173,6 +174,10 @@ EmployeeProfile.belongsTo(EmployeeProfile, {
 // peut être Client ET Bailleur, CLAUDE.md §4).
 Person.hasOne(Client, { foreignKey: "idPerson" });
 Client.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
+
+// Demande de location publique → Client CRM créé à partir d'elle.
+RentalRequest.belongsTo(Client, { foreignKey: "idClient", as: "client" });
+Client.hasMany(RentalRequest, { foreignKey: "idClient", as: "rentalRequests" });
 
 // GOAL 4 — le code commissionnaire est la référence métier (jamais un
 // idCommissionnaire interne saisi/affiché) ; association basée sur cette
@@ -463,6 +468,7 @@ export {
   EmployeeTraining,
   TimelineEvent,
   ClientComplaint,
+  RentalRequest,
   MarginSetting,
   AppSetting,
   MarginHistory,

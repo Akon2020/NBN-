@@ -1140,3 +1140,201 @@ export interface DashboardCharts {
   commissionsByMonth?: CommissionsByMonthEntry[]
   commissionnairePerformance?: CommissionnairePerformanceEntry[]
 }
+
+// --- Formulaire public de demande de location ---
+
+export type RentalRequestSexe = "MASCULIN" | "FEMININ"
+export type RentalRequestTypeClient = "PARTICULIER" | "PROFESSIONNEL" | "ENTREPRISE" | "EXPATRIE"
+export type RentalRequestCanal = "TERRAIN" | "APPEL" | "WHATSAPP" | "RESEAU" | "AUTRE"
+export type RentalRequestUsage = "HABITATION" | "BUREAU" | "COMMERCIAL" | "MIXTE"
+export type RentalRequestCommune = "IBANDA" | "KADUTU" | "BAGIRA"
+export type RentalRequestModalite =
+  | "MENSUEL"
+  | "AVANCE_2_GARANTIE_3"
+  | "AVANCE_3_GARANTIE_2"
+  | "AVANCE_3_GARANTIE_3"
+  | "GARANTIE_6"
+  | "AUTRE"
+
+export const SEXE_CHOICES = [
+  { value: "MASCULIN", label: "Masculin" },
+  { value: "FEMININ", label: "Féminin" },
+]
+
+export const TYPE_CLIENT_CHOICES = [
+  { value: "PARTICULIER", label: "Particulier" },
+  { value: "PROFESSIONNEL", label: "Professionnel" },
+  { value: "ENTREPRISE", label: "Entreprise / Organisation" },
+  { value: "EXPATRIE", label: "Expatrié / Diaspora" },
+]
+
+export const CANAL_CONTACT_CHOICES = [
+  { value: "TERRAIN", label: "Terrain" },
+  { value: "APPEL", label: "Appel téléphonique" },
+  { value: "WHATSAPP", label: "WhatsApp" },
+  { value: "RESEAU", label: "Réseau / Recommandation" },
+  { value: "AUTRE", label: "Autre" },
+]
+
+export const TYPE_BIEN_SOUHAITE_CHOICES = [
+  { value: "APPARTEMENT", label: "Appartement" },
+  { value: "MAISON", label: "Maison" },
+  { value: "STUDIO", label: "Studio" },
+  { value: "CHAMBRE", label: "Chambre" },
+  { value: "BUREAU", label: "Bureau" },
+  { value: "LOCAL_COMMERCIAL", label: "Local commercial" },
+  { value: "AUTRE", label: "Autre" },
+]
+
+export const USAGE_BIEN_CHOICES = [
+  { value: "HABITATION", label: "Habitation personnelle" },
+  { value: "BUREAU", label: "Bureau professionnel" },
+  { value: "COMMERCIAL", label: "Activité commerciale" },
+  { value: "MIXTE", label: "Mixte" },
+]
+
+export const VILLE_CHOICES = [
+  { value: "BUKAVU", label: "Bukavu" },
+  { value: "AUTRE", label: "Autre ville" },
+]
+
+export const COMMUNE_CHOICES = [
+  { value: "IBANDA", label: "Ibanda" },
+  { value: "KADUTU", label: "Kadutu" },
+  { value: "BAGIRA", label: "Bagira" },
+]
+
+// Le cahier des charges ne fournit la liste des quartiers que pour Ibanda.
+// Le champ reste donc libre partout, avec des suggestions rapides quand
+// elles sont connues — jamais une liste fermée inventée pour les deux
+// autres communes.
+export const QUARTIER_SUGGESTIONS: Record<string, string[]> = {
+  IBANDA: ["Nyalukemba", "Ndendere", "Panzi"],
+  KADUTU: [],
+  BAGIRA: [],
+}
+
+export const DEVISE_CHOICES = [
+  { value: "USD", label: "USD ($)" },
+  { value: "CDF", label: "CDF (FC)" },
+]
+
+export const MODALITE_PAIEMENT_CHOICES = [
+  { value: "MENSUEL", label: "Mensuel" },
+  { value: "AVANCE_2_GARANTIE_3", label: "2 mois d'avance + 3 mois de garantie" },
+  { value: "AVANCE_3_GARANTIE_2", label: "3 mois d'avance + 2 mois de garantie" },
+  { value: "AVANCE_3_GARANTIE_3", label: "3 mois d'avance + 3 mois de garantie" },
+  { value: "GARANTIE_6", label: "6 mois de garantie" },
+  { value: "AUTRE", label: "Autre" },
+]
+
+export const CHARGES_INCLUSES_CHOICES = [
+  { value: "OUI", label: "Oui" },
+  { value: "NON", label: "Non" },
+  { value: "PARTIELLEMENT", label: "Partiellement" },
+]
+
+export const NOMBRE_CHAMBRES_CHOICES = [
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+  { value: "4+", label: "4 et plus" },
+  { value: "AUTRE", label: "Autre" },
+]
+
+export const NOMBRE_SALONS_CHOICES = [
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3+", label: "3 et plus" },
+]
+
+export const NOMBRE_TOILETTES_CHOICES = [
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3+", label: "3 et plus" },
+  { value: "AUCUNE", label: "Aucune exigence" },
+]
+
+export const EQUIPEMENT_CHOICES = [
+  { value: "MEUBLE", label: "Meublé" },
+  { value: "NON_MEUBLE", label: "Non meublé (vide)" },
+]
+
+export const AVANTAGE_CHOICES = [
+  { value: "PARKING", label: "Parking" },
+  { value: "EAU_PERMANENTE", label: "Eau permanente" },
+  { value: "ELECTRICITE_PERMANENTE", label: "Électricité permanente" },
+  { value: "CLOTURE", label: "Clôture" },
+  { value: "SECURITE", label: "Sécurité" },
+  { value: "BALCON", label: "Balcon" },
+  { value: "AUTRE", label: "Autre" },
+]
+
+export const URGENCE_CHOICES = [
+  { value: "IMMEDIAT", label: "Immédiat" },
+  { value: "1_2_SEMAINES", label: "1 à 2 semaines" },
+  { value: "1_MOIS", label: "Dans 1 mois" },
+  { value: "FLEXIBLE", label: "Flexible" },
+  { value: "AUTRE", label: "Autre" },
+]
+
+export const ELEMENT_PARTICULIER_CHOICES = [
+  { value: "ANIMAUX", label: "Animaux" },
+  { value: "ENFANTS", label: "Beaucoup d'enfants" },
+  { value: "ACTIVITE_PRO", label: "Activité professionnelle" },
+  { value: "AUCUNE", label: "Aucune" },
+]
+
+// Corps envoyé à POST /api/rental-requests — tous les champs sont
+// optionnels sauf ceux réellement exigés côté Backend.
+export interface RentalRequestPayload {
+  fullName: string
+  phone: string
+  conditionsAccepted: boolean
+  lieuProvenance?: string
+  residenceActuelle?: string
+  sexe?: string
+  typeClient?: string
+  canalContact?: string
+  canalContactAutre?: string
+  typesBien?: string[]
+  typeBienAutre?: string
+  usageBien?: string
+  ville?: string
+  villeAutre?: string
+  commune?: string
+  quartier?: string
+  avenues?: string
+  loyerMax?: number
+  devise?: string
+  modalitePaiement?: string
+  modalitePaiementAutre?: string
+  chargesIncluses?: string
+  nombreChambres?: string
+  nombreChambresAutre?: string
+  nombreSalons?: string
+  nombreToilettes?: string
+  equipements?: string[]
+  avantages?: string[]
+  avantageAutre?: string
+  urgence?: string
+  urgenceAutre?: string
+  dateEntree?: string
+  nombreOccupants?: number
+  elementsParticuliers?: string[]
+  orienteParAgent?: boolean
+  codeCommissionnaire?: string
+  autresInfos?: string
+}
+
+export interface RentalRequest extends Omit<RentalRequestPayload, "conditionsAccepted"> {
+  idRentalRequest: number
+  conditionsAcceptedAt: string
+  idClient?: number | null
+  client?: {
+    idClient: number
+    dossierNumber?: string | null
+    statutPipeline: ClientStatutPipeline
+  } | null
+  createdAt: string
+}
