@@ -41,6 +41,16 @@ const Bailleur = db.define(
       type: DataTypes.ENUM("SERIEUX", "MOYEN", "DIFFICILE"),
       allowNull: true,
     },
+    // Relevées à la collecte terrain : ce sont des positions du bailleur
+    // (valables pour tous ses biens), pas des attributs d'un bien précis.
+    disponibiliteVisite: {
+      type: DataTypes.ENUM("OUI", "NON", "SUR_PROGRAMME"),
+      allowNull: true,
+    },
+    accepteCommission: {
+      type: DataTypes.ENUM("OUI", "NON", "A_NEGOCIER"),
+      allowNull: true,
+    },
     restrictions: DataTypes.STRING(255),
     exigencesFinancieres: DataTypes.TEXT,
     statutRelation: {

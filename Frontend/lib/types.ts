@@ -1338,3 +1338,106 @@ export interface RentalRequest extends Omit<RentalRequestPayload, "conditionsAcc
   } | null
   createdAt: string
 }
+
+// --- Formulaire de collecte de bien (interne, non indexé côté client) ---
+
+export const TYPE_MISSION_CHOICES = [
+  { value: "COLLECTE_BIEN", label: "Collecte de bien" },
+  { value: "APPORT_CLIENT", label: "Apport client" },
+  { value: "SUIVI", label: "Suivi client" },
+  { value: "MISE_A_JOUR", label: "Mise à jour d'un bien existant" },
+]
+
+// Types réellement proposés au collecteur terrain — sous-ensemble du
+// catalogue complet (le formulaire ne demande pas de distinguer une
+// construction durable d'une semi-durable sur le terrain).
+export const COLLECTE_TYPE_BIEN_CHOICES = [
+  { value: "MAISON", label: "Maison" },
+  { value: "APPARTEMENT", label: "Appartement" },
+  { value: "PARCELLE", label: "Parcelle" },
+  { value: "CHAMBRE", label: "Chambre" },
+]
+
+export const TYPE_OPERATION_CHOICES = [
+  { value: "RENT", label: "Location" },
+  { value: "SALE", label: "Vente" },
+]
+
+export const ACCESSIBILITE_CHOICES = [
+  { value: "ROUTE_PRINCIPALE", label: "Route principale" },
+  { value: "ROUTE_SECONDAIRE", label: "Route secondaire" },
+  { value: "ACCES_DIFFICILE", label: "Accès difficile" },
+  { value: "ACCES_FLEXIBLE", label: "Accès flexible" },
+]
+
+export const DISPONIBILITE_CHOICES = [
+  { value: "IMMEDIATE", label: "Immédiate" },
+  { value: "BIENTOT", label: "Bientôt disponible" },
+  { value: "INDISPONIBLE", label: "Indisponible" },
+]
+
+export const ETAT_BIEN_CHOICES = [
+  { value: "NEUF", label: "Neuf" },
+  { value: "MOYEN", label: "Moyen" },
+  { value: "A_RENOVER", label: "À rénover" },
+]
+
+export const OUI_NON_CHOICES = [
+  { value: "OUI", label: "Oui" },
+  { value: "NON", label: "Non" },
+]
+
+export const DISPONIBILITE_VISITE_CHOICES = [
+  { value: "OUI", label: "Oui" },
+  { value: "NON", label: "Non" },
+  { value: "SUR_PROGRAMME", label: "Sur programme" },
+]
+
+export const ACCEPTE_COMMISSION_CHOICES = [
+  { value: "OUI", label: "Oui" },
+  { value: "NON", label: "Non" },
+  { value: "A_NEGOCIER", label: "À négocier" },
+]
+
+export const OBSERVATION_CHOICES = [
+  { value: "ACCES_DIFFICILE", label: "Accès difficile" },
+  { value: "QUARTIER_CALME", label: "Quartier calme" },
+  { value: "PROBLEME_EAU", label: "Problème d'eau" },
+  { value: "PROBLEME_COURANT", label: "Problème de courant" },
+  { value: "AUTRE", label: "Autre" },
+]
+
+// Compteurs 1..N proposés en pastilles, plus une saisie libre — évite un
+// menu déroulant pour une valeur qui est presque toujours petite.
+export const countChoices = (max: number) => [
+  ...Array.from({ length: max }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
+  { value: "AUTRE", label: "Autre" },
+]
+
+export interface PropertyCollectionPayload {
+  typeMission: string
+  typeOperation: string
+  propertyType: string
+  commune: string
+  prix: string
+  proprietaireNom: string
+  proprietairePhone: string
+  collecteurNom: string
+  quartier?: string
+  avenue?: string
+  bedrooms?: string
+  livingRooms?: string
+  toilets?: string
+  kitchens?: string
+  depots?: string
+  hasElectricity?: boolean
+  hasWater?: boolean
+  accessibilite?: string
+  disponibilite?: string
+  etatBien?: string
+  observations?: string
+  proprietaireDisponibiliteVisite?: string
+  proprietaireAccepteCommission?: string
+  collecteurPhone?: string
+  codeCommissionnaire?: string
+}

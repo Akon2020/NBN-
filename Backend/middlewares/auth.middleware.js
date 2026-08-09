@@ -78,6 +78,45 @@ export const authMiddlware = async (req, res, next) => {
   }
 };
 
+// Formulaires ouverts qui bénéficient d'un contexte utilisateur sans
+// l'exiger (collecte de bien : préremplissage et traçabilité du
+// collecteur s'il est connecté, soumission possible sinon). Un jeton
+// absent, expiré ou invalide n'est jamais une erreur ici — la requête
+// continue simplement sans `req.user`.
+export const optionalAuth = async (req, res, next) => {
+  let token = null;
+
+  const authHeader = req.headers["authorization"];
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.split(" ")[1];
+  }
+  if (!token && req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!decoded.email) return next();
+
+    const user = await User.findOne({
+      where: { email: decoded.email },
+      attributes: { exclude: ["password"] },
+    });
+    if (!user || user.status === "INACTIVE") return next();
+
+    const currentSecurityVersion = await getSecurityVersion(user.idUser);
+    if (currentSecurityVersion === null || decoded.securityVersion !== currentSecurityVersion) {
+      return next();
+    }
+
+    req.user = user;
+  } catch {
+    // Jeton illisible : on poursuit en anonyme.
+  }
+  return next();
+};
+
 export const checkAuthStatus = (req, res) => {
   try {
     if (req.user) {
