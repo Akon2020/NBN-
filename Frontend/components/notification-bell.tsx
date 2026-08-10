@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Bell, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { Bell, CheckCheck, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { getMyNotifications, markNotificationRead } from "@/actions/notifications"
+import { getMyNotifications, markAllNotificationsRead, markNotificationRead } from "@/actions/notifications"
 import { getSocket } from "@/lib/socket"
 import type { Notification } from "@/lib/types"
 
@@ -57,6 +58,15 @@ export function NotificationBell() {
     }
   }
 
+  const handleMarkAllRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
+    try {
+      await markAllNotificationsRead()
+    } catch {
+      load()
+    }
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -70,8 +80,19 @@ export function NotificationBell() {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="border-b border-border px-4 py-3">
+        <div className="border-b border-border px-4 py-3 flex items-center justify-between gap-2">
           <p className="text-sm font-semibold">Notifications</p>
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
+              onClick={handleMarkAllRead}
+            >
+              <CheckCheck className="h-3.5 w-3.5 mr-1" />
+              Tout lire
+            </Button>
+          )}
         </div>
         <div className="max-h-96 overflow-y-auto">
           {isLoading ? (
@@ -107,6 +128,13 @@ export function NotificationBell() {
             ))
           )}
         </div>
+        <Link
+          href="/dashboard/notifications"
+          onClick={() => setOpen(false)}
+          className="block border-t border-border px-4 py-2.5 text-center text-xs font-medium text-primary hover:bg-accent"
+        >
+          Voir toutes les notifications
+        </Link>
       </PopoverContent>
     </Popover>
   )

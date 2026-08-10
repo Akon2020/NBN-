@@ -34,6 +34,22 @@ export const markAsRead = async (req, res, next) => {
   }
 };
 
+// GOAL 20 — utile dès qu'une vraie page d'historique existe (au-delà de la
+// cloche, plafonnée) ; portée toujours strictement l'utilisateur connecté,
+// jamais un idUser arbitraire.
+export const markAllAsRead = async (req, res, next) => {
+  try {
+    await Notification.update(
+      { isRead: true, readAt: new Date() },
+      { where: { idUser: req.user.idUser, isRead: false } }
+    );
+    return res.status(200).json({ message: "Toutes les notifications ont été marquées comme lues" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
 export const registerPushToken = async (req, res, next) => {
   try {
     const { expoPushToken } = req.body;

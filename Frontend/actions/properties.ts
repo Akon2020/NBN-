@@ -8,10 +8,27 @@ import {
   PropertyVideoEntry,
 } from "@/lib/types";
 
-export const getAllProperties = async (): Promise<Property[]> => {
+// GOAL 18 — filtres optionnels envoyés directement au Backend (jamais un
+// téléchargement de tout le catalogue suivi d'un filtrage côté client),
+// rétrocompatible : aucun paramètre = comportement identique à avant.
+export interface PropertySearchFilters {
+  q?: string;
+  category?: "RENT" | "SALE";
+  propertyType?: string;
+  statut?: string;
+  quartier?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  bedrooms?: number;
+}
+
+export const getAllProperties = async (
+  filters?: PropertySearchFilters
+): Promise<Property[]> => {
   try {
     const res = await api.get<{ nombre: number; propertiesInfo: Property[] }>(
-      "/api/properties"
+      "/api/properties",
+      { params: filters }
     );
     return res.data.propertiesInfo;
   } catch (error) {

@@ -25,7 +25,7 @@ const Mission = db.define(
       allowNull: false,
     },
     type: {
-      type: DataTypes.ENUM("COLLECTE_BIEN", "APPORT_CLIENT", "SUIVI"),
+      type: DataTypes.ENUM("COLLECTE_BIEN", "APPORT_CLIENT", "SUIVI", "MISE_A_JOUR"),
       allowNull: false,
     },
     statut: {

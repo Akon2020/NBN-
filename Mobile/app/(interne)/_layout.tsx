@@ -5,7 +5,9 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { APP_COLORS } from '@/constants/theme-app';
 
 // Arborescence "Interne" — agents/employés (tâches, collecte terrain non
-// commissionnée, RH). Écrans placeholders pour l'instant (sauf "Biens").
+// commissionnée, RH). "Notifications" délègue au composant partagé
+// (voir MOBILE-G05) ; les trois autres onglets ont chacun une vraie
+// implémentation métier (Biens, Tableau de bord, Tâches).
 export default function InterneLayout() {
   return (
     <Tabs

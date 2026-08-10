@@ -94,8 +94,11 @@ export async function getPublicProperty(id: number): Promise<Property> {
 }
 
 // Lecture authentifiée — profil "interne" (staff avec un vrai compte).
-export async function getAllProperties(): Promise<Property[]> {
-  const res = await api.get('/api/properties');
+// Filtres optionnels envoyés au Backend (GET /api/properties?category=...,
+// déjà réel depuis la recherche globale du Frontend Admin) — jamais un
+// téléchargement de tout le catalogue suivi d'un filtrage côté client.
+export async function getAllProperties(filters?: { category?: PropertyCategory }): Promise<Property[]> {
+  const res = await api.get('/api/properties', { params: filters });
   return res.data.propertiesInfo;
 }
 

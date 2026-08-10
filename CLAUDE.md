@@ -511,14 +511,14 @@ npx expo install nativewind tailwindcss react-native-reanimated react-native-saf
 - `nativewind-env.d.ts` pour le support TypeScript des `className`.
 
 Ajouts fonctionnels :
-- Client HTTP + cache : `axios` + `@tanstack/react-query` (cohérence stricte avec le Web).
+- Client HTTP : `axios` (intercepteurs request/response pour le token et la rotation refresh, `lib/api.ts`).
 - Stockage sécurisé (tokens) : `expo-secure-store`.
-- Stockage local structuré (offline) : `expo-sqlite`.
-- Caméra : `expo-camera`. Galerie : `expo-image-picker`. Géolocalisation : `expo-location`.
-- Push : `expo-notifications` (Expo Push Service).
+- Stockage local structuré (offline) : `expo-sqlite`, via un vrai Repository (`lib/repository/`) — jamais consommé directement par l'UI.
+- Galerie/appareil photo : `expo-image-picker` (via `launchCameraAsync`, qui couvre déjà l'accès caméra — `expo-camera` reste en dépendance mais n'est pas utilisé, à retirer si aucun besoin de flux caméra live n'apparaît). Géolocalisation : `expo-location`.
+- Push : `expo-notifications` (Expo Push Service) — voir §16 point ouvert (aucun `projectId` EAS lié pour l'instant, le chemin de code est prêt mais inerte).
 - Realtime : `socket.io-client`.
-- Formulaires : `react-hook-form` + `zod` (mêmes libs que le Web).
-- Tests : `jest` + `@testing-library/react-native`.
+- **Décision divergente actée (remplace la ligne originale "react-hook-form + zod + @tanstack/react-query")** : formulaires en `useState` manuel par champ + validation inline, appels réseau directs via des fonctions `lib/*.ts` typées (pas de cache de requêtes partagé). Choix retenu après implémentation réelle et testée (missions terrain, collecte bien/client, dashboard/tâches) — pas de regret de conception identifié à ce jour ; à revisiter seulement si une vraie douleur de cache/duplication de requêtes apparaît, pas par anticipation.
+- Tests : `jest`, niveau logique/service uniquement à ce jour (repository, sync engine, résolution de rôle) — `@testing-library/react-native` est en dépendance mais aucun test de composant n'existe encore.
 
 ### Outillage transversal
 
@@ -588,6 +588,7 @@ Ces points ne bloquent pas le développement mais doivent être tranchés dès q
 3. **Validation juridique des durées de rétention** (§11) — à confirmer avec une source juridique fiable selon la juridiction d'exploitation réelle.
 4. **Faire un push à ala branche dev** - après chaque fonctionnalité  faire un commit bien et un push sur la branche dev contenant un bon message de PR. Ne fais nullement apparaitre claude ou même antropics dans ces commits.
 5. **Journaliser chaque étape dans un fcichier `walkthrough.md`**
+6. **Aucun `projectId` EAS lié au projet Mobile** — `Mobile/lib/notifications.ts::registerPushToken` sait déjà lire `Constants.expoConfig?.extra?.eas?.projectId` et appeler `getExpoPushTokenAsync`, mais n'a jamais rien à lire : le token Expo Push n'est donc jamais obtenu ni envoyé à `POST /api/notifications/push-token`, même hors Expo Go. Aucun effet négatif observé (l'absence est un no-op silencieux, la Notification reste consultable via l'API REST) — mais le push mobile réel restera inerte tant qu'un projet EAS n'est pas provisionné et lié (`eas init`), action qui requiert un compte Expo/EAS et n'a pas été effectuée.
 
 ---
 

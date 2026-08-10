@@ -26,3 +26,11 @@ export const markNotificationRead = async (id: number): Promise<Notification> =>
     return handleError(error, "Erreur lors du marquage de la notification");
   }
 };
+
+export const markAllNotificationsRead = async (): Promise<void> => {
+  try {
+    await api.patch("/api/notifications/toutes/lues");
+  } catch (error) {
+    return handleError(error, "Erreur lors du marquage des notifications");
+  }
+};

@@ -11,3 +11,17 @@ export const authLimiter = rateLimit({
     message: "Trop de tentatives. Veuillez réessayer dans quelques minutes.",
   },
 });
+
+// Formulaires publics non authentifiés (demande de location, collecte de
+// bien) : plus permissif que le login (une soumission légitime peut être
+// reprise après une erreur de saisie) mais suffisant pour empêcher qu'une
+// route ouverte serve à inonder la base de faux dossiers.
+export const publicFormLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 heure
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Trop de soumissions depuis cet appareil. Veuillez réessayer plus tard.",
+  },
+});

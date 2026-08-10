@@ -18,9 +18,18 @@ const Property = db.define("properties", {
       "CONSTRUCTION_DURABLE",
       "CONSTRUCTION_SEMI_DURABLE",
       "TERRAIN_PLAT",
-      "TERRAIN_PENTE"
+      "TERRAIN_PENTE",
+      // Ajoutés avec le formulaire de collecte terrain — chaque type a sa
+      // ligne correspondante dans `marginSettings` (les deux ENUM restent
+      // alignés, sans quoi le bien n'aurait aucun pourcentage effectif).
+      "PARCELLE",
+      "CHAMBRE"
     ),
     allowNull: false,
+  },
+  commune: {
+    type: DataTypes.ENUM("IBANDA", "KADUTU", "BAGIRA"),
+    allowNull: true,
   },
   quartier: DataTypes.STRING,
   avenue: DataTypes.STRING,
@@ -30,6 +39,24 @@ const Property = db.define("properties", {
   livingRooms: DataTypes.INTEGER,
   toilets: DataTypes.INTEGER,
   kitchens: DataTypes.INTEGER,
+  depots: DataTypes.INTEGER,
+  // Relevés terrain — `null` signifie « non renseigné », jamais « non »
+  // (d'où le booléen nullable plutôt qu'un défaut à false).
+  hasElectricity: { type: DataTypes.BOOLEAN, allowNull: true },
+  hasWater: { type: DataTypes.BOOLEAN, allowNull: true },
+  accessibilite: {
+    type: DataTypes.ENUM("ROUTE_PRINCIPALE", "ROUTE_SECONDAIRE", "ACCES_DIFFICILE", "ACCES_FLEXIBLE"),
+    allowNull: true,
+  },
+  disponibilite: {
+    type: DataTypes.ENUM("IMMEDIATE", "BIENTOT", "INDISPONIBLE"),
+    allowNull: true,
+  },
+  etatBien: {
+    type: DataTypes.ENUM("NEUF", "MOYEN", "A_RENOVER"),
+    allowNull: true,
+  },
+  observations: DataTypes.TEXT,
   price: DataTypes.DECIMAL(12, 2),
   // GOAL 9 — `margin` est désormais une valeur dérivée, jamais saisie
   // directement (retirée de PROPERTY_FIELDS) : toujours recalculée à

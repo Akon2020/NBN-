@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getMyNotifications,
+  markAllAsRead,
   markAsRead,
   registerPushToken,
 } from "../controllers/notification.controller.js";
@@ -33,6 +34,18 @@ notificationRouter.get("/me", authMiddlware, getMyNotifications);
  *         description: Notification non trouvée
  */
 notificationRouter.patch("/:id/lue", authMiddlware, markAsRead);
+
+/**
+ * @swagger
+ * /api/notifications/toutes/lues:
+ *   patch:
+ *     summary: Marque toutes les notifications de l'utilisateur connecté comme lues
+ *     tags: [Notifications]
+ *     responses:
+ *       200:
+ *         description: Notifications marquées lues
+ */
+notificationRouter.patch("/toutes/lues", authMiddlware, markAllAsRead);
 
 /**
  * @swagger

@@ -776,3 +776,74 @@ Constat en ouvrant le chantier : `Frontend/app/page.tsx` etait un template SaaS 
 Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie, `/` toujours pre-rendue statiquement. Verification navigateur partielle cette session : le rendu visuel (capture d'ecran) reste indisponible (meme limitation d'outillage que GOALS 15-16), mais `get_page_text` confirme l'integralite du contenu attendu dans le bon ordre, aucune section manquante, et une inspection directe des styles calcules confirme les couleurs de marque exactes (`rgb(20, 41, 74)` = `#14294A` pour le hero, `rgb(193, 63, 11)` = `#C13F0B` pour le bouton WhatsApp) en mode clair ET sombre, ainsi que le chargement reussi (200 OK) des images et polices.
 
 *Suite immediate, sans interruption : GOAL 18 (Recherche globale intelligente).*
+
+### GOAL 18 - Recherche globale intelligente
+
+Constat en ouvrant le chantier, confirme par un sous-agent : `/dashboard/search` existait deja mais ne couvrait que les biens - au montage, `getAllProperties()` telechargeait l'integralite du catalogue puis `Array.filter` faisait tout le travail cote client (aucun parametre de requete envoye au Backend), en contradiction avec la contrainte "connexion faible" du CLAUDE.md §1. Aucun endpoint de recherche n'existait cote Backend (`GET /api/properties` n'acceptait que `?includeArchived=true`), et aucune entite hors bien (Client, Bailleur, Commissionnaire, Tache) n'etait cherchable par nom - seul un `?dossierNumber=` partiel existait pour Client/Bailleur. Un composant `command.tsx` (shadcn/cmdk) etait deja present dans le projet mais jamais importe nulle part - scaffold mort.
+
+**Backend** :
+- `GET /api/properties` gagne des filtres optionnels et retrocompatibles (`q`, `category`, `propertyType`, `statut`, `quartier`, `minPrice`, `maxPrice`, `bedrooms`) - aucun parametre = comportement identique a avant, aucun appelant existant casse.
+- Nouveau module `search.controller.js`/`search.route.js` (`GET /api/search?q=`) : recherche transverse sur Biens/Clients/Bailleurs/Commissionnaires/Taches, plafonnee a 6 resultats par type. Chaque type n'est inclus que si l'appelant a la permission de lecture correspondante (`clients:read`/`bailleurs:read`/`commissionnaires:read`/`tasks:read`, verifiees via `hasPermission` deja existant) - jamais une nouvelle permission "search" fourre-tout qui contournerait le RBAC par domaine deja en place. Les biens restent ouverts a tout utilisateur authentifie, coherent avec `property.route.js` (aucune permission de lecture n'y a jamais existe). Reutilise directement `serializeProperties`/`serializeBailleurs` (PROPERTY_INCLUDES exporte de `property.controller.js` pour eviter un include duplique) - jamais de contournement du filtrage field-level deja en place (marge bien/bailleur).
+
+**Frontend** : nouveau `GlobalSearchCommand` (palette Ctrl/Cmd+K dans la barre superieure du dashboard) branchant enfin `command.tsx` a une vraie source de donnees - debounce 300ms, resultats groupes par type avec icone dediee, navigation directe vers la fiche. `/dashboard/search` (recherche avancee biens) convertie pour envoyer ses filtres au Backend au lieu de filtrer un catalogue deja telecharge - meme UI, memes filtres, mais une seule requete par saisie (debounce 350ms) au lieu d'un chargement complet a l'ouverture de la page.
+
+### Verification
+Backend : `tests/search.test.js` (4/4, nouveau - recherche trop courte rejetee, un role avec toutes les permissions de lecture recoit tous les types de resultats, un consultant sans permission de base ne recoit que les biens, filtres serveur sur `/api/properties` verifies avec et sans plage de prix) + `npm test` -> **194/197** (memes 3 echecs SMTP pre-existants, aucune regression). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie.
+
+*Suite immediate, sans interruption : GOAL 19 (Dashboard executif intelligent).*
+
+### GOAL 19 - Dashboard executif intelligent (graphiques)
+
+Constat en ouvrant le chantier, confirme par un sous-agent : `GET /api/dashboard/stats` etait deja un vrai endpoint agrege (ADMIN-G00 avait deja remplace les chiffres inventes cote Frontend), avec un gating RBAC par bloc deja correct (chaque champ absent si l'appelant n'a pas la permission du domaine). Mais tout etait un instantane a un seul chiffre - aucune requete groupee par date nulle part dans le Backend, `recharts` deja en dependance et un wrapper `components/ui/chart.tsx` deja present, mais consomme par aucune page (`grep` confirme zero import ailleurs) - la premiere vraie utilisation de graphiques dans tout le Frontend.
+
+**Backend** : nouveau `GET /api/dashboard/charts`, meme patron RBAC que `/stats` (permissions resolues une seule fois via `getEffectivePermissions`, un helper `can()` local plutot qu'un appel `hasPermission` repete par bloc). Six repartitions/tendances :
+- Biens par type et par statut (toujours visibles, coherent avec le reste de l'API properties).
+- Pipeline commercial clients (`clients:read`).
+- Tresorerie mensuelle entrees/sorties (`treasury:read`) et commissions par mois (`commissions:read`) - groupees par `(mois, currencyCode)` via `DATE_FORMAT` + `SUM`, jamais fusionnees entre devises differentes (CLAUDE.md §4 - aucune somme implicite USD+CDF).
+- Top 8 commissionnaires par score global (`commissionnaires:read`), nouveau bloc jamais surface par le dashboard jusqu'ici.
+
+**Frontend** : nouveau composant `DashboardCharts` (PieChart biens par type, BarChart biens par statut/pipeline/top commissionnaires, LineChart tresorerie, BarChart commissions) branche sous les cartes de statistiques existantes sur `/dashboard`. Selecteur de devise affiche uniquement si plusieurs devises sont reellement presentes dans les donnees (jamais un selecteur decoratif a une seule option). Palette derivee des tokens de marque NBN mesures (CLAUDE.md §10) plutot que les couleurs shadcn generiques, coherent avec la decision prise au GOAL 17 pour la landing page.
+
+### Verification
+Backend : `tests/dashboardCharts.test.js` (2/2, nouveau - un role avec toutes les permissions recoit les six blocs, un consultant sans permission de base ne recoit que les repartitions de biens) + `npm test` -> **196/199** (memes 3 echecs SMTP pre-existants, aucune regression). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie.
+
+*Suite immediate, sans interruption : GOAL 20 (Finalisation notifications/alertes/temps reel).*
+
+### GOAL 20 - Finalisation notifications/alertes/temps reel
+
+Constat en ouvrant le chantier, confirme par un sous-agent : ce domaine etait deja largement solide, contrairement aux goals precedents. Confirme reel et fonctionnel : livraison push Expo (`pushProvider.js` fait un vrai appel HTTP a l'API Expo, pas un stub), les crons outbox/reminder (30s, demarres reellement dans `server.js`), Socket.IO effectivement initialise sur le vrai serveur HTTP (le commentaire "sans effet tant que initSocketGateway n'a pas ete appele" ne s'applique qu'aux tests Supertest qui importent `app.js` isolement, jamais au serveur reel), et la couverture temps reel deja generique et automatique pour tout domaine qui passe par `createNotification`/`createAlert`/`transitionAlert` (structurelle, pas une liste a maintenir manuellement).
+
+**Deux lacunes concretes identifiees** :
+1. `POST /api/alerts` (creation manuelle d'alerte, permission `alerts:manage`) existait cote Backend, complet et teste, mais jamais appele par le Frontend - aucune UI pour creer une alerte autrement que par generation automatique du systeme.
+2. Aucune page d'historique complet des notifications - seule la cloche existait, plafonnee a un apercu deroulant (100 lignes max, sans marquage groupe).
+
+**Backend** : nouveau `PATCH /api/notifications/toutes/lues` - marque uniquement les notifications de l'utilisateur connecte (jamais un idUser arbitraire), utile des qu'une vraie page d'historique existe au-dela de la cloche.
+
+**Frontend** : nouvelle page `/dashboard/notifications` - historique complet groupe par jour (meme patron que le calendrier), marquage individuel ou groupe, navigation directe vers l'entite liee quand une route existe (Task/Mission/Requisition/CalendarEvent/Alert). Cloche enrichie d'un bouton "Tout lire" et d'un lien "Voir toutes les notifications" vers cette page. Page Alertes : nouveau bouton "Nouvelle alerte" + formulaire (type, titre, description, severite, assignation optionnelle) branche sur l'endpoint deja existant.
+
+**Bug d'hygiene de tests decouvert et corrige en cours de route** : sur une suite complete (200+ tests), les `OutboxEvent` crees par des notifications d'autres fichiers de test s'accumulent (aucun cron ne tourne pendant les tests, seul `server.js` le demarre) - `processOutboxEvents()` traite un lot borne (20, le plus ancien d'abord), donc au-dela de 20 lignes en attente, un evenement fraichement cree par un test n'entre jamais dans le lot traite. Purge defensive ajoutee au debut des deux tests qui appellent `processOutboxEvents()` directement, plus nettoyage ponctuel des 182+26 lignes deja accumulees en base de developpement (jetable, CLAUDE.md §2 point 10) - comportement du worker lui-meme non modifie, uniquement l'isolation des tests concernes.
+
+### Verification
+Backend : `tests/notification.test.js` etendu (7/7, dont 1 nouveau test GOAL 20 - marquage groupe scope au bon utilisateur, jamais un tiers) + `npm test` -> **197/200** (memes 3 echecs SMTP pre-existants, aucune regression - confirme apres correction de la flakiness outbox decouverte en cours de route). Frontend : `npx tsc --noEmit` -> 0 erreur, `next build` -> compilation complete reussie avec la nouvelle route `/dashboard/notifications`.
+
+*Suite immediate, sans interruption : GOAL 21 (Finalisation complete application Mobile).*
+
+### GOAL 21 - Finalisation complete application Mobile
+
+Constat en ouvrant le chantier, confirme par un sous-agent : contrairement a l'hypothese de depart ("jamais touchee cette session"), l'application Mobile n'etait pas a l'etat d'ebauche - cinq milestones (MOBILE-G01 a G05) etaient deja livres avant le debut de cette session (commits anterieurs au 2026-07-16), avec une architecture offline-first reellement construite et testee : vrai Repository SQLite (`lib/repository/missionRepository.ts`), vrai moteur de synchronisation FIFO avec reprise sans duplication sur coupure reseau (`lib/sync/syncEngine.ts`, couvert par des tests unitaires reels), authentification par `expo-secure-store` (jamais AsyncStorage pour les tokens), compression+hash de dedoublonnage des photos avant stockage local. `npx tsc --noEmit` et `npx jest` (6/6) passaient deja avant toute intervention.
+
+**Deux lacunes concretes identifiees**, les deux dans l'arborescence "Interne" (staff/admin, distincte de l'arborescence "Commissionnaire" deja complete) : `(interne)/dashboard.tsx` et `(interne)/taches.tsx` etaient des `RoleScreenPlaceholder` litteraux, explicitement annotes "(a venir : Milestone 5)" - le seul ecran reellement construit dans cette arborescence etait "Biens".
+
+**Decision de perimetre** : les nombreux autres modules Backend sans aucune surface Mobile (paiements, RH, calendrier, requisitions, matching/propositions, alertes, recherche globale) ne sont mentionnes nulle part dans la classification offline/online du CLAUDE.md §8, qui ne couvre que les cas d'usage terrain (collecte, consultation, favoris) et un sous-ensemble d'actions "online-only" precis - confirme comme hors perimetre volontaire de l'app Mobile plutot qu'un oubli a combler.
+
+**Nouveaux ecrans reels** :
+- `(interne)/dashboard.tsx` - meme endpoint que le Frontend Admin (`GET /api/dashboard/stats`, deja reel et filtre par permission depuis ADMIN-G00) : cartes de statistiques (biens, clients, missions/requisitions en attente, caisses ouvertes, commissions dues, utilisateurs actifs - chacune n'apparaissant que si le champ correspondant est present dans la reponse) et flux d'activite recente, pull-to-refresh.
+- `(interne)/taches.tsx` - liste reelle des taches (`GET /api/tasks`, module GOAL 15), filtrable par statut et par "mes taches", avec avancement de statut au tap (`PATCH /api/tasks/:id/statut`). Le Kanban glisser-deposer du Frontend Admin n'a pas d'equivalent tactile naturel en mobile - remplace par une liste filtrable avec un bouton "statut suivant" par carte, pattern natif mobile plutot qu'un portage litteral du DnD.
+- Nouveaux `lib/dashboard.ts` et `lib/tasks.ts`, meme convention que les modules existants (`lib/properties.ts`, `lib/notifications.ts`) - types + fonctions fines au-dessus de l'instance axios partagee, jamais de logique metier dupliquee du Backend.
+
+**Reconciliation de CLAUDE.md** (regle du fichier lui-meme : toute divergence doit d'abord etre documentee) : §12 corrige pour refleter la stack Mobile reellement retenue et deja testee - formulaires en `useState` manuel plutot que `react-hook-form`/`zod`, appels reseau directs plutot que `@tanstack/react-query` (decision deja prise avant cette session, jamais actee dans le document), tests actuels au niveau logique/service uniquement. §16 gagne un point ouvert sur l'absence de `projectId` EAS (le chemin de code d'enregistrement du push existe et est correct mais n'a jamais rien a lire, sans effet negatif observe - juste inerte).
+
+### Verification
+Mobile : `npx tsc --noEmit` -> 0 erreur, `npx jest` -> 6/6 (suite existante inchangee, aucune regression), `npm run lint` -> 0 erreur. Verification navigateur non applicable (application Mobile Expo, hors perimetre du Browser pane).
+
+*Vingt et un objectifs traites sur vingt et un. Fin de la sequence de goals de cette session.*

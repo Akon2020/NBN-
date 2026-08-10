@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Building2,
+  ClipboardList,
   Home,
   Scale,
   Truck,
@@ -125,10 +126,10 @@ export default function LandingPage() {
               <Link href="/auth/login">Espace équipe</Link>
             </Button>
             <Button asChild className="bg-accent-600 text-white hover:bg-accent-600/90">
-              <a href={whatsappHref("Bonjour, je souhaite être mis en relation avec un conseiller Nyumbani Express.")}>
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Nous contacter
-              </a>
+              <Link href="/demande-location">
+                <ClipboardList className="mr-2 h-4 w-4" />
+                Demande de location
+              </Link>
             </Button>
           </div>
         </div>
@@ -154,18 +155,24 @@ export default function LandingPage() {
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="h-12 bg-accent-600 px-8 text-white hover:bg-accent-600/90">
+                  <Link href="/demande-location">
+                    <ClipboardList className="mr-2 h-5 w-5" />
+                    Faire une demande de location
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="h-12 border-white/30 bg-transparent px-8 text-white hover:bg-white/10 hover:text-white">
                   <a href={whatsappHref("Bonjour, je recherche un bien avec Nyumbani Express.")}>
                     <MessageCircle className="mr-2 h-5 w-5" />
                     Discuter sur WhatsApp
                   </a>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="h-12 border-white/30 bg-transparent px-8 text-white hover:bg-white/10 hover:text-white">
-                  <a href={`tel:${COMPANY.phone.replace(/\s/g, "")}`}>
-                    <Phone className="mr-2 h-5 w-5" />
-                    {COMPANY.phone}
-                  </a>
-                </Button>
               </div>
+              <p className="text-sm text-white/70">
+                Ou appelez-nous directement au{" "}
+                <a href={`tel:${COMPANY.phone.replace(/\s/g, "")}`} className="font-medium text-white hover:underline">
+                  {COMPANY.phone}
+                </a>
+              </p>
               <div className="flex flex-wrap items-center gap-6 pt-4">
                 {["Location", "Vente", "Conseil", "Déménagement"].map((label) => (
                   <div key={label} className="flex items-center gap-2 text-white/90">
@@ -308,13 +315,16 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="h-12 bg-accent-600 px-8 text-white hover:bg-accent-600/90">
+                <Link href="/demande-location">
+                  <ClipboardList className="mr-2 h-5 w-5" />
+                  Faire une demande de location
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-12 border-white/30 bg-transparent px-8 text-white hover:bg-white/10 hover:text-white">
                 <a href={whatsappHref("Bonjour, je souhaite discuter d'un projet immobilier avec Nyumbani Express.")}>
                   <MessageCircle className="mr-2 h-5 w-5" />
                   Discuter sur WhatsApp
                 </a>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="h-12 border-white/30 bg-transparent px-8 text-white hover:bg-white/10 hover:text-white">
-                <Link href="/auth/login">Accès équipe</Link>
               </Button>
             </div>
           </div>
@@ -362,6 +372,11 @@ export default function LandingPage() {
                 <li>
                   <Link href="#apropos" className="hover:text-accent-600 transition-colors">
                     À propos
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/demande-location" className="hover:text-accent-600 transition-colors">
+                    Demande de location
                   </Link>
                 </li>
                 <li>

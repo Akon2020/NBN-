@@ -31,6 +31,8 @@ let tresorerieEmail;
 let operationsEmail;
 let demandeurUserId;
 let caisseId;
+let bulkOtherEmail;
+let bulkOtherUserId;
 
 const loginCache = new Map();
 const loginAs = async (email) => {
@@ -68,6 +70,17 @@ beforeAll(async () => {
   });
   demandeurUserId = operations.idUser;
   createdUserIds.push(operations.idUser);
+
+  bulkOtherEmail = `other.bulk.notif.${suffix}@nbn.test`;
+  const bulkOther = await User.create({
+    fullName: "Other Bulk Notif Test",
+    email: bulkOtherEmail,
+    password: hashed,
+    role: "operations",
+    status: "ACTIVE",
+  });
+  bulkOtherUserId = bulkOther.idUser;
+  createdUserIds.push(bulkOther.idUser);
 
   const caisse = await Caisse.create({ label: `Caisse Notif Test ${suffix}` });
   caisseId = caisse.idCaisse;
@@ -150,6 +163,15 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
   });
 
   it("le worker outbox traite une notification sans token push : SKIPPED, jamais perdu", async () => {
+    // GOAL 20 — `processOutboxEvents` traite un lot borné (BATCH_SIZE=20,
+    // le plus ancien d'abord) : sur une suite complète où d'autres fichiers
+    // de test créent des OutboxEvent jamais traités (aucun cron ne tourne
+    // pendant les tests, seul `server.js` le démarre), un arriéré peut
+    // dépasser 20 lignes et empêcher cette ligne fraîchement créée d'entrer
+    // dans le lot — purge défensive pour tester ce worker en isolation
+    // réelle, jamais un contournement du comportement du worker lui-même.
+    await OutboxEvent.destroy({ where: { statut: ["PENDING", "FAILED"] } });
+
     const login = await loginAs(operationsEmail);
     const notification = await createNotification({
       idUser: demandeurUserId,
@@ -178,6 +200,11 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
   });
 
   it("le worker outbox marque FAILED et conserve la Notification si l'envoi échoue", async () => {
+    // Voir le commentaire équivalent du test précédent — même purge
+    // défensive contre l'arriéré d'OutboxEvent non traités par d'autres
+    // fichiers de test.
+    await OutboxEvent.destroy({ where: { statut: ["PENDING", "FAILED"] } });
+
     // `pushProvider.js` appelle le `fetch` global directement (pas de SDK
     // serveur) — `vi.stubGlobal` est l'API Vitest dédiée à ce cas (une
     // simple réaffectation de `global.fetch` ne traverse pas de façon
@@ -291,5 +318,32 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
     const matching = alerts.find((a) => a.title.includes(commissionnaire.code));
     expect(matching).toBeDefined();
     createdAlertIds.push(matching.idAlert);
+  });
+});
+
+describe("GOAL 20 - Marquer toutes les notifications comme lues", () => {
+  it("marque uniquement les notifications de l'utilisateur connecté, jamais celles d'un tiers", async () => {
+    const demandeurLogin = await loginAs(operationsEmail);
+
+    const n1 = await createNotification({ idUser: demandeurUserId, type: "test:bulk", title: "Notif 1" });
+    const n2 = await createNotification({ idUser: demandeurUserId, type: "test:bulk", title: "Notif 2" });
+    const nOther = await createNotification({
+      idUser: bulkOtherUserId,
+      type: "test:bulk",
+      title: "Notif autre utilisateur",
+    });
+    [n1, n2, nOther].forEach((n) => createdNotificationIds.push(n.idNotification));
+
+    const res = await request(app)
+      .patch("/api/notifications/toutes/lues")
+      .set("Authorization", `Bearer ${demandeurLogin.body.data.token}`);
+    expect(res.status).toBe(200);
+
+    await n1.reload();
+    await n2.reload();
+    await nOther.reload();
+    expect(n1.isRead).toBe(true);
+    expect(n2.isRead).toBe(true);
+    expect(nOther.isRead).toBe(false);
   });
 });

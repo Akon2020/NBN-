@@ -16,6 +16,11 @@ import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
 
+// GOAL 18 — les filtres sont désormais envoyés au Backend (GET
+// /api/properties?q=...&category=...) au lieu de télécharger tout le
+// catalogue puis de filtrer en mémoire (contrainte "connexion faible",
+// CLAUDE.md §1) — débounce 350ms pour ne pas déclencher une requête par
+// frappe.
 export default function SearchPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -28,41 +33,23 @@ export default function SearchPage() {
   const [quartier, setQuartier] = useState("")
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setProperties(await getAllProperties())
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Erreur inconnue")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    load()
-  }, [])
-
-  const filteredProperties = properties.filter((property) => {
-    if (category !== "all" && property.category !== category) return false
-
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase()
-      const matchesAddress =
-        (property.quartier || "").toLowerCase().includes(search) ||
-        (property.avenue || "").toLowerCase().includes(search)
-      const matchesDescription = property.description?.toLowerCase().includes(search)
-      if (!matchesAddress && !matchesDescription) return false
-    }
-
-    if (propertyType !== "all" && property.propertyType !== propertyType) return false
-
-    if (minPrice && property.price < Number.parseInt(minPrice)) return false
-    if (maxPrice && property.price > Number.parseInt(maxPrice)) return false
-
-    if (bedrooms && (property.bedrooms ?? 0) < Number.parseInt(bedrooms)) return false
-
-    if (quartier && !(property.quartier || "").toLowerCase().includes(quartier.toLowerCase())) return false
-
-    return true
-  })
+    setIsLoading(true)
+    const timeout = setTimeout(() => {
+      getAllProperties({
+        q: searchTerm.trim() || undefined,
+        category: category === "all" ? undefined : category,
+        propertyType: propertyType === "all" ? undefined : propertyType,
+        quartier: quartier.trim() || undefined,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        bedrooms: bedrooms ? Number(bedrooms) : undefined,
+      })
+        .then(setProperties)
+        .catch((error) => toast.error(error instanceof Error ? error.message : "Erreur inconnue"))
+        .finally(() => setIsLoading(false))
+    }, 350)
+    return () => clearTimeout(timeout)
+  }, [searchTerm, category, propertyType, quartier, minPrice, maxPrice, bedrooms])
 
   const resetFilters = () => {
     setSearchTerm("")
@@ -190,12 +177,12 @@ export default function SearchPage() {
         <>
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {filteredProperties.length} résultat{filteredProperties.length > 1 ? "s" : ""} trouvé
-              {filteredProperties.length > 1 ? "s" : ""}
+              {properties.length} résultat{properties.length > 1 ? "s" : ""} trouvé
+              {properties.length > 1 ? "s" : ""}
             </p>
           </div>
 
-          {filteredProperties.length === 0 ? (
+          {properties.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Search className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold">Aucun résultat</h3>
@@ -203,7 +190,7 @@ export default function SearchPage() {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredProperties.map((property) => (
+              {properties.map((property) => (
                 <Link
                   key={property.idProperty}
                   href={`/dashboard/${property.category === "RENT" ? "rentals" : "sales"}/${property.idProperty}`}
