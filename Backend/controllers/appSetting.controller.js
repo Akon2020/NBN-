@@ -45,7 +45,9 @@ export const updateSetting = async (req, res, next) => {
       updatedBy: req.user.idUser,
     });
 
-    return res.status(200).json({ message: "Paramètre mis à jour", data: serialize(setting) });
+    return res
+      .status(200)
+      .json({ message: "Paramètre mis à jour", data: serialize(setting) });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);

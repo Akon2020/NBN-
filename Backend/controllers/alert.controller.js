@@ -1,5 +1,8 @@
 import { Alert, User } from "../models/index.model.js";
-import { createAlert, transitionAlert } from "../services/notification.service.js";
+import {
+  createAlert,
+  transitionAlert,
+} from "../services/notification.service.js";
 
 const ALERT_INCLUDES = [
   { model: User, as: "assignee", attributes: ["idUser", "fullName"] },
@@ -29,7 +32,9 @@ export const getAllAlerts = async (req, res, next) => {
 // GOAL 14 — détail d'une alerte (absent jusqu'ici, seule la liste existait).
 export const getSingleAlert = async (req, res, next) => {
   try {
-    const alert = await Alert.findByPk(req.params.id, { include: ALERT_INCLUDES });
+    const alert = await Alert.findByPk(req.params.id, {
+      include: ALERT_INCLUDES,
+    });
     if (!alert) {
       return res.status(404).json({ message: "Alerte non trouvée" });
     }
@@ -56,8 +61,12 @@ export const createManualAlert = async (req, res, next) => {
       createdBy: req.user.idUser,
     });
 
-    const created = await Alert.findByPk(alert.idAlert, { include: ALERT_INCLUDES });
-    return res.status(201).json({ message: "Alerte créée avec succès", data: created });
+    const created = await Alert.findByPk(alert.idAlert, {
+      include: ALERT_INCLUDES,
+    });
+    return res
+      .status(201)
+      .json({ message: "Alerte créée avec succès", data: created });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
@@ -97,7 +106,9 @@ export const transitionAlertStatus = async (req, res, next) => {
     }
 
     if (statut === alert.statut) {
-      return res.status(400).json({ message: "Cette alerte a déjà ce statut." });
+      return res
+        .status(400)
+        .json({ message: "Cette alerte a déjà ce statut." });
     }
     if (!VALID_TRANSITIONS[alert.statut].includes(statut)) {
       return res.status(400).json({
@@ -107,8 +118,12 @@ export const transitionAlertStatus = async (req, res, next) => {
 
     await transitionAlert(alert, { statut, resolvedBy: req.user.idUser });
 
-    const updated = await Alert.findByPk(alert.idAlert, { include: ALERT_INCLUDES });
-    return res.status(200).json({ message: "Alerte mise à jour", data: updated });
+    const updated = await Alert.findByPk(alert.idAlert, {
+      include: ALERT_INCLUDES,
+    });
+    return res
+      .status(200)
+      .json({ message: "Alerte mise à jour", data: updated });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
@@ -127,12 +142,16 @@ export const assignAlert = async (req, res, next) => {
       return res.status(404).json({ message: "Alerte non trouvée" });
     }
     if (alert.statut === "CLOTUREE") {
-      return res.status(400).json({ message: "Une alerte clôturée ne peut plus être réassignée." });
+      return res
+        .status(400)
+        .json({ message: "Une alerte clôturée ne peut plus être réassignée." });
     }
 
     await alert.update({ assignedTo, statut: "ASSIGNEE" });
 
-    const updated = await Alert.findByPk(alert.idAlert, { include: ALERT_INCLUDES });
+    const updated = await Alert.findByPk(alert.idAlert, {
+      include: ALERT_INCLUDES,
+    });
     return res.status(200).json({ message: "Alerte assignée", data: updated });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });

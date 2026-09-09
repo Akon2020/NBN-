@@ -61,7 +61,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "1024mb" }));
 app.use(bodyParser.json({ limit: "1024mb" }));
-const PROD_ORIGINS = ["https://nbn-plus.vercel.app"];
+const PROD_ORIGINS = ["https://nbnexpress.org", "https://api.nbnexpress.org", "https://nbn-plus.vercel.app", "http://10.220.60.73:3000"];
 // Expo Metro choisit un port différent à chaque redémarrage si le port par
 // défaut (8081) est occupé — whitelister chaque port un par un n'est pas
 // praticable en développement. N'importe quel localhost/127.0.0.1 est donc
@@ -73,19 +73,22 @@ const PROD_ORIGINS = ["https://nbn-plus.vercel.app"];
 const isDevOrigin = (origin) =>
   /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
   /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}):\d+$/.test(
-    origin
+    origin,
   );
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || PROD_ORIGINS.includes(origin)) return callback(null, true);
-      if (NODE_ENV !== "production" && isDevOrigin(origin)) return callback(null, true);
-      return callback(new Error("Origine non autorisée par la politique CORS."));
+      if (NODE_ENV !== "production" && isDevOrigin(origin))
+        return callback(null, true);
+      return callback(
+        new Error("Origine non autorisée par la politique CORS."),
+      );
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
-  })
+  }),
 );
 
 // SEC-G06 (complément) — les fichiers uploadés (multer, `file.path` =
@@ -102,7 +105,7 @@ app.use(
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     next();
   },
-  express.static(path.join(process.cwd(), "uploads"))
+  express.static(path.join(process.cwd(), "uploads")),
 );
 
 setupSwagger(app);

@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useEffect, useState, use } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { useEffect, useState, use } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
   Phone,
@@ -14,54 +14,61 @@ import {
   Calendar,
   DollarSign,
   Loader2,
-} from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { EditBailleurModal } from "@/components/bailleur-modals/edit-bailleur-modal"
-import { DeleteBailleurModal } from "@/components/bailleur-modals/delete-bailleur-modal"
-import { EntityTimeline } from "@/components/entity-timeline"
-import { getSingleBailleur } from "@/actions/bailleurs"
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { EditBailleurModal } from "@/components/bailleur-modals/edit-bailleur-modal";
+import { DeleteBailleurModal } from "@/components/bailleur-modals/delete-bailleur-modal";
+import { EntityTimeline } from "@/components/entity-timeline";
+import { getSingleBailleur } from "@/actions/bailleurs";
 import {
   BAILLEUR_STATUT_LABELS,
   BAILLEUR_TYPE_LABELS,
   BAILLEUR_VALEUR_LABELS,
   type Bailleur,
-} from "@/lib/types"
-import { toast } from "sonner"
+} from "@/lib/types";
+import { toast } from "sonner";
 
-export default function BailleurDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
-  const router = useRouter()
-  const [bailleur, setBailleur] = useState<Bailleur | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
+export default function BailleurDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const router = useRouter();
+  const [bailleur, setBailleur] = useState<Bailleur | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
-        setBailleur(await getSingleBailleur(Number(id)))
+        setBailleur(await getSingleBailleur(Number(id)));
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+        toast.error(error instanceof Error ? error.message : "Erreur inconnue");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-    load()
-  }, [id])
+    };
+    load();
+  }, [id]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
-    )
+    );
   }
 
   if (!bailleur) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <h2 className="text-2xl font-bold mb-4">Bailleur non trouvé</h2>
+        <p className="text-muted-foreground mb-4">
+          Le bailleur que vous recherchez n'existe pas.
+        </p>
         <Link href="/dashboard/bailleurs">
           <Button>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -69,7 +76,7 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
           </Button>
         </Link>
       </div>
-    )
+    );
   }
 
   return (
@@ -82,7 +89,11 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
           </Button>
         </Link>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowEditModal(true)}
+          >
             <Edit className="h-4 w-4 mr-2" />
             Modifier
           </Button>
@@ -104,17 +115,25 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-2xl">{bailleur.person?.fullName}</CardTitle>
+                  <CardTitle className="text-2xl">
+                    {bailleur.person?.fullName}
+                  </CardTitle>
                   {bailleur.dossierNumber && (
-                    <p className="text-xs font-mono text-muted-foreground mt-1">{bailleur.dossierNumber}</p>
+                    <p className="text-xs font-mono text-muted-foreground mt-1">
+                      {bailleur.dossierNumber}
+                    </p>
                   )}
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge className="bg-primary text-primary-foreground">
                       {BAILLEUR_TYPE_LABELS[bailleur.type]}
                     </Badge>
-                    <Badge variant="secondary">{BAILLEUR_STATUT_LABELS[bailleur.statutRelation]}</Badge>
+                    <Badge variant="secondary">
+                      {BAILLEUR_STATUT_LABELS[bailleur.statutRelation]}
+                    </Badge>
                     {bailleur.valeurBailleur && (
-                      <Badge variant="outline">{BAILLEUR_VALEUR_LABELS[bailleur.valeurBailleur]}</Badge>
+                      <Badge variant="outline">
+                        {BAILLEUR_VALEUR_LABELS[bailleur.valeurBailleur]}
+                      </Badge>
                     )}
                   </div>
                 </div>
@@ -142,10 +161,13 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
                 <h3 className="font-semibold mb-2">Collaboration</h3>
                 <p className="text-muted-foreground">
                   {bailleur.typeCollaboration || "Non renseigné"}
-                  {bailleur.dureeCollaboration && ` — ${bailleur.dureeCollaboration}`}
+                  {bailleur.dureeCollaboration &&
+                    ` - ${bailleur.dureeCollaboration}`}
                 </p>
                 {bailleur.fiabilite && (
-                  <p className="text-muted-foreground mt-1">Fiabilité : {bailleur.fiabilite}</p>
+                  <p className="text-muted-foreground mt-1">
+                    Fiabilité : {bailleur.fiabilite}
+                  </p>
                 )}
               </div>
 
@@ -153,7 +175,9 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
                 <>
                   <Separator />
                   <div>
-                    <h3 className="font-semibold mb-2">Exigences financières</h3>
+                    <h3 className="font-semibold mb-2">
+                      Exigences financières
+                    </h3>
                     <p className="text-muted-foreground whitespace-pre-wrap">
                       {bailleur.exigencesFinancieres}
                     </p>
@@ -166,7 +190,9 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
                   <Separator />
                   <div>
                     <h3 className="font-semibold mb-2">Restrictions</h3>
-                    <p className="text-muted-foreground">{bailleur.restrictions}</p>
+                    <p className="text-muted-foreground">
+                      {bailleur.restrictions}
+                    </p>
                   </div>
                 </>
               )}
@@ -176,7 +202,9 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
                   <Separator />
                   <div>
                     <h3 className="font-semibold mb-2">Notes</h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{bailleur.notes}</p>
+                    <p className="text-muted-foreground whitespace-pre-wrap">
+                      {bailleur.notes}
+                    </p>
                   </div>
                 </>
               )}
@@ -209,19 +237,27 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Ajouté le :</span>
-                <span className="font-medium">{new Date(bailleur.createdAt).toLocaleDateString("fr-FR")}</span>
+                <span className="font-medium">
+                  {new Date(bailleur.createdAt).toLocaleDateString("fr-FR")}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Modifié le :</span>
-                <span className="font-medium">{new Date(bailleur.updatedAt).toLocaleDateString("fr-FR")}</span>
+                <span className="font-medium">
+                  {new Date(bailleur.updatedAt).toLocaleDateString("fr-FR")}
+                </span>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <EntityTimeline key={bailleur.updatedAt} entityType="BAILLEUR" entityId={bailleur.idBailleur} />
+      <EntityTimeline
+        key={bailleur.updatedAt}
+        entityType="BAILLEUR"
+        entityId={bailleur.idBailleur}
+      />
 
       <EditBailleurModal
         open={showEditModal}
@@ -236,5 +272,5 @@ export default function BailleurDetailPage({ params }: { params: Promise<{ id: s
         onDelete={() => router.push("/dashboard/bailleurs")}
       />
     </div>
-  )
+  );
 }

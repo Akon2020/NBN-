@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -52,116 +52,127 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
+      <div className="absolute top-4 left-4">
+        <Link href="/">
+          <Button variant="ghost" className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Revenir à l'accueil
+          </Button>
+        </Link>
+      </div>
+
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
 
-      <Card className="w-full max-w-md border-border">
-        <CardHeader className="space-y-4 text-center">
-          <div className="flex justify-center">
-            <Image
-              src="/nyumbani-logo.png"
-              alt="Nyumbani Express"
-              width={140}
-              height={47}
-              className="h-12 w-auto"
-            />
-          </div>
-          <CardTitle className="text-2xl font-bold">Bienvenue</CardTitle>
-          <CardDescription>
-            Connectez-vous à votre compte Nyumbani Express
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="exemple@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-                className="bg-background"
+      <div className="w-full max-w-md">
+        <Card className="w-full border-border">
+          <CardHeader className="space-y-4 text-center">
+            <div className="flex justify-center">
+              <Image
+                src="/nyumbani-logo.png"
+                alt="Nyumbani Express"
+                width={140}
+                height={47}
+                className="h-12 w-auto"
               />
             </div>
+            <CardTitle className="text-2xl font-bold">Bienvenue</CardTitle>
+            <CardDescription>
+              Connectez-vous à votre compte Nyumbani Express
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Link
-                  href="/auth/forgot-password"
-                  className="text-sm text-primary hover:underline"
-                >
-                  Mot de passe oublié ?
-                </Link>
-              </div>
-              <div className="relative">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="exemple@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="bg-background pr-10"
+                  className="bg-background"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
               </div>
-            </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connexion...
-                </>
-              ) : (
-                "Se connecter"
-              )}
-            </Button>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Mot de passe oublié ?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                    className="bg-background pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
 
-            <div className="text-center text-sm text-muted-foreground">
-              Pas encore de compte ?{" "}
-              <Link
-                href="/auth/register"
-                className="text-primary hover:underline font-medium"
+              <Button
+                type="submit"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={isLoading}
               >
-                Créer un compte
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connexion...
+                  </>
+                ) : (
+                  "Se connecter"
+                )}
+              </Button>
 
-      <p className="text-center text-white/40 text-sm mt-6">
-        © {new Date().getFullYear()} NyumbaniExpress. Tous droits réservés.
-      </p>
+              {/* <div className="text-center text-sm text-muted-foreground">
+                Pas encore de compte ?{" "}
+                <Link
+                  href="/auth/register"
+                  className="text-primary hover:underline font-medium"
+                >
+                  Créer un compte
+                </Link>
+              </div> */}
+            </form>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-muted-foreground text-sm mt-3">
+          © {new Date().getFullYear()} NyumbaniExpress. Tous droits réservés.
+        </p>
+      </div>
     </div>
   );
 }
