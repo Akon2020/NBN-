@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import errorMiddleware, { errorLogs } from "./middlewares/error.middleware.js";
 import { setupSwagger } from "./swagger.js";
-import { NODE_ENV } from "./config/env.js";
+import { NODE_ENV, CORS_ORIGINS } from "./config/env.js";
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import accessGrantRouter from "./routes/accessGrant.route.js";
@@ -61,7 +61,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "1024mb" }));
 app.use(bodyParser.json({ limit: "1024mb" }));
-const PROD_ORIGINS = ["https://nbnexpress.org", "https://api.nbnexpress.org", "https://nbn-plus.vercel.app", "http://10.220.60.73:3000"];
+// Origines autorisées en production. `www` est inclus par défaut : un
+// domaine réel finit presque toujours par répondre sur les deux, et
+// l'oubli ne se voit qu'une fois en ligne. La liste reste surchargeable
+// par `CORS_ORIGINS` (valeurs séparées par des virgules) pour ajouter un
+// domaine sans redéployer de code (CLAUDE.md §13).
+const DEFAULT_PROD_ORIGINS = [
+  "https://nbnexpress.org",
+  "https://www.nbnexpress.org",
+  "https://api.nbnexpress.org",
+  "https://nbn-plus.vercel.app",
+];
+
+const PROD_ORIGINS = (CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const ALLOWED_ORIGINS = PROD_ORIGINS.length ? PROD_ORIGINS : DEFAULT_PROD_ORIGINS;
+
 // Expo Metro choisit un port différent à chaque redémarrage si le port par
 // défaut (8081) est occupé — whitelister chaque port un par un n'est pas
 // praticable en développement. N'importe quel localhost/127.0.0.1 est donc
@@ -79,7 +97,8 @@ const isDevOrigin = (origin) =>
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || PROD_ORIGINS.includes(origin)) return callback(null, true);
+      if (!origin || ALLOWED_ORIGINS.includes(origin))
+        return callback(null, true);
       if (NODE_ENV !== "production" && isDevOrigin(origin))
         return callback(null, true);
       return callback(
