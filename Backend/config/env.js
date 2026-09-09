@@ -22,4 +22,16 @@ export const {
   DEFAULT_PASSWD,
   MAX_IMAGE_SIZE_MB,
   MAX_VIDEO_SIZE_MB,
+  // Origines CORS autorisées en production, séparées par des virgules.
+  // Vide = la liste par défaut de `app.js` (domaines nbnexpress.org).
+  CORS_ORIGINS,
+  // Délais SMTP (ms). Un serveur mail injoignable ne doit jamais retenir
+  // une requête HTTP : sans ces bornes, nodemailer attend son propre
+  // défaut (plusieurs minutes) et fait expirer la requête appelante.
+  SMTP_CONNECTION_TIMEOUT_MS,
+  SMTP_GREETING_TIMEOUT_MS,
+  SMTP_SOCKET_TIMEOUT_MS,
+  // Garde-fou global sur un envoi d'e-mail, résolution DNS comprise (les
+  // délais SMTP ci-dessus ne la couvrent pas).
+  MAIL_TIMEOUT_MS,
 } = process.env;

@@ -8,7 +8,7 @@ import {
   HOST_URL,
   JWT_SECRET,
 } from "../config/env.js";
-import transporter from "../config/nodemailer.js";
+import { sendMail } from "../config/nodemailer.js";
 import {
   resetPasswordEmailTemplate,
   welcomeEmailTemplate,
@@ -113,20 +113,34 @@ export const register = async (req, res, next) => {
       status: "ACTIVE",
     });
 
-    const mailOptions = {
-      from: `"Nyumbani Express" <${EMAIL}>`,
-      to: email,
-      subject: "Bienvenue dans Nyumbani Express",
-      html: welcomeEmailTemplate(fullName, email, FRONT_URL),
-    };
-
-    await transporter.sendMail(mailOptions);
+    // Le compte est déjà créé à ce stade : un SMTP injoignable ne doit
+    // jamais transformer une inscription réussie en erreur 500 côté
+    // client (le mail de bienvenue est informatif, pas une étape du
+    // workflow). Même traitement que `user.controller.js::createUser`.
+    let mailEnvoye = true;
+    try {
+      await sendMail({
+        from: `"Nyumbani Express" <${EMAIL}>`,
+        to: email,
+        subject: "Bienvenue dans Nyumbani Express",
+        html: welcomeEmailTemplate(fullName, email, FRONT_URL),
+      });
+    } catch (mailError) {
+      console.error(
+        "Erreur lors de l'envoi du mail de bienvenue :",
+        mailError.message,
+      );
+      mailEnvoye = false;
+    }
 
     const { accessToken, refreshToken } = await issueTokens(res, newUser, req);
     const userWithoutPassword = getUserWithoutPassword(newUser);
 
     res.status(201).json({
       message: "Utilisateur créé avec succès",
+      emailStatus: mailEnvoye
+        ? "E-mail de bienvenue envoyé"
+        : "Compte créé, mais le mail de bienvenue n'a pas pu être envoyé",
       data: { token: accessToken, refreshToken, user: userWithoutPassword },
     });
   } catch (error) {
@@ -275,7 +289,23 @@ export const resetPassword = async (req, res, next) => {
       ),
     };
 
-    await transporter.sendMail(mailOptions);
+    // Contrairement au mail de bienvenue, celui-ci EST le livrable : sans
+    // lui l'utilisateur n'a aucun moyen de réinitialiser. On refuse donc
+    // explicitement plutôt que d'annoncer un envoi qui n'a pas eu lieu —
+    // mais avec un message exploitable, pas un « Erreur serveur » opaque.
+    try {
+      await sendMail(mailOptions);
+    } catch (mailError) {
+      console.error(
+        "Erreur lors de l'envoi du mail de réinitialisation :",
+        mailError.message,
+      );
+      return res.status(502).json({
+        message:
+          "Impossible d'envoyer l'email de réinitialisation pour le moment. Veuillez réessayer plus tard.",
+      });
+    }
+
     res.status(200).json({
       message:
         "Un email de réinitialisation vous a été envoyé! Consultez votre boîte mail",
