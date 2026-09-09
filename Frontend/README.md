@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend — NBN Express Plus
 
-## Getting Started
+Dashboard web interne de NBN Express : gestion des biens, CRM clients et
+bailleurs, pilotage des commissionnaires, trésorerie, tâches, alertes et
+reporting.
 
-First, run the development server:
+Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind v4 ·
+shadcn/ui · Socket.IO
+
+## Démarrage
 
 ```bash
+npm install
+cp .env.example .env.local   # NEXT_PUBLIC_API_URL
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Le dashboard tourne sur `http://localhost:3000` et attend l'API sur
+`NEXT_PUBLIC_API_URL` (`http://localhost:5500` par défaut). Démarrer le
+Backend en premier.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Commande | Effet |
+|---|---|
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build de production |
+| `npm start` | Sert le build de production |
+| `npm run lint` | ESLint |
+| `npm test` | Tests (vitest + @testing-library/react) |
 
-## Learn More
+## Pages publiques
 
-To learn more about Next.js, take a look at the following resources:
+Toutes les pages sous `app/dashboard/` exigent un compte. Trois pages sont
+accessibles sans authentification :
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Route | Accès |
+|---|---|
+| `/` | Vitrine publique de l'agence |
+| `/demande-location` | Formulaire de demande de location, référencé depuis la vitrine |
+| `/collecte-bien` | Formulaire de collecte terrain — **usage interne, volontairement non référencé** côté client |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Structure
 
-## Deploy on Vercel
+```
+app/          routes (App Router) ; app/dashboard/ = espace authentifié
+actions/      appels à l'API, un fichier par domaine — seul endroit qui parle réseau
+components/   composants métier ; components/ui/ = primitives shadcn
+lib/          types.ts (contrat API), axios.ts, socket.ts, auth.ts, utils
+hooks/        hooks React partagés
+tests/        tests unitaires
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Les composants ne font jamais d'appel réseau directement : ils passent par
+`actions/`, ce qui garde la gestion d'erreur et le typage au même endroit.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Conventions
+
+- **Autorisation** : le Backend décide, le Frontend n'affiche que ce qu'il a
+  reçu. Une page qui reçoit un 403 affiche un état « accès non autorisé »,
+  elle ne réimplémente jamais la règle de permission (CLAUDE.md §2.2).
+- **`lib/types.ts`** reflète le contrat Swagger du Backend. Il est aligné
+  manuellement : toute évolution d'un endpoint doit y être répercutée.
+- **Temps réel** : Socket.IO ne sert qu'à déclencher un rafraîchissement, il
+  ne transporte jamais la donnée métier. Tout reste fonctionnel sans lui.
+- **Images** : l'hôte qui sert les fichiers uploadés doit être déclaré dans
+  `next.config.mjs` (`images.remotePatterns`), sinon `next/image` les refuse.
+  `api.nbnexpress.org` et `localhost:5500` y sont déjà.
+- **TypeScript strict**, sans `ignoreBuildErrors`. Un build qui ne compile pas
+  est un build cassé.
+
+## Production
+
+`NEXT_PUBLIC_API_URL=https://api.nbnexpress.org`. Le dashboard est servi sur
+`https://nbnexpress.org` (déploiement Vercel : `nbn-plus.vercel.app`), deux
+origines déjà autorisées par le CORS du Backend.
