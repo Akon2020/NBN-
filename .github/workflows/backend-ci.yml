@@ -45,6 +45,13 @@ jobs:
       DEFAULT_PASSWD: Changemoi@NBN2026
       EMAIL: ci@example.com
       EMAIL_PASSWORD: ci-placeholder
+      # Le SMTP est volontairement injoignable en CI (identifiants factices).
+      # Un délai court évite d'attendre le garde-fou par défaut à chaque test
+      # qui crée un compte : l'échec d'envoi est un cas normal, déjà traité.
+      MAIL_TIMEOUT_MS: 2000
+      SMTP_CONNECTION_TIMEOUT_MS: 2000
+      SMTP_GREETING_TIMEOUT_MS: 2000
+      SMTP_SOCKET_TIMEOUT_MS: 2000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -69,6 +76,10 @@ jobs:
           REFRESH_TOKEN_EXPIRES_MOBILE_DAYS=$REFRESH_TOKEN_EXPIRES_MOBILE_DAYS
           EMAIL=$EMAIL
           EMAIL_PASSWORD=$EMAIL_PASSWORD
+          MAIL_TIMEOUT_MS=$MAIL_TIMEOUT_MS
+          SMTP_CONNECTION_TIMEOUT_MS=$SMTP_CONNECTION_TIMEOUT_MS
+          SMTP_GREETING_TIMEOUT_MS=$SMTP_GREETING_TIMEOUT_MS
+          SMTP_SOCKET_TIMEOUT_MS=$SMTP_SOCKET_TIMEOUT_MS
           URL_ORIGIN="*"
           HOST_URL="http://localhost:5500"
           FRONT_URL="http://localhost:3000"
