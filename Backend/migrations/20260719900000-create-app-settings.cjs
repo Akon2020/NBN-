@@ -14,23 +14,29 @@ const SEED_SETTINGS = [
     key: "company.info",
     value: JSON.stringify({
       name: "Nyumbani Express",
-      phone: "+243 999 000 111",
+      phone: "+243 977 103 143",
       address: "Avenue de la Paix, Bukavu, Sud-Kivu, RDC",
-      email: "contact@nyumbani.cd",
+      email: "contact@nbnexpress.org",
     }),
-    description: "Coordonnées de l'agence utilisées dans les propositions clients",
+    description:
+      "Coordonnées de l'agence utilisées dans les propositions clients",
   },
   {
     key: "commissionnaire.scoringEnabled",
     value: JSON.stringify(true),
-    description: "Active l'impact automatique des incidents sur le score discipline",
+    description:
+      "Active l'impact automatique des incidents sur le score discipline",
   },
 ];
 
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable("appSettings", {
-      idAppSetting: { type: Sequelize.BIGINT, primaryKey: true, autoIncrement: true },
+      idAppSetting: {
+        type: Sequelize.BIGINT,
+        primaryKey: true,
+        autoIncrement: true,
+      },
       key: { type: Sequelize.STRING(100), allowNull: false, unique: true },
       value: { type: Sequelize.TEXT, allowNull: false },
       description: { type: Sequelize.STRING(255), allowNull: true },
@@ -46,7 +52,7 @@ module.exports = {
     const now = new Date();
     await queryInterface.bulkInsert(
       "appSettings",
-      SEED_SETTINGS.map((s) => ({ ...s, createdAt: now, updatedAt: now }))
+      SEED_SETTINGS.map((s) => ({ ...s, createdAt: now, updatedAt: now })),
     );
   },
 

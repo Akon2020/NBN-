@@ -21,7 +21,14 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Plus, ShieldCheck } from "lucide-react";
 import { getAllUsers } from "@/actions/users";
 import {
@@ -32,7 +39,7 @@ import {
 } from "@/actions/accessGrants";
 import { AccessGrant, Permission, User } from "@/types/type";
 
-// ADMIN-G02 — écran de gestion des AccessGrant. Le rôle "consultant" naît
+// ADMIN-G02 - écran de gestion des AccessGrant. Le rôle "consultant" naît
 // avec zéro permission de base (CLAUDE.md §5) ; c'est ici qu'un admin lui
 // accorde des permissions unitaires, motivées et traçables.
 export default function AccessGrantsPage() {
@@ -115,7 +122,8 @@ export default function AccessGrantsPage() {
   };
 
   const grantStatus = (grant: AccessGrant) => {
-    if (grant.revokedAt) return { label: "Révoqué", variant: "secondary" as const };
+    if (grant.revokedAt)
+      return { label: "Révoqué", variant: "secondary" as const };
     if (grant.expiresAt && new Date(grant.expiresAt) < new Date())
       return { label: "Expiré", variant: "secondary" as const };
     return { label: "Actif", variant: "default" as const };
@@ -134,8 +142,8 @@ export default function AccessGrantsPage() {
             Accès consultants
           </h1>
           <p className="text-muted-foreground mt-2">
-            Le rôle consultant n'a aucune permission de base — tout accès
-            passe par une exception explicite et motivée.
+            Le rôle consultant n'a aucune permission de base - tout accès passe
+            par une exception explicite et motivée.
           </p>
         </div>
         <Button
@@ -183,12 +191,17 @@ export default function AccessGrantsPage() {
                       <TableCell className="font-mono text-xs">
                         {grant.permissionKey}
                       </TableCell>
-                      <TableCell className="max-w-xs truncate" title={grant.reason}>
+                      <TableCell
+                        className="max-w-xs truncate"
+                        title={grant.reason}
+                      >
                         {grant.reason}
                       </TableCell>
                       <TableCell>
                         {grant.expiresAt
-                          ? new Date(grant.expiresAt).toLocaleDateString("fr-FR")
+                          ? new Date(grant.expiresAt).toLocaleDateString(
+                              "fr-FR",
+                            )
                           : "Permanent"}
                       </TableCell>
                       <TableCell>
@@ -228,7 +241,9 @@ export default function AccessGrantsPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {formError && <p className="text-sm text-destructive">{formError}</p>}
+            {formError && (
+              <p className="text-sm text-destructive">{formError}</p>
+            )}
 
             <div className="space-y-2">
               <Label>Consultant</Label>
@@ -253,7 +268,10 @@ export default function AccessGrantsPage() {
 
             <div className="space-y-2">
               <Label>Permission</Label>
-              <Select value={selectedPermission} onValueChange={setSelectedPermission}>
+              <Select
+                value={selectedPermission}
+                onValueChange={setSelectedPermission}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Choisir une permission" />
                 </SelectTrigger>
