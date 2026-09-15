@@ -1149,3 +1149,10 @@ _Phase 2 terminée. Au déploiement : `npm run db:migrate`, `npm run db:seed`, c
 - `GET /api/reports/rental-requests` (reports:read, CSV/Excel, période, `deleted=only`) : toutes les demandes, fiches supprimées comprises, avec statut, date, auteur et motif de suppression.
 - Frontend : bouton « Supprimer la fiche » au bas de la fiche (dialogue avec compteur de caractères, bouton désactivé tant que le commentaire est trop court) ; carte « Demandes de location » dans Rapports.
 - Tests : `tests/rentalRequestDeletion.test.js` (commentaire exigé, 403, masquage + traçabilité, fiche et motif présents dans le rapport). `rentalRequest.test.js` et `formNotifications.test.js` nettoient désormais en `force` (sinon les fiches supprimées logiquement bloquent la suppression du client). `rentalRequestAssign.test.js` cible explicitement l'e-mail portant la fiche : un échec intermittent observé une fois en exécution parallèle, non reproduit ensuite. Backend 285/285 (47 fichiers), Frontend 20/20, `tsc` OK.
+
+### 3.3 Bouton « Contacter » sur la fiche client
+
+- `lib/clientContact.ts` : numéro au format WhatsApp (`0977 103 143` → `243977103143`, via `normalizePhone`), liens `wa.me` et `mailto:` encodés, objet et message pré-remplis (nom du client, numéro de dossier, nom de l'agent connecté, signature de l'agence).
+- `components/client-contact-dialog.tsx` : choix WhatsApp / E-mail (canal grisé si le numéro ou l'adresse manque), message et objet modifiables, ouverture immédiate dans le geste de l'utilisateur (sinon bloquée comme pop-up sur iPhone). `dernierContact` est mis à jour sur la fiche en arrière-plan (non bloquant pour un rôle sans clients:manage).
+- La vérification des coordonnées demandée (« le formulaire doit vérifier si ces 2 données sont exactes ») est déjà faite à la soumission de la demande (phase 1.2 : format + domaine e-mail, téléphone normalisé).
+- Tests : `tests/lib/clientContact.test.ts` (4). Frontend 24/24, `tsc` OK.

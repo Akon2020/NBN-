@@ -15,7 +15,9 @@ import {
   Target,
   MapPin,
   Loader2,
+  MessageCircle,
 } from "lucide-react"
+import { ClientContactDialog } from "@/components/client-contact-dialog"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditClientModal } from "@/components/client-modals/edit-client-modal"
@@ -37,6 +39,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [isLoading, setIsLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showContactDialog, setShowContactDialog] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -83,6 +86,14 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </Button>
         </Link>
         <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            onClick={() => setShowContactDialog(true)}
+            className="bg-accent-600 text-white hover:bg-accent-600/90"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Contacter
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Modifier
@@ -246,6 +257,12 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         onOpenChange={setShowEditModal}
         client={client}
         onEdit={setClient}
+      />
+      <ClientContactDialog
+        client={client}
+        open={showContactDialog}
+        onOpenChange={setShowContactDialog}
+        onContacted={setClient}
       />
       <DeleteClientModal
         open={showDeleteModal}
