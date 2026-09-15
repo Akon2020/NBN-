@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Building2, Eye, Home, Loader2, Mail, Phone, Plus, Search, ShieldAlert, UserRound } from "lucide-react"
+import { BellRing, Building2, Eye, Home, Loader2, Mail, Phone, Plus, Search, ShieldAlert, UserRound } from "lucide-react"
 import { BailleurContactsDialog } from "@/components/bailleur-contacts-dialog"
 import { BailleurEmailsDialog } from "@/components/bailleur-emails-dialog"
 import {
@@ -105,6 +105,12 @@ export default function BailleursPage() {
           <Button variant="outline" onClick={() => setShowEmails(true)}>
             <Mail className="mr-2 h-4 w-4" />
             Emails
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/bailleurs/relances">
+              <BellRing className="mr-2 h-4 w-4" />
+              Relances
+            </Link>
           </Button>
           <Button onClick={() => setShowAddModal(true)} className="bg-accent-600 text-white hover:bg-accent-600/90">
             <Plus className="mr-2 h-4 w-4" />

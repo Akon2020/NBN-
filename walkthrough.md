@@ -1200,3 +1200,15 @@ _Phase 3 terminée. Au déploiement : `npm run db:migrate`._
 - `GET /api/bailleur-messages/bailleur/:id` (bailleurs:read) : messages envoyés + **e-mails reçus de l'adresse du bailleur** sur les boîtes professionnelles dont l'utilisateur fait partie de l'audience (direction@ reste privée).
 - Frontend : boutons **Contacts** (liste recherchable des bailleurs joignables → Appeler / WhatsApp / SMS / e-mail, message modifiable) et **Emails** (sélection avec filtres de profil et « tout sélectionner », puis objet + message) dans l'onglet ; carte « Historique des échanges » sur le profil (envoyés / reçus, lien vers le message).
 - Tests : `tests/bailleurMessages.test.js` (400 / 403, envoi personnalisé depuis contact@ avec trace et dernier contact, bailleur sans e-mail signalé, contact WhatsApp tracé, canal invalide, historique envoyés + reçus), `Frontend/tests/lib/bailleurContact.test.ts`. 25/25 sur les fichiers concernés, Frontend 30/30, `tsc` OK.
+
+### 4.4 « Relances » programmées
+
+- Migration `20260917200000-create-bailleur-relances.cjs` : table `bailleurRelances` (canal EMAIL/WHATSAPP, objet, message, date prévue, statut PLANIFIEE/EN_COURS/TERMINEE/ANNULEE, auteur) et `bailleurMessages.idRelance`. Réversible (vérifié).
+- `POST /api/bailleur-relances` (bailleurs:manage) : date, canal, message modifiable (« {nom} » personnalisé), bailleurs ; bailleurs injoignables par le canal écartés et signalés ; date passée = envoi immédiat. Liste avec décompte par statut, détail, annulation d'une relance planifiée, `POST /messages/:id/sent` pour WhatsApp.
+- `services/bailleurRelance.service.js` : cron chaque minute (`server.js`) ; chaque relance échue est **réservée** (PLANIFIEE → EN_COURS par mise à jour conditionnelle) avant traitement, jamais d'envoi double.
+  - E-mail : envoi **automatique** depuis contact@ à la date prévue (outbox), dernier contact mis à jour.
+  - WhatsApp : sans API WhatsApp Business (reportée, phase 2), messages « À envoyer » + notification à l'auteur, ouverture en un clic puis marquage ; relance terminée quand il n'en reste plus.
+- Frontend : page `dashboard/bailleurs/relances` (liste, détail, « Nouvelle relance » avec date et heure, canal, sélection des seuls bailleurs joignables, objet, message), bouton « Relances » dans l'onglet, lien depuis la notification. Les messages de relance figurent dans l'historique des échanges du bailleur.
+- Tests : `tests/bailleurRelances.test.js` (403/400, e-mail futur non traité puis envoyé et jamais renvoyé, bailleur sans e-mail écarté, WhatsApp à envoyer + notification + marquage, annulation et 409, historique). Frontend 30/30, `tsc` OK.
+
+_Phase 4 terminée. Au déploiement : `npm run db:migrate`._

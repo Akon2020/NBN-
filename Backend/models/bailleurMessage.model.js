@@ -17,6 +17,8 @@ const BailleurMessage = db.define(
       defaultValue: "ENVOYE",
     },
     idOutboxEvent: { type: DataTypes.BIGINT, allowNull: true },
+    // Relance programmée à l'origine de ce message, s'il y en a une.
+    idRelance: { type: DataTypes.BIGINT, allowNull: true },
     sentBy: { type: DataTypes.BIGINT, allowNull: true },
     sentAt: { type: DataTypes.DATE, allowNull: true },
   },

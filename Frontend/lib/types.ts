@@ -569,6 +569,45 @@ export interface BailleurMessageHistory {
   received: Pick<InboundEmail, "idInboundEmail" | "mailboxAddress" | "subject" | "receivedAt" | "repliedAt">[]
 }
 
+// --- Relances programmées (GET /api/bailleur-relances) ---
+
+export type BailleurRelanceChannel = "EMAIL" | "WHATSAPP"
+export type BailleurRelanceStatut = "PLANIFIEE" | "EN_COURS" | "TERMINEE" | "ANNULEE"
+
+export const BAILLEUR_RELANCE_STATUT_LABELS: Record<BailleurRelanceStatut, string> = {
+  PLANIFIEE: "Planifiée",
+  EN_COURS: "En cours",
+  TERMINEE: "Terminée",
+  ANNULEE: "Annulée",
+}
+
+export interface BailleurRelance {
+  idRelance: number
+  channel: BailleurRelanceChannel
+  subject?: string | null
+  message: string
+  scheduledAt: string
+  statut: BailleurRelanceStatut
+  processedAt?: string | null
+  createdAt: string
+  creator?: { idUser: number; fullName: string } | null
+  recipients: number
+  counts: Partial<Record<BailleurMessageStatut, number>>
+}
+
+export interface BailleurRelanceRecipient extends BailleurMessage {
+  bailleur?: {
+    idBailleur: number
+    dossierNumber?: string | null
+    priorite: BailleurPriorite
+    person?: { fullName: string; email?: string | null; phone?: string | null }
+  }
+}
+
+export interface BailleurRelanceDetail extends Omit<BailleurRelance, "recipients" | "counts"> {
+  messages: BailleurRelanceRecipient[]
+}
+
 // Corps `data` de POST /api/bailleurs (multipart avec `pieceIdentite`).
 export interface BailleurCreatePayload {
   idPerson?: number

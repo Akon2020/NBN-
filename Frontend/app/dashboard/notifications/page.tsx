@@ -23,6 +23,7 @@ const RELATED_ENTITY_HREF: Record<string, (id: number, notification: Notificatio
   Requisition: () => `/dashboard/requisitions`,
   Client: (id) => `/dashboard/clients/${id}`,
   InboundEmail: (id) => `/dashboard/messages?id=${id}`,
+  BailleurRelance: (id) => `/dashboard/bailleurs/relances?id=${id}`,
   // Le type porte la catégorie du bien (…:rent / …:sale).
   Property: (id, notification) =>
     notification.type.endsWith(":sale") ? `/dashboard/sales/${id}` : `/dashboard/rentals/${id}`,
