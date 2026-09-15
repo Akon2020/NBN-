@@ -532,6 +532,43 @@ export interface Bailleur {
   updatedAt: string
 }
 
+// --- Échanges avec les bailleurs (Contacts, Emails, Relances) ---
+
+export type BailleurContactChannel = "APPEL" | "WHATSAPP" | "SMS" | "EMAIL"
+export type BailleurMessageStatut = "PLANIFIE" | "A_ENVOYER" | "ENVOYE" | "ECHEC" | "ANNULE"
+
+export const BAILLEUR_CONTACT_CHANNEL_LABELS: Record<BailleurContactChannel, string> = {
+  APPEL: "Appel",
+  WHATSAPP: "WhatsApp",
+  SMS: "SMS",
+  EMAIL: "E-mail",
+}
+
+export const BAILLEUR_MESSAGE_STATUT_LABELS: Record<BailleurMessageStatut, string> = {
+  PLANIFIE: "Planifié",
+  A_ENVOYER: "À envoyer",
+  ENVOYE: "Envoyé",
+  ECHEC: "Échec",
+  ANNULE: "Annulé",
+}
+
+export interface BailleurMessage {
+  idBailleurMessage: number
+  idBailleur: number
+  channel: BailleurContactChannel
+  subject?: string | null
+  body?: string | null
+  statut: BailleurMessageStatut
+  sentAt?: string | null
+  createdAt: string
+  sender?: { idUser: number; fullName: string } | null
+}
+
+export interface BailleurMessageHistory {
+  sent: BailleurMessage[]
+  received: Pick<InboundEmail, "idInboundEmail" | "mailboxAddress" | "subject" | "receivedAt" | "repliedAt">[]
+}
+
 // Corps `data` de POST /api/bailleurs (multipart avec `pieceIdentite`).
 export interface BailleurCreatePayload {
   idPerson?: number

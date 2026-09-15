@@ -64,6 +64,7 @@ import AppSetting from "./appSetting.model.js";
 import MailboxState from "./mailboxState.model.js";
 import InboundEmail from "./inboundEmail.model.js";
 import InboundEmailReply from "./inboundEmailReply.model.js";
+import BailleurMessage from "./bailleurMessage.model.js";
 import MarginHistory from "./marginHistory.model.js";
 
 // User - Property
@@ -407,6 +408,11 @@ InboundEmail.hasMany(InboundEmailReply, { foreignKey: "idInboundEmail", as: "rep
 InboundEmailReply.belongsTo(InboundEmail, { foreignKey: "idInboundEmail", as: "inboundEmail" });
 InboundEmailReply.belongsTo(User, { foreignKey: "idUser", as: "author" });
 InboundEmail.belongsTo(User, { foreignKey: "repliedBy", as: "replier" });
+
+// Échanges avec les bailleurs (Contacts, Emails, Relances).
+Bailleur.hasMany(BailleurMessage, { foreignKey: "idBailleur", as: "messages" });
+BailleurMessage.belongsTo(Bailleur, { foreignKey: "idBailleur", as: "bailleur" });
+BailleurMessage.belongsTo(User, { foreignKey: "sentBy", as: "sender" });
 MarginHistory.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
 MarginHistory.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
 
@@ -486,5 +492,6 @@ export {
   MailboxState,
   InboundEmail,
   InboundEmailReply,
+  BailleurMessage,
   syncModels,
 };

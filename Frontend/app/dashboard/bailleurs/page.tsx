@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Building2, Eye, Home, Loader2, Phone, Plus, Search, ShieldAlert, UserRound } from "lucide-react"
+import { Building2, Eye, Home, Loader2, Mail, Phone, Plus, Search, ShieldAlert, UserRound } from "lucide-react"
+import { BailleurContactsDialog } from "@/components/bailleur-contacts-dialog"
+import { BailleurEmailsDialog } from "@/components/bailleur-emails-dialog"
 import {
   BAILLEUR_PRIORITE_BADGE_CLASS,
   BAILLEUR_PRIORITE_LABELS,
@@ -34,6 +36,8 @@ export default function BailleursPage() {
   const [search, setSearch] = useState("")
   const [prioriteFilter, setPrioriteFilter] = useState<BailleurPriorite | "">("")
   const [previewBailleur, setPreviewBailleur] = useState<Bailleur | null>(null)
+  const [showContacts, setShowContacts] = useState(false)
+  const [showEmails, setShowEmails] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -93,10 +97,20 @@ export default function BailleursPage() {
           <h1 className="text-3xl font-bold tracking-tight text-balance">Bailleurs</h1>
           <p className="text-muted-foreground mt-2">Classés par profil (VIP → Inactif) puis par ordre alphabétique</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto bg-accent-600 text-white hover:bg-accent-600/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un bailleur
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setShowContacts(true)}>
+            <Phone className="mr-2 h-4 w-4" />
+            Contacts
+          </Button>
+          <Button variant="outline" onClick={() => setShowEmails(true)}>
+            <Mail className="mr-2 h-4 w-4" />
+            Emails
+          </Button>
+          <Button onClick={() => setShowAddModal(true)} className="bg-accent-600 text-white hover:bg-accent-600/90">
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter un bailleur
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -204,6 +218,8 @@ export default function BailleursPage() {
       )}
 
       <AddBailleurModal open={showAddModal} onOpenChange={setShowAddModal} onAdd={handleAdd} />
+      <BailleurContactsDialog bailleurs={bailleurs} open={showContacts} onOpenChange={setShowContacts} />
+      <BailleurEmailsDialog bailleurs={bailleurs} open={showEmails} onOpenChange={setShowEmails} />
       <BailleurPropertiesDialog
         bailleur={previewBailleur}
         open={previewBailleur !== null}

@@ -33,6 +33,7 @@ import {
 import { BailleurPhotoUploader } from "@/components/bailleur-photo-uploader";
 import { BailleurLinkPropertiesDialog } from "@/components/bailleur-link-properties-dialog";
 import { prefillCollecteForBailleur } from "@/lib/collectePrefill";
+import { BailleurMessagesHistory } from "@/components/bailleur-messages-history";
 import { BailleurPropertiesDialog } from "@/components/bailleur-properties-dialog";
 import {
   BAILLEUR_STATUT_LABELS,
@@ -374,6 +375,8 @@ export default function BailleurDetailPage({
           </Card>
         </div>
       </div>
+
+      <BailleurMessagesHistory idBailleur={bailleur.idBailleur} refreshKey={bailleur.updatedAt} />
 
       <EntityTimeline
         key={bailleur.updatedAt}
