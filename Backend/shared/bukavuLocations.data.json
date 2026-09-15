@@ -1,0 +1,91 @@
+{
+  "BAGIRA": {
+    "Cahi": [
+      "Bizimana",
+      "Risasi"
+    ],
+    "Cikonyi": [
+      "Burhiba",
+      "Cimetière",
+      "Kilomètre quatre",
+      "Mulangane",
+      "Mulimbilimbi"
+    ],
+    "Lumumba": [
+      "Kasongo",
+      "Kibombo",
+      "Place Lumumba",
+      "Uhuru"
+    ],
+    "Nyakavogo": [
+      "Fimi",
+      "Lumumba",
+      "Maendeleo",
+      "Mokoto",
+      "Nyakavogo"
+    ]
+  },
+  "IBANDA": {
+    "Ndendere": [
+      "Athénée d'Ibanda",
+      "Bobozo",
+      "De la presse",
+      "Du lac",
+      "Kibati",
+      "Lumumba",
+      "Télécom"
+    ],
+    "Nyalukemba": [
+      "Albert Kayabo",
+      "Cercle hippique",
+      "De la montagne",
+      "Evariste Baganda",
+      "Mimoza",
+      "Solange Lusiku"
+    ],
+    "Panzi": [
+      "De l'hôpital",
+      "Kamagema",
+      "Kasiye",
+      "Mushununu"
+    ]
+  },
+  "KADUTU": {
+    "Cimpunda": [
+      "Nyakaliba",
+      "Nyamulagira"
+    ],
+    "Kajangu": [
+      "Bralaga",
+      "Buhozi",
+      "Kakono",
+      "Kalambo"
+    ],
+    "Kasali": [
+      "Lowa",
+      "Osso",
+      "Ulindi"
+    ],
+    "Mosala": [
+      "Buholo",
+      "Funu",
+      "Nyamulagira"
+    ],
+    "Nkafu": [
+      "Bugabo",
+      "Camp Zaire",
+      "Georges Defour"
+    ],
+    "Nyakaliba": [
+      "Kadurhu"
+    ],
+    "Nyamugo": [
+      "BCB",
+      "Lwama",
+      "Mahenge",
+      "Mukonde",
+      "Soko",
+      "Uru"
+    ]
+  }
+}

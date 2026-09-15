@@ -11,12 +11,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ClipboardList, Loader2, Phone, Search, ShieldAlert, User } from "lucide-react"
-import { getAllRentalRequests } from "@/actions/rentalRequests"
+import { Button } from "@/components/ui/button"
+import { ClipboardList, FileDown, ListChecks, Loader2, Phone, Search, ShieldAlert, User } from "lucide-react"
+import { getAllRentalRequests, openRentalRequestPdf } from "@/actions/rentalRequests"
+import { RentalRequestAssignDialog } from "@/components/rental-request-assign-dialog"
 import {
   CLIENT_PIPELINE_LABELS,
   MODALITE_PAIEMENT_CHOICES,
   TYPE_BIEN_SOUHAITE_CHOICES,
+  TYPE_OCCUPANTS_CHOICES,
   URGENCE_CHOICES,
   USAGE_BIEN_CHOICES,
   type RentalRequest,
@@ -48,6 +51,7 @@ export default function DemandesPage() {
   const [forbidden, setForbidden] = useState(false)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<RentalRequest | null>(null)
+  const [assigning, setAssigning] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -179,6 +183,7 @@ export default function DemandesPage() {
                 <section className="space-y-1.5">
                   <h4 className="text-sm font-semibold">Identification</h4>
                   <DetailLine label="Téléphone" value={selected.phone} />
+                  <DetailLine label="E-mail" value={selected.email} />
                   <DetailLine label="Lieu de provenance" value={selected.lieuProvenance} />
                   <DetailLine label="Résidence actuelle" value={selected.residenceActuelle} />
                   <DetailLine label="Sexe" value={selected.sexe} />
@@ -209,7 +214,11 @@ export default function DemandesPage() {
                 <section className="space-y-1.5">
                   <h4 className="text-sm font-semibold">Budget</h4>
                   <DetailLine
-                    label="Loyer maximum"
+                    label="Budget minimum"
+                    value={selected.budgetMin ? `${Number(selected.budgetMin).toLocaleString()} ${selected.devise}` : null}
+                  />
+                  <DetailLine
+                    label="Budget maximum"
                     value={selected.loyerMax ? `${Number(selected.loyerMax).toLocaleString()} ${selected.devise}` : null}
                   />
                   <DetailLine
@@ -250,7 +259,14 @@ export default function DemandesPage() {
 
                 <section className="space-y-1.5">
                   <h4 className="text-sm font-semibold">Compléments</h4>
-                  <DetailLine label="Occupants" value={selected.nombreOccupants} />
+                  <DetailLine
+                    label="Occupants"
+                    value={
+                      selected.typeOccupants === "AUTRE" || !selected.typeOccupants
+                        ? selected.nombreOccupants
+                        : labelOf(TYPE_OCCUPANTS_CHOICES, selected.typeOccupants)
+                    }
+                  />
                   <DetailLine label="Éléments à considérer" value={selected.elementsParticuliers?.join(", ")} />
                   <DetailLine
                     label="Orienté par un partenaire"
@@ -263,6 +279,29 @@ export default function DemandesPage() {
                   />
                 </section>
               </div>
+
+              <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap">
+                <Button
+                  onClick={() => setAssigning(true)}
+                  className="bg-accent-600 text-white hover:bg-accent-600/90"
+                >
+                  <ListChecks className="mr-2 h-4 w-4" />
+                  Assigner une tâche
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    openRentalRequestPdf(selected.idRentalRequest).catch((error) =>
+                      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+                    )
+                  }
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Fiche PDF
+                </Button>
+              </div>
+
+              <RentalRequestAssignDialog request={selected} open={assigning} onOpenChange={setAssigning} />
             </>
           )}
         </DialogContent>

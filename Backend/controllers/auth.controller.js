@@ -3,12 +3,11 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import {
   DEFAULT_PASSWD,
-  EMAIL,
   FRONT_URL,
   HOST_URL,
   JWT_SECRET,
 } from "../config/env.js";
-import transporter from "../config/nodemailer.js";
+import { sendMail } from "../config/nodemailer.js";
 import {
   resetPasswordEmailTemplate,
   welcomeEmailTemplate,
@@ -27,6 +26,7 @@ import {
   revokeTokenFamily,
   revokeAllUserSessions,
   hashToken,
+  accessTokenMaxAge,
 } from "../utils/session.utils.js";
 import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
 import { Session } from "../models/index.model.js";
@@ -58,7 +58,10 @@ const issueTokens = async (res, user, req) => {
     userAgent: req.headers["user-agent"],
   });
 
-  res.cookie("token", accessToken, ACCESS_COOKIE_OPTIONS);
+  res.cookie("token", accessToken, {
+    ...ACCESS_COOKIE_OPTIONS,
+    maxAge: accessTokenMaxAge(accessToken),
+  });
   res.cookie("refreshToken", refreshToken, {
     ...REFRESH_COOKIE_OPTIONS,
     maxAge: session.expiresAt.getTime() - Date.now(),
@@ -113,20 +116,33 @@ export const register = async (req, res, next) => {
       status: "ACTIVE",
     });
 
-    const mailOptions = {
-      from: `"Nyumbani Express" <${EMAIL}>`,
-      to: email,
-      subject: "Bienvenue dans Nyumbani Express",
-      html: welcomeEmailTemplate(fullName, email, FRONT_URL),
-    };
-
-    await transporter.sendMail(mailOptions);
+    // Le compte est déjà créé à ce stade : un SMTP injoignable ne doit
+    // jamais transformer une inscription réussie en erreur 500 côté
+    // client (le mail de bienvenue est informatif, pas une étape du
+    // workflow). Même traitement que `user.controller.js::createUser`.
+    let mailEnvoye = true;
+    try {
+      await sendMail({
+        to: email,
+        subject: "Bienvenue dans Nyumbani Express",
+        html: welcomeEmailTemplate(fullName, email, FRONT_URL),
+      });
+    } catch (mailError) {
+      console.error(
+        "Erreur lors de l'envoi du mail de bienvenue :",
+        mailError.message,
+      );
+      mailEnvoye = false;
+    }
 
     const { accessToken, refreshToken } = await issueTokens(res, newUser, req);
     const userWithoutPassword = getUserWithoutPassword(newUser);
 
     res.status(201).json({
       message: "Utilisateur créé avec succès",
+      emailStatus: mailEnvoye
+        ? "E-mail de bienvenue envoyé"
+        : "Compte créé, mais le mail de bienvenue n'a pas pu être envoyé",
       data: { token: accessToken, refreshToken, user: userWithoutPassword },
     });
   } catch (error) {
@@ -137,9 +153,13 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    const { password } = req.body;
+    // Les claviers mobiles (iOS en tête) ajoutent volontiers une majuscule
+    // initiale ou une espace après une suggestion : la même adresse doit
+    // ouvrir le même compte, quelle que soit la façon dont elle a été tapée.
+    const email = String(req.body.email ?? "").trim().toLowerCase();
+    const user = email ? await User.findOne({ where: { email } }) : null;
+    if (!user || !password || !(await bcrypt.compare(password, user.password))) {
       return res
         .status(401)
         .json({ message: "Email ou mot de passe incorrect" });
@@ -230,7 +250,10 @@ export const refresh = async (req, res, next) => {
 
     const accessToken = generateAccessToken(user);
 
-    res.cookie("token", accessToken, ACCESS_COOKIE_OPTIONS);
+    res.cookie("token", accessToken, {
+      ...ACCESS_COOKIE_OPTIONS,
+      maxAge: accessTokenMaxAge(accessToken),
+    });
     res.cookie("refreshToken", newRefreshToken, {
       ...REFRESH_COOKIE_OPTIONS,
       maxAge: newSession.expiresAt.getTime() - Date.now(),
@@ -264,7 +287,6 @@ export const resetPassword = async (req, res, next) => {
     }
     const resetToken = generateToken(user);
     const mailOptions = {
-      from: `"Nyumbani Express" <${EMAIL}>`,
       to: email,
       subject: "Réinitialisation du mot de passe",
       html: resetPasswordEmailTemplate(
@@ -275,7 +297,23 @@ export const resetPassword = async (req, res, next) => {
       ),
     };
 
-    await transporter.sendMail(mailOptions);
+    // Contrairement au mail de bienvenue, celui-ci EST le livrable : sans
+    // lui l'utilisateur n'a aucun moyen de réinitialiser. On refuse donc
+    // explicitement plutôt que d'annoncer un envoi qui n'a pas eu lieu —
+    // mais avec un message exploitable, pas un « Erreur serveur » opaque.
+    try {
+      await sendMail(mailOptions);
+    } catch (mailError) {
+      console.error(
+        "Erreur lors de l'envoi du mail de réinitialisation :",
+        mailError.message,
+      );
+      return res.status(502).json({
+        message:
+          "Impossible d'envoyer l'email de réinitialisation pour le moment. Veuillez réessayer plus tard.",
+      });
+    }
+
     res.status(200).json({
       message:
         "Un email de réinitialisation vous a été envoyé! Consultez votre boîte mail",

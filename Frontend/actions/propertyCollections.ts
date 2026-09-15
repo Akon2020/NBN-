@@ -1,24 +1,38 @@
 import api from "@/lib/axios";
-import axios from "axios";
+import { apiErrorMessage } from "@/lib/apiError";
 import { PropertyCollectionPayload } from "@/lib/types";
 
 // Route interne non indexée côté client, atteignable sans compte : le
 // jeton est envoyé s'il existe (traçabilité du collecteur connecté), mais
 // son absence n'empêche jamais la soumission.
+//
+// Avec une pièce d'identité, le corps devient un multipart : `data` porte
+// le JSON intact (booléens et nombres gardent leur type) et `pieceIdentite`
+// le fichier.
 export const submitPropertyCollection = async (
-  payload: PropertyCollectionPayload
+  payload: PropertyCollectionPayload,
+  pieceIdentite?: File | null
 ): Promise<{ idProperty: number; idMission: number | null }> => {
   try {
+    let body: PropertyCollectionPayload | FormData = payload;
+    if (pieceIdentite) {
+      const formData = new FormData();
+      formData.append("data", JSON.stringify(payload));
+      formData.append("pieceIdentite", pieceIdentite);
+      body = formData;
+    }
+
     const res = await api.post<{
       message: string;
       data: { idProperty: number; idMission: number | null };
-    }>("/api/property-collections", payload);
+    }>(
+      "/api/property-collections",
+      body,
+      pieceIdentite ? { headers: { "Content-Type": "multipart/form-data" } } : undefined
+    );
     return res.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || "Erreur lors de l'enregistrement du bien");
-    }
-    throw new Error("Erreur inconnue");
+    throw new Error(apiErrorMessage(error, "Erreur lors de l'enregistrement du bien"));
   }
 };
 

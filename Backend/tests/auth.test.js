@@ -97,6 +97,32 @@ describe("SEC-G02 - garde de rôle sur /api/users", () => {
   });
 });
 
+describe("Connexion depuis un clavier mobile", () => {
+  it("accepte l'adresse tapée avec une majuscule initiale et une espace finale", async () => {
+    const typedOnIos = ` ${adminEmail.charAt(0).toUpperCase()}${adminEmail.slice(1)} `;
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: typedOnIos, password: testPassword });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.userInfo.email).toBe(adminEmail);
+
+    // Le cookie du jeton expire avec le jeton lui-même : sans Max-Age, c'est
+    // un cookie de session que Safari iOS peut effacer à la fermeture.
+    const tokenCookie = res.headers["set-cookie"].find((c) => c.startsWith("token="));
+    const maxAge = Number(/Max-Age=(\d+)/.exec(tokenCookie)?.[1]);
+    const { exp } = JSON.parse(
+      Buffer.from(res.body.data.token.split(".")[1], "base64url").toString()
+    );
+    expect(Math.abs(maxAge - (exp - Date.now() / 1000))).toBeLessThan(5);
+  });
+
+  it("répond 401 (pas 500) quand l'email ou le mot de passe est absent", async () => {
+    const res = await request(app).post("/api/auth/login").send({});
+    expect(res.status).toBe(401);
+  });
+});
+
 describe("SEC-G03 - compte désactivé", () => {
   it("refuse l'accès à un utilisateur INACTIVE même avec un jeton encore valide", async () => {
     const inactiveEmail = `inactive.${suffix}@nbn.test`;

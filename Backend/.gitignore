@@ -42,6 +42,8 @@ node_modules/
 jspm_packages/
 views/
 uploads/
+# Pièces d'identité et autres fichiers personnels (hors dossier public)
+private/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/

@@ -95,6 +95,11 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
+                  inputMode="email"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="exemple@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -118,6 +123,13 @@ export default function LoginPage() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
+                    // En mode « afficher », le champ devient un texte : sans
+                    // ces attributs, iOS y met une majuscule et corrige le mot
+                    // de passe à la volée.
+                    autoComplete="current-password"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

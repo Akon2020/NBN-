@@ -11,12 +11,24 @@ import { Session } from "../models/index.model.js";
 
 const REFRESH_TOKEN_BYTES = 64;
 
+// 24 h par défaut, décision du porteur de projet : une journée de terrain
+// ne doit pas être coupée par une reconnexion. La révocation reste
+// immédiate malgré cette durée — chaque requête compare `securityVersion`
+// (suspension, changement de mot de passe, déconnexion globale).
 export const generateAccessToken = (user) => {
   return jwt.sign(
     { email: user.email, securityVersion: user.securityVersion },
     JWT_SECRET,
-    { expiresIn: ACCESS_TOKEN_EXPIRES_IN || "15m" }
+    { expiresIn: ACCESS_TOKEN_EXPIRES_IN || "24h" }
   );
+};
+
+// Durée de vie restante d'un access token, en millisecondes — le cookie
+// qui le porte expire en même temps que lui au lieu d'être un cookie de
+// session que certains navigateurs mobiles effacent à la fermeture.
+export const accessTokenMaxAge = (accessToken) => {
+  const { exp } = jwt.decode(accessToken) || {};
+  return exp ? Math.max(exp * 1000 - Date.now(), 0) : undefined;
 };
 
 const generateOpaqueToken = () =>

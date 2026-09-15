@@ -17,6 +17,13 @@ import {
 } from "../models/index.model.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 import { createNotification } from "../services/notification.service.js";
+import {
+  createTaskWithRelations,
+  getCurrentAssigneeUserIds,
+  notifyUsers,
+  syncTaskDeadlineReminders,
+  syncTaskRelations,
+} from "../services/task.service.js";
 import { hasPermission } from "../utils/rbac.js";
 
 const TASK_INCLUDES = [
@@ -39,115 +46,7 @@ const TASK_INCLUDES = [
   },
 ];
 
-// Remplace intégralement les assignations/liens d'une tâche à partir des
-// tableaux fournis — plus simple et moins sujet à erreur qu'un diff
-// incrémental côté Kanban (l'UI renvoie toujours l'état complet voulu).
-const syncTaskRelations = async (
-  idTask,
-  { assigneeUserIds, idProperties, idClients, idBailleurs, idCommissionnaires },
-  transaction
-) => {
-  if (assigneeUserIds !== undefined) {
-    await TaskAssignee.destroy({ where: { idTask }, transaction });
-    if (assigneeUserIds.length) {
-      await TaskAssignee.bulkCreate(
-        assigneeUserIds.map((idUser) => ({ idTask, idUser })),
-        { transaction }
-      );
-    }
-  }
-  if (idProperties !== undefined) {
-    await TaskPropertyLink.destroy({ where: { idTask }, transaction });
-    if (idProperties.length) {
-      await TaskPropertyLink.bulkCreate(
-        idProperties.map((idProperty) => ({ idTask, idProperty })),
-        { transaction }
-      );
-    }
-  }
-  if (idClients !== undefined) {
-    await TaskClientLink.destroy({ where: { idTask }, transaction });
-    if (idClients.length) {
-      await TaskClientLink.bulkCreate(
-        idClients.map((idClient) => ({ idTask, idClient })),
-        { transaction }
-      );
-    }
-  }
-  if (idBailleurs !== undefined) {
-    await TaskBailleurLink.destroy({ where: { idTask }, transaction });
-    if (idBailleurs.length) {
-      await TaskBailleurLink.bulkCreate(
-        idBailleurs.map((idBailleur) => ({ idTask, idBailleur })),
-        { transaction }
-      );
-    }
-  }
-  if (idCommissionnaires !== undefined) {
-    await TaskCommissionnaireLink.destroy({ where: { idTask }, transaction });
-    if (idCommissionnaires.length) {
-      await TaskCommissionnaireLink.bulkCreate(
-        idCommissionnaires.map((idCommissionnaire) => ({ idTask, idCommissionnaire })),
-        { transaction }
-      );
-    }
-  }
-};
-
-// GOAL 15 — un seul point d'entrée pour notifier un ensemble d'utilisateurs
-// concernés par une tâche, jamais l'acteur qui vient de déclencher
-// l'événement lui-même.
-const notifyUsers = async (userIds, excludeUserId, { type, title, message, relatedEntityId }) => {
-  const uniqueIds = [...new Set(userIds.filter((id) => id && id !== excludeUserId))];
-  await Promise.all(
-    uniqueIds.map((idUser) =>
-      createNotification({
-        idUser,
-        type,
-        title,
-        message,
-        relatedEntityType: "Task",
-        relatedEntityId,
-      })
-    )
-  );
-};
-
-// GOAL 15 — comble l'écart documenté entre `Task.dateEcheance` (présent dès
-// BACK-G16) et l'absence totale de rappel programmé pour cette échéance :
-// réutilise l'infrastructure Reminder/reminder.worker.js déjà existante
-// (GOAL 11) plutôt que de construire un cron parallèle. Régénéré à chaque
-// création/mise à jour pour ne jamais laisser un rappel obsolète (mauvaise
-// échéance, assigné retiré) — seuls les rappels pas encore envoyés (statut
-// PLANIFIE) sont concernés, jamais l'historique déjà envoyé.
-const syncTaskDeadlineReminders = async (task, assigneeUserIds, transaction) => {
-  await Reminder.destroy({
-    where: { relatedEntityType: "Task", relatedEntityId: task.idTask, statut: "PLANIFIE" },
-    transaction,
-  });
-  if (task.dateEcheance && assigneeUserIds.length) {
-    await Reminder.bulkCreate(
-      assigneeUserIds.map((idUser) => ({
-        idUser,
-        title: `Échéance de tâche : ${task.title}`,
-        message: `La tâche "${task.title}" arrive à échéance.`,
-        dueAt: new Date(task.dateEcheance),
-        relatedEntityType: "Task",
-        relatedEntityId: task.idTask,
-        createdBy: task.createdBy,
-      })),
-      { transaction }
-    );
-  }
-};
-
-const getCurrentAssigneeUserIds = async (idTask, transaction) => {
-  const rows = await TaskAssignee.findAll({ where: { idTask }, transaction });
-  return rows.map((row) => row.idUser);
-};
-
 export const createTask = async (req, res, next) => {
-  const t = await db.transaction();
   try {
     const {
       title,
@@ -162,54 +61,19 @@ export const createTask = async (req, res, next) => {
     } = req.body;
 
     if (!title) {
-      await t.rollback();
       return res.status(400).json({ message: "title est requis." });
     }
 
-    const task = await Task.create(
-      {
-        title,
-        description: description || null,
-        priorite: priorite || "NORMALE",
-        dateEcheance: dateEcheance || null,
-        createdBy: req.user.idUser,
-      },
-      { transaction: t }
+    // Transaction, rappels, journal et notifications des assignés (jamais
+    // le créateur) : voir services/task.service.js.
+    const task = await createTaskWithRelations(
+      { title, description, priorite, dateEcheance, assigneeUserIds, idProperties, idClients, idBailleurs, idCommissionnaires },
+      req.user.idUser
     );
-
-    await syncTaskRelations(
-      task.idTask,
-      { assigneeUserIds, idProperties, idClients, idBailleurs, idCommissionnaires },
-      t
-    );
-
-    const currentAssigneeUserIds = await getCurrentAssigneeUserIds(task.idTask, t);
-    await syncTaskDeadlineReminders(task, currentAssigneeUserIds, t);
-
-    await t.commit();
-
-    await recordTimelineEvent({
-      entityType: "TASK",
-      entityId: task.idTask,
-      eventType: "CREATED",
-      title: `Tâche créée : ${title}`,
-      description: description || null,
-      actorUserId: req.user.idUser,
-    });
-
-    // GOAL 15 — le créateur n'a pas besoin d'être notifié de sa propre
-    // création ; seuls les collaborateurs assignés dès la création le sont.
-    await notifyUsers(currentAssigneeUserIds, req.user.idUser, {
-      type: "task:assigned",
-      title: `Nouvelle tâche assignée : ${title}`,
-      message: description || null,
-      relatedEntityId: task.idTask,
-    });
 
     const created = await Task.findByPk(task.idTask, { include: TASK_INCLUDES });
     return res.status(201).json({ message: "Tâche créée avec succès", data: created });
   } catch (error) {
-    await t.rollback();
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }

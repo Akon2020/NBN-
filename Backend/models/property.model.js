@@ -58,6 +58,22 @@ const Property = db.define("properties", {
   },
   observations: DataTypes.TEXT,
   price: DataTypes.DECIMAL(12, 2),
+  // Plancher de négociation fixé par le responsable — champ sensible,
+  // filtré par property.serializer.js (property:prix_minimum:read).
+  prixMinimum: DataTypes.DECIMAL(12, 2),
+  modalitePaiement: {
+    type: DataTypes.ENUM(
+      "AVANCE_1_GARANTIE_3",
+      "MENSUEL",
+      "AVANCE_2_GARANTIE_3",
+      "AVANCE_3_GARANTIE_2",
+      "AVANCE_3_GARANTIE_3",
+      "GARANTIE_6",
+      "AUTRE"
+    ),
+    allowNull: true,
+  },
+  modalitePaiementAutre: DataTypes.STRING(255),
   // GOAL 9 — `margin` est désormais une valeur dérivée, jamais saisie
   // directement (retirée de PROPERTY_FIELDS) : toujours recalculée à
   // partir de `price` et du pourcentage effectif (override ou défaut

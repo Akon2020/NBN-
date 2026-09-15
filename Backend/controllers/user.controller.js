@@ -1,14 +1,14 @@
 import { User, Session } from "../models/index.model.js";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
-import { DEFAULT_PASSWD, EMAIL, FRONT_URL } from "../config/env.js";
+import { DEFAULT_PASSWD, FRONT_URL } from "../config/env.js";
 import {
   getUserWithoutPassword,
   strongPasswd,
   valideEmail,
 } from "../utils/user.utils.js";
 import { newUserEmailTemplate } from "../utils/email.template.js";
-import transporter from "../config/nodemailer.js";
+import { sendMail } from "../config/nodemailer.js";
 import { deleteFile } from "../utils/deletefile.js";
 import { revokeAllUserSessions } from "../utils/session.utils.js";
 import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
@@ -119,12 +119,11 @@ export const createUser = async (req, res, next) => {
     let mailEnvoye = true;
     try {
       const mailOptions = {
-        from: `"Nyumbani Express" <${EMAIL}>`,
         to: email,
         subject: "Bienvenue dans Nyumbani Express",
         html: newUserEmailTemplate(fullName, email, DEFAULT_PASSWD, FRONT_URL),
       };
-      await transporter.sendMail(mailOptions);
+      await sendMail(mailOptions);
     } catch (mailError) {
       console.error("Erreur lors de l'envoi du mail :", mailError.message);
       mailEnvoye = false;

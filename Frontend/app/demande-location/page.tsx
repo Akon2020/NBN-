@@ -18,12 +18,22 @@ import {
   TextAreaField,
   TextField,
 } from "@/components/forms/form-fields"
+import {
+  LocationFields,
+  resolveAvenues,
+  validateLocation,
+  type LocationValue,
+} from "@/components/forms/location-fields"
 import { submitRentalRequest } from "@/actions/rentalRequests"
+import {
+  isEmailFormatValid,
+  normalizeCommissionnaireCode,
+  normalizePhone,
+} from "@/lib/contactValidation"
 import {
   AVANTAGE_CHOICES,
   CANAL_CONTACT_CHOICES,
   CHARGES_INCLUSES_CHOICES,
-  COMMUNE_CHOICES,
   DEVISE_CHOICES,
   ELEMENT_PARTICULIER_CHOICES,
   EQUIPEMENT_CHOICES,
@@ -31,10 +41,10 @@ import {
   NOMBRE_CHAMBRES_CHOICES,
   NOMBRE_SALONS_CHOICES,
   NOMBRE_TOILETTES_CHOICES,
-  QUARTIER_SUGGESTIONS,
   SEXE_CHOICES,
   TYPE_BIEN_SOUHAITE_CHOICES,
   TYPE_CLIENT_CHOICES,
+  TYPE_OCCUPANTS_CHOICES,
   URGENCE_CHOICES,
   USAGE_BIEN_CHOICES,
   VILLE_CHOICES,
@@ -80,9 +90,12 @@ const CONDITIONS = [
   },
 ]
 
+const EMPTY_LOCATION: LocationValue = { commune: "", quartier: "", avenues: [], avenueAutre: "" }
+
 const EMPTY_FORM = {
   fullName: "",
   phone: "",
+  email: "",
   lieuProvenance: "",
   residenceActuelle: "",
   sexe: "",
@@ -94,10 +107,12 @@ const EMPTY_FORM = {
   usageBien: "",
   ville: "",
   villeAutre: "",
-  commune: "",
-  quartier: "",
-  avenues: "",
-  loyerMax: "",
+  location: EMPTY_LOCATION,
+  // Hors Bukavu, le référentiel ne s'applique pas : saisie libre.
+  quartierLibre: "",
+  avenuesLibres: "",
+  budgetMin: "",
+  budgetMax: "",
   devise: "USD",
   modalitePaiement: "",
   modalitePaiementAutre: "",
@@ -112,6 +127,7 @@ const EMPTY_FORM = {
   urgence: "",
   urgenceAutre: "",
   dateEntree: "",
+  typeOccupants: "",
   nombreOccupants: "",
   elementsParticuliers: [] as string[],
   // Tri-état volontaire ("" = pas encore répondu) : un booléen ne peut pas
@@ -122,8 +138,14 @@ const EMPTY_FORM = {
   autresInfos: "",
 }
 
+// v2 : la forme du brouillon a changé (localisation structurée, budget
+// min/max). Un brouillon v1 restauré mélangerait les deux formats.
+const DRAFT_KEY = "nbn-demande-location-v2"
+
+const needsOther = (value: string, other: string) => value === "AUTRE" && !other.trim()
+
 export default function DemandeLocationPage() {
-  const { value: form, setValue: setForm, clear, restored } = useFormDraft("nbn-demande-location", EMPTY_FORM)
+  const { value: form, setValue: setForm, clear, restored } = useFormDraft(DRAFT_KEY, EMPTY_FORM)
   const [conditionsAccepted, setConditionsAccepted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState<{ dossierNumber: string | null } | null>(null)
@@ -131,30 +153,34 @@ export default function DemandeLocationPage() {
   const set = <K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
+  const inBukavu = form.ville === "BUKAVU"
+
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
       const payload: RentalRequestPayload = {
         fullName: form.fullName.trim(),
-        phone: form.phone.trim(),
+        phone: normalizePhone(form.phone) ?? form.phone.trim(),
+        email: form.email.trim().toLowerCase(),
         conditionsAccepted: true,
         lieuProvenance: form.lieuProvenance.trim() || undefined,
         residenceActuelle: form.residenceActuelle.trim() || undefined,
         sexe: form.sexe || undefined,
         typeClient: form.typeClient || undefined,
-        canalContact: form.canalContact || undefined,
+        canalContact: form.canalContact,
         canalContactAutre: form.canalContactAutre.trim() || undefined,
-        typesBien: form.typesBien.length ? form.typesBien : undefined,
+        typesBien: form.typesBien,
         typeBienAutre: form.typeBienAutre.trim() || undefined,
-        usageBien: form.usageBien || undefined,
-        ville: form.ville || undefined,
+        usageBien: form.usageBien,
+        ville: form.ville,
         villeAutre: form.villeAutre.trim() || undefined,
-        commune: form.commune || undefined,
-        quartier: form.quartier.trim() || undefined,
-        avenues: form.avenues.trim() || undefined,
-        loyerMax: form.loyerMax ? Number(form.loyerMax) : undefined,
+        commune: inBukavu ? form.location.commune : undefined,
+        quartier: inBukavu ? form.location.quartier : form.quartierLibre.trim(),
+        avenues: inBukavu ? resolveAvenues(form.location).join(", ") : form.avenuesLibres.trim(),
+        budgetMin: Number(form.budgetMin),
+        loyerMax: Number(form.budgetMax),
         devise: form.devise || undefined,
-        modalitePaiement: form.modalitePaiement || undefined,
+        modalitePaiement: form.modalitePaiement,
         modalitePaiementAutre: form.modalitePaiementAutre.trim() || undefined,
         chargesIncluses: form.chargesIncluses || undefined,
         nombreChambres: form.nombreChambres || undefined,
@@ -164,14 +190,18 @@ export default function DemandeLocationPage() {
         equipements: form.equipements.length ? form.equipements : undefined,
         avantages: form.avantages.length ? form.avantages : undefined,
         avantageAutre: form.avantageAutre.trim() || undefined,
-        urgence: form.urgence || undefined,
+        urgence: form.urgence,
         urgenceAutre: form.urgenceAutre.trim() || undefined,
         dateEntree: form.dateEntree || undefined,
-        nombreOccupants: form.nombreOccupants ? Number(form.nombreOccupants) : undefined,
-        elementsParticuliers: form.elementsParticuliers.length ? form.elementsParticuliers : undefined,
+        typeOccupants: form.typeOccupants,
+        nombreOccupants:
+          form.typeOccupants === "AUTRE" && form.nombreOccupants ? Number(form.nombreOccupants) : undefined,
+        elementsParticuliers: form.elementsParticuliers,
         orienteParAgent: form.orienteParAgent === "OUI",
         codeCommissionnaire:
-          form.orienteParAgent === "OUI" ? form.codeCommissionnaire.trim() || undefined : undefined,
+          form.orienteParAgent === "OUI"
+            ? normalizeCommissionnaireCode(form.codeCommissionnaire) ?? form.codeCommissionnaire.trim()
+            : undefined,
         autresInfos: form.autresInfos.trim() || undefined,
       }
 
@@ -185,16 +215,17 @@ export default function DemandeLocationPage() {
     }
   }
 
-  const quartierSuggestions = QUARTIER_SUGGESTIONS[form.commune] || []
-
   const steps: WizardStep[] = [
     {
       id: "identite",
       title: "Parlons de vous",
-      subtitle: "Seuls votre nom et votre téléphone sont indispensables pour que nous puissions vous répondre.",
+      subtitle: "Vos coordonnées nous permettent de vous répondre et de vous envoyer un accusé de réception.",
       validate: () => {
         if (!form.fullName.trim()) return "Merci d'indiquer votre nom complet."
-        if (!form.phone.trim()) return "Merci d'indiquer un numéro de téléphone."
+        if (!normalizePhone(form.phone)) return "Numéro de téléphone invalide. Exemple : +243 977 103 143."
+        if (!isEmailFormatValid(form.email)) return "Merci d'indiquer une adresse e-mail valide."
+        if (!form.canalContact) return "Dites-nous comment vous nous avez connus."
+        if (needsOther(form.canalContact, form.canalContactAutre)) return "Précisez comment vous nous avez connus."
         return null
       },
       content: (
@@ -209,6 +240,20 @@ export default function DemandeLocationPage() {
               type="tel"
               placeholder="+243 ..."
               inputMode="tel"
+              autoComplete="tel"
+            />
+          </Field>
+          <Field label="Adresse e-mail" required hint="Vous y recevrez l'accusé de réception de votre demande.">
+            <TextField
+              value={form.email}
+              onChange={(v) => set("email", v)}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="exemple@gmail.com"
             />
           </Field>
           <Field label="Lieu de provenance">
@@ -223,7 +268,7 @@ export default function DemandeLocationPage() {
           <Field label="Type de client">
             <ChoiceChips choices={TYPE_CLIENT_CHOICES} value={form.typeClient} onChange={(v) => set("typeClient", v)} />
           </Field>
-          <Field label="Comment nous avez-vous connus ?">
+          <Field label="Comment nous avez-vous connus ?" required>
             <ChoiceChips
               choices={CANAL_CONTACT_CHOICES}
               value={form.canalContact}
@@ -240,9 +285,15 @@ export default function DemandeLocationPage() {
       id: "type-location",
       title: "Que recherchez-vous ?",
       subtitle: "Vous pouvez sélectionner plusieurs types de biens.",
+      validate: () => {
+        if (form.typesBien.length === 0) return "Choisissez au moins un type de bien."
+        if (form.typesBien.includes("AUTRE") && !form.typeBienAutre.trim()) return "Précisez le type de bien."
+        if (!form.usageBien) return "Indiquez l'usage du bien."
+        return null
+      },
       content: (
         <div className="space-y-5">
-          <Field label="Type de bien souhaité">
+          <Field label="Type de bien souhaité" required>
             <MultiChoiceChips
               choices={TYPE_BIEN_SOUHAITE_CHOICES}
               values={form.typesBien}
@@ -252,7 +303,7 @@ export default function DemandeLocationPage() {
               onOtherTextChange={(v) => set("typeBienAutre", v)}
             />
           </Field>
-          <Field label="Usage du bien">
+          <Field label="Usage du bien" required>
             <ChoiceChips choices={USAGE_BIEN_CHOICES} value={form.usageBien} onChange={(v) => set("usageBien", v)} />
           </Field>
         </div>
@@ -262,9 +313,17 @@ export default function DemandeLocationPage() {
       id: "milieu",
       title: "Dans quel milieu ?",
       subtitle: "Plus vous êtes précis, plus nos propositions seront pertinentes.",
+      validate: () => {
+        if (!form.ville) return "Indiquez la ville souhaitée."
+        if (needsOther(form.ville, form.villeAutre)) return "Précisez la ville souhaitée."
+        if (inBukavu) return validateLocation(form.location)
+        if (!form.quartierLibre.trim()) return "Indiquez le quartier souhaité."
+        if (!form.avenuesLibres.trim()) return "Indiquez au moins une avenue souhaitée."
+        return null
+      },
       content: (
         <div className="space-y-5">
-          <Field label="Ville">
+          <Field label="Ville" required>
             <ChoiceChips
               choices={VILLE_CHOICES}
               value={form.ville}
@@ -275,35 +334,25 @@ export default function DemandeLocationPage() {
               otherPlaceholder="Quelle ville ?"
             />
           </Field>
-          <Field label="Commune souhaitée">
-            <ChoiceChips choices={COMMUNE_CHOICES} value={form.commune} onChange={(v) => set("commune", v)} />
-          </Field>
-          <Field label="Quartier souhaité">
-            <div className="space-y-2">
-              <TextField
-                value={form.quartier}
-                onChange={(v) => set("quartier", v)}
-                placeholder="Nom du quartier"
-              />
-              {quartierSuggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {quartierSuggestions.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => set("quartier", q)}
-                      className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-primary-900/40 hover:text-foreground"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Field>
-          <Field label="Quelle(s) avenue(s) préférez-vous ?">
-            <TextField value={form.avenues} onChange={(v) => set("avenues", v)} />
-          </Field>
+          {inBukavu && (
+            <LocationFields
+              value={form.location}
+              onChange={(v) => set("location", v)}
+              multipleAvenues
+              required
+              avenueLabel="Quelle(s) avenue(s) préférez-vous ?"
+            />
+          )}
+          {form.ville === "AUTRE" && (
+            <>
+              <Field label="Quartier souhaité" required>
+                <TextField value={form.quartierLibre} onChange={(v) => set("quartierLibre", v)} />
+              </Field>
+              <Field label="Quelle(s) avenue(s) préférez-vous ?" required>
+                <TextField value={form.avenuesLibres} onChange={(v) => set("avenuesLibres", v)} />
+              </Field>
+            </>
+          )}
         </div>
       ),
     },
@@ -311,21 +360,40 @@ export default function DemandeLocationPage() {
       id: "budget",
       title: "Votre budget",
       subtitle: "Ces informations nous évitent de vous proposer des biens hors de portée.",
+      validate: () => {
+        const min = Number(form.budgetMin)
+        const max = Number(form.budgetMax)
+        if (!(min > 0)) return "Indiquez votre budget minimum."
+        if (!(max > 0)) return "Indiquez votre budget maximum."
+        if (min > max) return "Le budget minimum ne peut pas dépasser le budget maximum."
+        if (!form.modalitePaiement) return "Choisissez la modalité de paiement."
+        if (needsOther(form.modalitePaiement, form.modalitePaiementAutre)) return "Précisez la modalité de paiement."
+        return null
+      },
       content: (
         <div className="space-y-5">
-          <Field label="Loyer maximum">
-            <div className="space-y-2">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Budget minimum" required>
               <TextField
-                value={form.loyerMax}
-                onChange={(v) => set("loyerMax", v)}
+                value={form.budgetMin}
+                onChange={(v) => set("budgetMin", v)}
                 type="number"
                 inputMode="numeric"
-                placeholder="Ex. 250"
+                placeholder="Ex. 150"
               />
-              <ChoiceChips choices={DEVISE_CHOICES} value={form.devise} onChange={(v) => set("devise", v || "USD")} />
-            </div>
-          </Field>
-          <Field label="Modalité de paiement">
+            </Field>
+            <Field label="Budget maximum" required>
+              <TextField
+                value={form.budgetMax}
+                onChange={(v) => set("budgetMax", v)}
+                type="number"
+                inputMode="numeric"
+                placeholder="Ex. 300"
+              />
+            </Field>
+          </div>
+          <ChoiceChips choices={DEVISE_CHOICES} value={form.devise} onChange={(v) => set("devise", v || "USD")} />
+          <Field label="Modalité de paiement" required>
             <ChoiceChips
               choices={MODALITE_PAIEMENT_CHOICES}
               value={form.modalitePaiement}
@@ -401,9 +469,14 @@ export default function DemandeLocationPage() {
     {
       id: "disponibilite",
       title: "Pour quand ?",
+      validate: () => {
+        if (!form.urgence) return "Indiquez l'urgence de votre recherche."
+        if (needsOther(form.urgence, form.urgenceAutre)) return "Précisez l'urgence."
+        return null
+      },
       content: (
         <div className="space-y-5">
-          <Field label="Urgence">
+          <Field label="Urgence" required>
             <ChoiceChips
               choices={URGENCE_CHOICES}
               value={form.urgence}
@@ -423,18 +496,44 @@ export default function DemandeLocationPage() {
       id: "complements",
       title: "Quelques précisions",
       subtitle: "Ces détails nous aident à vous proposer un logement réellement adapté.",
+      validate: () => {
+        if (!form.typeOccupants) return "Indiquez qui occupera le logement."
+        if (form.typeOccupants === "AUTRE" && !(Number(form.nombreOccupants) >= 1)) {
+          return "Précisez le nombre d'occupants."
+        }
+        if (form.elementsParticuliers.length === 0) {
+          return "Indiquez les éléments à prendre en compte, ou « Aucune »."
+        }
+        if (!form.orienteParAgent) return "Indiquez si vous avez été orienté par un agent ou un commissionnaire."
+        if (form.orienteParAgent === "OUI" && !normalizeCommissionnaireCode(form.codeCommissionnaire)) {
+          return "Le code commissionnaire est requis, au format CCM-042."
+        }
+        return null
+      },
       content: (
         <div className="space-y-5">
-          <Field label="Nombre d'occupants" hint="Nous permet de proposer un logement adapté à la taille de votre ménage.">
-            <TextField
-              value={form.nombreOccupants}
-              onChange={(v) => set("nombreOccupants", v)}
-              type="number"
-              inputMode="numeric"
-            />
+          <Field label="Nombre d'occupants" required hint="Nous permet de proposer un logement adapté à la taille de votre ménage.">
+            <div className="space-y-2">
+              <ChoiceChips
+                choices={TYPE_OCCUPANTS_CHOICES}
+                value={form.typeOccupants}
+                onChange={(v) => set("typeOccupants", v)}
+              />
+              {form.typeOccupants === "AUTRE" && (
+                <TextField
+                  value={form.nombreOccupants}
+                  onChange={(v) => set("nombreOccupants", v)}
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  placeholder="Combien de personnes ?"
+                />
+              )}
+            </div>
           </Field>
           <Field
             label="Éléments à prendre en compte"
+            required
             hint="Tout ce qui pourrait influencer l'acceptation du logement (animaux, activité, etc.)."
           >
             <MultiChoiceChips
@@ -443,7 +542,7 @@ export default function DemandeLocationPage() {
               onChange={(v) => set("elementsParticuliers", v)}
             />
           </Field>
-          <Field label="Avez-vous été orienté par un agent ou commissionnaire partenaire ?">
+          <Field label="Avez-vous été orienté par un agent ou commissionnaire partenaire ?" required>
             <div className="space-y-2">
               <ChoiceChips
                 choices={[
@@ -457,7 +556,10 @@ export default function DemandeLocationPage() {
                 <TextField
                   value={form.codeCommissionnaire}
                   onChange={(v) => set("codeCommissionnaire", v)}
-                  placeholder="Code du commissionnaire (ex. CCL-042)"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="Code commissionnaire (ex. CCM-042)"
                 />
               )}
             </div>
@@ -565,7 +667,7 @@ export default function DemandeLocationPage() {
                 onSubmit={handleSubmit}
                 submitLabel="Envoyer ma demande"
                 isSubmitting={isSubmitting}
-                draftKey="nbn-demande-location"
+                draftKey={DRAFT_KEY}
                 onClearDraft={() => {
                   clear()
                   setConditionsAccepted(false)

@@ -32,6 +32,7 @@ import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import {
+  MODALITE_PAIEMENT_CHOICES,
   PROPERTY_TYPE_LABELS,
   RENTAL_UNIT_LABELS,
   RENTAL_UNIT_PRICE_SUFFIX,
@@ -306,6 +307,25 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
                       {property.rentalDetails.guarantee ?? 0} {RENTAL_UNIT_LABELS[property.rentalDetails.unit]}
                     </span>
                   </div>
+                </div>
+              )}
+              {property.modalitePaiement && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Modalité de paiement : </span>
+                  <span className="font-medium">
+                    {property.modalitePaiement === "AUTRE"
+                      ? property.modalitePaiementAutre
+                      : MODALITE_PAIEMENT_CHOICES.find((c) => c.value === property.modalitePaiement)?.label}
+                  </span>
+                </div>
+              )}
+              {/* Présent uniquement pour l'administration : le Backend retire
+                  le champ de la réponse pour tout autre rôle. */}
+              {property.prixMinimum != null && (
+                <div className="rounded-lg border border-dashed border-border p-3 text-sm">
+                  <span className="text-muted-foreground">Prix minimum acceptable : </span>
+                  <span className="font-semibold">${Number(property.prixMinimum).toLocaleString("fr-FR")}</span>
+                  <p className="mt-1 text-xs text-muted-foreground">Confidentiel — ne jamais communiquer au client.</p>
                 </div>
               )}
             </CardContent>

@@ -1,50 +1,98 @@
-# Welcome to your Expo app 👋
+# Mobile — NBN Express Plus
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application terrain et client de NBN Express : collecte de biens et de clients
+par les commissionnaires, consultation du catalogue, suivi des missions,
+tâches et tableau de bord interne.
 
-## Get started
+Expo SDK 54 · React Native 0.81 · Expo Router · NativeWind · expo-sqlite
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Démarrage
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Puis ouvrir sur un appareil via Expo Go, ou `npx expo start --android` /
+`--ios`.
 
-## Learn more
+L'adresse de l'API est déduite automatiquement en développement : `lib/api.ts`
+réutilise l'IP LAN de la machine qui sert le bundle Metro
+(`Constants.expoConfig.hostUri`). Inutile de la configurer à chaque changement
+de réseau — et `localhost` ne fonctionnerait pas depuis un appareil physique,
+il désignerait l'appareil lui-même. Pour forcer une adresse, renseigner
+`EXPO_PUBLIC_API_URL` (voir [`.env.example`](.env.example)).
 
-To learn more about developing your project with Expo, look at the following resources:
+> Les notifications push distantes ne fonctionnent pas dans Expo Go depuis le
+> SDK 53. Le code les ignore proprement dans ce contexte ; il faut un build de
+> développement (EAS ou local) pour les tester, ainsi qu'un `projectId` EAS
+> encore à provisionner (CLAUDE.md §16 point 6).
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Scripts
 
-## Join the community
+| Commande | Effet |
+|---|---|
+| `npx expo start` | Serveur de développement Metro |
+| `npm run android` / `npm run ios` | Démarre sur la plateforme ciblée |
+| `npm run lint` | ESLint |
+| `npm test` | Tests (jest) |
 
-Join our community of developers creating universal apps.
+## Arborescences par rôle
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+La navigation est découpée en trois arbres, résolus au démarrage selon le rôle
+du compte connecté (`lib/auth.ts`) :
+
+| Arbre | Public | Contenu |
+|---|---|---|
+| `app/(client)/` | Client final, sans compte | Catalogue, recherche, carte, favoris, profil |
+| `app/(commissionnaire)/` | Commissionnaires terrain | Missions, collecte, notifications, profil |
+| `app/(interne)/` | Personnel et administration | Tableau de bord, biens, tâches, notifications |
+
+`app/collecte/` regroupe les formulaires de collecte terrain (bien, client,
+suivi), accessibles depuis l'arbre commissionnaire.
+
+## Offline-first
+
+La collecte terrain fonctionne **sans réseau**, ce n'est pas un cache
+d'affichage :
+
+```
+UI  →  Repository (lib/repository/)   ← seule interface connue de l'UI
+           ├── SQLite local (lib/db/)
+           ├── API distante (lib/api.ts)
+           └── Sync engine (lib/sync/)
+```
+
+- Chaque brouillon reçoit un **UUID généré localement**, ce qui rend la
+  création idempotente côté serveur : une synchronisation rejouée après une
+  coupure ne crée jamais de doublon.
+- Le moteur de synchronisation traite les brouillons en **FIFO** et enregistre
+  les identifiants serveur au fur et à mesure — une coupure en milieu de
+  synchro reprend sans recréer ce qui existe déjà.
+- Les **photos sont découplées** de la ressource : un échec d'upload ne rend
+  jamais invalide la collecte du bien. Elles sont compressées et dédupliquées
+  par hash avant stockage local.
+- L'UI n'importe jamais `expo-sqlite` directement — uniquement le Repository,
+  pour que le moteur de stockage reste remplaçable.
+
+## Structure
+
+```
+app/          routes (Expo Router), une arborescence par rôle
+components/   composants partagés (cartes, modales, sélecteurs)
+lib/          api, auth, stockage sécurisé, db/, repository/, sync/, media/
+constants/    thème et tokens de marque
+__tests__/    tests jest (repository, moteur de synchronisation, rôles)
+```
+
+## Conventions
+
+- **Jetons** dans `expo-secure-store` (Keychain/Keystore), jamais
+  AsyncStorage. AsyncStorage n'est utilisé que pour de l'état non sensible
+  (onboarding vu, favoris locaux du visiteur).
+- **Formulaires** en `useState` par champ avec validation en ligne, appels
+  réseau via des fonctions typées dans `lib/*.ts` — choix acté après
+  implémentation réelle, documenté en CLAUDE.md §12.
+- **Classification offline** : chaque fonctionnalité est offline-first,
+  offline-readable ou online-only selon CLAUDE.md §8. Pas de comportement
+  hors ligne improvisé en dehors de cette grille.

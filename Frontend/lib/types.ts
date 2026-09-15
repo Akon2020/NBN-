@@ -157,6 +157,12 @@ export interface Property {
   toilets?: number | null
   kitchens?: number | null
   price: number
+  commune?: "IBANDA" | "KADUTU" | "BAGIRA" | null
+  // Plancher de négociation du responsable — absent de la réponse sans
+  // property:prix_minimum:read (administration uniquement).
+  prixMinimum?: number | null
+  modalitePaiement?: string | null
+  modalitePaiementAutre?: string | null
   // GOAL 9 — `margin` est désormais dérivé (jamais saisi directement) :
   // price * pourcentage effectif (override du bien ou défaut du type).
   margin?: number
@@ -216,6 +222,9 @@ export interface Person {
   email?: string | null
   idNumber?: string | null
   idUser?: number | null
+  // Une pièce d'identité est annexée — le fichier se consulte via
+  // GET /api/bailleurs/:id/piece-identite (le chemin n'est jamais exposé).
+  hasIdDocument?: boolean
 }
 
 export type ClientType = "LOCATAIRE" | "ACHETEUR"
@@ -400,7 +409,7 @@ export interface ClientDossier {
   complaints: ClientComplaint[]
 }
 
-export type BailleurType = "PROPRIETAIRE" | "MANDATAIRE"
+export type BailleurType = "PROPRIETAIRE" | "MANDATAIRE" | "GERANT" | "SOCIETE"
 export type BailleurTypeCollaboration = "OCCASIONNELLE" | "REGULIERE" | "EXCLUSIVE"
 export type BailleurFiabilite = "SERIEUX" | "MOYEN" | "DIFFICILE"
 export type BailleurStatutRelation = "ACTIF" | "INACTIF" | "A_RELANCER" | "SUSPENDU"
@@ -409,6 +418,8 @@ export type BailleurValeur = "FAIBLE" | "MOYEN" | "FORT" | "PARTENAIRE_CLE"
 export const BAILLEUR_TYPE_LABELS: Record<BailleurType, string> = {
   PROPRIETAIRE: "Propriétaire",
   MANDATAIRE: "Mandataire",
+  GERANT: "Gérant",
+  SOCIETE: "Société / Établissement",
 }
 
 export const BAILLEUR_STATUT_LABELS: Record<BailleurStatutRelation, string> = {
@@ -1052,9 +1063,11 @@ export const ROLE_LABELS: Record<string, string> = {
   tresorerie: "Trésorerie",
   commissionnaire: "Commissionnaire",
   consultant: "Consultant",
+  direction: "Direction",
 }
 
 export const ASSIGNABLE_ROLES = [
+  "direction",
   "admin",
   "communication",
   "marketing",
@@ -1065,6 +1078,45 @@ export const ASSIGNABLE_ROLES = [
   "commissionnaire",
   "consultant",
 ] as const
+
+// --- Boîtes professionnelles et messages reçus (GET /api/inbound-emails) ---
+
+export interface Mailbox {
+  key: string
+  label: string
+  address: string
+  canSend: boolean
+  canReceive: boolean
+}
+
+export interface InboundEmail {
+  idInboundEmail: number
+  mailboxKey: string
+  mailboxAddress: string
+  messageId: string
+  fromName?: string | null
+  fromAddress?: string | null
+  toAddresses?: string | null
+  subject?: string | null
+  receivedAt: string
+  repliedAt?: string | null
+  repliedBy?: number | null
+}
+
+export interface InboundEmailReply {
+  idInboundEmailReply: number
+  body: string
+  statut: "SENT" | "FAILED"
+  error?: string | null
+  createdAt: string
+  author?: { idUser: number; fullName: string } | null
+}
+
+export interface InboundEmailDetail extends InboundEmail {
+  textBody?: string | null
+  replies: InboundEmailReply[]
+  canReply: boolean
+}
 
 export const USER_STATUS_LABELS: Record<"ACTIVE" | "INACTIVE", string> = {
   ACTIVE: "Actif",
@@ -1204,22 +1256,17 @@ export const COMMUNE_CHOICES = [
   { value: "BAGIRA", label: "Bagira" },
 ]
 
-// Le cahier des charges ne fournit la liste des quartiers que pour Ibanda.
-// Le champ reste donc libre partout, avec des suggestions rapides quand
-// elles sont connues — jamais une liste fermée inventée pour les deux
-// autres communes.
-export const QUARTIER_SUGGESTIONS: Record<string, string[]> = {
-  IBANDA: ["Nyalukemba", "Ndendere", "Panzi"],
-  KADUTU: [],
-  BAGIRA: [],
-}
+// Quartiers et avenues : voir lib/locations.ts (référentiel de l'agence).
 
 export const DEVISE_CHOICES = [
   { value: "USD", label: "USD ($)" },
   { value: "CDF", label: "CDF (FC)" },
 ]
 
+// Commun à la demande de location et à la collecte de bien : les deux
+// parties doivent parler des mêmes modalités pour pouvoir être rapprochées.
 export const MODALITE_PAIEMENT_CHOICES = [
+  { value: "AVANCE_1_GARANTIE_3", label: "1 mois d'avance + 3 mois de garantie" },
   { value: "MENSUEL", label: "Mensuel" },
   { value: "AVANCE_2_GARANTIE_3", label: "2 mois d'avance + 3 mois de garantie" },
   { value: "AVANCE_3_GARANTIE_2", label: "3 mois d'avance + 2 mois de garantie" },
@@ -1278,6 +1325,13 @@ export const URGENCE_CHOICES = [
   { value: "AUTRE", label: "Autre" },
 ]
 
+export const TYPE_OCCUPANTS_CHOICES = [
+  { value: "FAMILLE_NOMBREUSE", label: "Famille nombreuse" },
+  { value: "FAMILLE_PEU_NOMBREUSE", label: "Famille moins nombreuse" },
+  { value: "COUPLE", label: "Couple" },
+  { value: "AUTRE", label: "Autre" },
+]
+
 export const ELEMENT_PARTICULIER_CHOICES = [
   { value: "ANIMAUX", label: "Animaux" },
   { value: "ENFANTS", label: "Beaucoup d'enfants" },
@@ -1285,29 +1339,31 @@ export const ELEMENT_PARTICULIER_CHOICES = [
   { value: "AUCUNE", label: "Aucune" },
 ]
 
-// Corps envoyé à POST /api/rental-requests — tous les champs sont
-// optionnels sauf ceux réellement exigés côté Backend.
+// Corps envoyé à POST /api/rental-requests — les champs non optionnels
+// sont exigés côté Backend (voir la documentation Swagger de la route).
 export interface RentalRequestPayload {
   fullName: string
   phone: string
+  email: string
   conditionsAccepted: boolean
   lieuProvenance?: string
   residenceActuelle?: string
   sexe?: string
   typeClient?: string
-  canalContact?: string
+  canalContact: string
   canalContactAutre?: string
-  typesBien?: string[]
+  typesBien: string[]
   typeBienAutre?: string
-  usageBien?: string
-  ville?: string
+  usageBien: string
+  ville: string
   villeAutre?: string
   commune?: string
-  quartier?: string
-  avenues?: string
-  loyerMax?: number
+  quartier: string
+  avenues: string
+  budgetMin: number
+  loyerMax: number
   devise?: string
-  modalitePaiement?: string
+  modalitePaiement: string
   modalitePaiementAutre?: string
   chargesIncluses?: string
   nombreChambres?: string
@@ -1317,12 +1373,13 @@ export interface RentalRequestPayload {
   equipements?: string[]
   avantages?: string[]
   avantageAutre?: string
-  urgence?: string
+  urgence: string
   urgenceAutre?: string
   dateEntree?: string
+  typeOccupants: string
   nombreOccupants?: number
-  elementsParticuliers?: string[]
-  orienteParAgent?: boolean
+  elementsParticuliers: string[]
+  orienteParAgent: boolean
   codeCommissionnaire?: string
   autresInfos?: string
 }
@@ -1407,37 +1464,61 @@ export const OBSERVATION_CHOICES = [
   { value: "AUTRE", label: "Autre" },
 ]
 
-// Compteurs 1..N proposés en pastilles, plus une saisie libre — évite un
-// menu déroulant pour une valeur qui est presque toujours petite.
-export const countChoices = (max: number) => [
+// Compteurs proposés en pastilles, plus une saisie libre — évite un menu
+// déroulant pour une valeur qui est presque toujours petite. `withZero`
+// quand la question est obligatoire : « aucun » doit rester une réponse.
+export const countChoices = (max: number, withZero = false) => [
+  ...(withZero ? [{ value: "0", label: "Aucun" }] : []),
   ...Array.from({ length: max }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
   { value: "AUTRE", label: "Autre" },
 ]
 
+export const REMPLISSEUR_CHOICES = [
+  { value: "RESPONSABLE", label: "Le responsable du bien" },
+  { value: "COLLECTEUR", label: "Un collecteur" },
+]
+
+export const RESPONSABLE_STATUT_CHOICES = [
+  { value: "PROPRIETAIRE", label: "Propriétaire" },
+  { value: "MANDATAIRE", label: "Mandataire" },
+  { value: "GERANT", label: "Gérant" },
+  { value: "SOCIETE", label: "Société / Établissement" },
+]
+
+// Corps envoyé à POST /api/property-collections (voir la documentation
+// Swagger de la route pour les champs conditionnels).
 export interface PropertyCollectionPayload {
+  remplisseur: "RESPONSABLE" | "COLLECTEUR"
+  parCommissionnaire?: boolean
   typeMission: string
   typeOperation: string
   propertyType: string
   commune: string
+  quartier: string
+  avenue: string
   prix: string
-  proprietaireNom: string
-  proprietairePhone: string
-  collecteurNom: string
-  quartier?: string
-  avenue?: string
-  bedrooms?: string
-  livingRooms?: string
-  toilets?: string
-  kitchens?: string
-  depots?: string
+  prixMinimum?: string
+  modalitePaiement?: string
+  modalitePaiementAutre?: string
+  bedrooms: string
+  livingRooms: string
+  toilets: string
+  kitchens: string
+  depots: string
   hasElectricity?: boolean
   hasWater?: boolean
   accessibilite?: string
   disponibilite?: string
   etatBien?: string
   observations?: string
-  proprietaireDisponibiliteVisite?: string
-  proprietaireAccepteCommission?: string
+  responsableStatut: string
+  responsableNom: string
+  responsablePhone: string
+  responsableEmail?: string
+  responsableIdNumber?: string
+  responsableDisponibiliteVisite: string
+  responsableAccepteCommission: string
+  collecteurNom?: string
   collecteurPhone?: string
   codeCommissionnaire?: string
 }

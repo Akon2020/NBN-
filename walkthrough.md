@@ -980,3 +980,164 @@ Constat en ouvrant le chantier, confirme par un sous-agent : contrairement a l'h
 Mobile : `npx tsc --noEmit` -> 0 erreur, `npx jest` -> 6/6 (suite existante inchangee, aucune regression), `npm run lint` -> 0 erreur. Verification navigateur non applicable (application Mobile Expo, hors perimetre du Browser pane).
 
 _Vingt et un objectifs traites sur vingt et un. Fin de la sequence de goals de cette session._
+
+---
+
+## Ignorer les archives .zip
+
+Des archives de déploiement (`Backend/Backend.zip`, `Frontend/Frontend.zip`) apparaissaient en fichiers non suivis. Ajout de `*.zip` au `.gitignore` racine, qui s'applique aux trois applications. Aucune archive n'était déjà suivie par git, rien à retirer de l'index.
+
+---
+
+## Phase 0 — Stabilité de la connexion
+
+### 0.1 Quota de connexion partagé par toute l'agence
+
+Constat en production (`api.nbnexpress.org`, en-têtes `Server: openresty` + `X-Powered-By: Phusion Passenger`) : l'API est derrière un reverse proxy, mais `trust proxy` n'était jamais réglé. `req.ip` valait donc l'adresse du proxy pour tout le monde, et `express-rate-limit` comptait toutes les tentatives de connexion de l'agence dans **un seul** compteur (10 / 15 min), de même pour les formulaires publics (20 / heure). Symptômes : « Erreur de connexion » répétée (surtout visible sur iPhone, 80 % du parc) et « Erreur lors de l'enregistrement du bien ».
+
+- `config/trustProxy.js` : `resolveTrustProxy(TRUST_PROXY, NODE_ENV)` — 1 saut par défaut en production, aucun en développement (où `X-Forwarded-For` serait forgeable).
+- `app.js` : `app.set("trust proxy", ...)` avant le rate limiter.
+- `auth.controller.js::login` : email normalisé (`trim` + minuscules) — les claviers iOS ajoutent majuscule initiale et espace après suggestion ; corps vide → 401 au lieu d'une exception.
+- Tests : `tests/trustProxy.test.js` (deux appareils derrière le même proxy gardent des IP distinctes), deux cas ajoutés dans `tests/auth.test.js`.
+
+### 0.2 Page de connexion : vraie raison de l'échec, champs adaptés à iOS
+
+- `actions/auth.ts` lisait `response.data.error`, alors que le Backend répond toujours dans `message` : chaque échec (mot de passe, compte désactivé, quota, mot de passe par défaut) s'affichait comme le même message générique, rendant le diagnostic impossible depuis un téléphone. Lecture de `message`, et message distinct « Serveur injoignable » quand aucune réponse n'arrive (API en veille, réseau coupé).
+- `app/auth/login/page.tsx` : `autoCapitalize="none"`, `autoCorrect="off"`, `spellCheck={false}`, `inputMode="email"` et `autoComplete` sur l'email et le mot de passe — en mode « afficher le mot de passe » le champ devient texte et iOS le corrigeait.
+- `app/dashboard/layout.tsx` : deux commentaires (tirets) modifiés localement par le porteur de projet, inclus à sa demande.
+- Test : `tests/actions/auth.test.ts`. Frontend 5/5, `tsc --noEmit` sans erreur.
+
+### 0.3 Session de 24 h et renouvellement silencieux
+
+Cause de « le jeton expire trop vite » : access token de 15 min, et l'intercepteur de renouvellement du dashboard web était entièrement commenté dans `lib/axios.ts` (vestige d'un ancien flux Bearer/localStorage). Passé 15 min, chaque appel répondait 401 — c'est aussi la « ligne d'erreur » de l'onglet Bailleurs.
+
+- `utils/session.utils.js` : défaut `ACCESS_TOKEN_EXPIRES_IN` = `24h` (décision du porteur de projet, CLAUDE.md §5 mis à jour). La révocation reste immédiate via `securityVersion`. Nouveau `accessTokenMaxAge` : le cookie `token` porte désormais un `Max-Age` égal à la durée du jeton (avant : cookie de session, effaçable par Safari iOS à la fermeture).
+- `.env.example`, et les fichiers locaux non versionnés `.env.production.local` / `.env.development.local` passés de `15m` à `24h` — **à reporter sur le serveur**.
+- `Frontend/lib/axios.ts` : intercepteur 401 → `POST /api/auth/refresh/` → rejeu unique. Renouvellement mutualisé entre requêtes simultanées (deux rotations concurrentes seraient vues comme une réutilisation frauduleuse et déconnecteraient l'utilisateur). Jamais de renouvellement sur login/refresh/logout.
+- Tests : `Frontend/tests/lib/axios.test.ts` (4 cas), cas `Max-Age` dans `Backend/tests/auth.test.js`. Frontend 9/9, Backend auth+session 11/11.
+
+### 0.4 Onglet Bailleurs qui plante
+
+Cause réelle de la « ligne d'erreur » (et du fait que l'onglet ne s'affichait que jeton expiré — liste vide, donc rien à rendre) : `bailleurs/page.tsx` testait `margeAgence !== undefined` puis appelait `margeAgence.toLocaleString()`. Tout bailleur créé par le formulaire de collecte a une marge `null` — la condition passait et la page entière plantait pour tout utilisateur ayant `bailleur:marge:read`.
+
+- `!= null` + `Number(...)` (MySQL renvoie les DECIMAL en chaîne) sur la liste, la fiche `bailleurs/[id]` et le même motif dans `sales/page.tsx` (`property.margin`).
+- Test : `tests/app/bailleurs-page.test.tsx` rend l'onglet avec un bailleur sans marge et un avec marge en chaîne. Frontend 10/10.
+- Vérification navigateur non faite : le dashboard exige une connexion, et la saisie d'un mot de passe par l'agent est exclue.
+
+### 0.5 Formulaires : distinguer « serveur injoignable » d'un refus, et démarrage lent
+
+- `Frontend/lib/apiError.ts` : `apiErrorMessage(error, fallback)` centralise le message affiché — `message` du Backend s'il existe, « Serveur injoignable » sans réponse, repli sinon. Utilisé par la connexion, la demande de location et la collecte de bien : « Erreur lors de l'enregistrement du bien » ne masque plus un quota dépassé (message JSON du rate limiter) ni une API en veille.
+- Démarrage lent : Passenger arrête l'application après 5 min sans requête ; la suivante relance Node + Sequelize + MySQL (5 s mesurées). Réglage d'hébergement, pas de code : section « Déploiement cPanel » ajoutée au `Backend/README.md` (`PassengerMinInstances 1`, `PassengerPoolIdleTime 0`, ou moniteur externe toutes les 5 min).
+- Tests : `tests/lib/apiError.test.ts`. Frontend 13/13, Backend 216/216 (38 fichiers).
+
+_Phase 0 terminée. À faire côté serveur : redéployer Backend et Frontend, `ACCESS_TOKEN_EXPIRES_IN="24h"` dans `.env.production.local`, réglage Passenger._
+
+---
+
+## Phase 1 — Formulaires
+
+### 1.1 Référentiel des quartiers et avenues de Bukavu
+
+Source : PDF « Quartiers par commune » fourni par l'agence (442 lignes commune/quartier/avenue, extraites puis dédoublonnées). 3 communes, 14 quartiers, leurs avenues.
+
+- Orthographes tranchées par le porteur de projet : **Kadurhu** (et non Kadhuru), **Evariste Baganda** (et non Évariste). Coquilles d'accent évidentes corrigées au passage : Cimetière, Athénée d'Ibanda, Kilomètre quatre, Place Lumumba.
+- `Frontend/lib/locations.data.json` et `Backend/shared/bukavuLocations.data.json` : fichiers identiques (pas de package partagé, CLAUDE.md §9).
+- `Backend/shared/bukavuLocations.js::resolveQuartier(commune, quartier)` : liste des quartiers **fermée** (un quartier inconnu est une erreur de saisie), insensible à la casse et aux accents. La liste des avenues reste ouverte (« Autre avenue » + texte libre).
+- `Frontend/components/forms/location-fields.tsx` : cascade commune → quartier → avenue(s) en pastilles, remise à zéro en aval à chaque changement ; `validateLocation` et `resolveAvenues` réutilisés par les deux formulaires.
+- Tests : `Backend/tests/bukavuLocations.test.js` (4), `Frontend/tests/components/location-fields.test.tsx` (4).
+
+### 1.2 Formulaire « Demande de location »
+
+- Migration `20260915000000-rental-request-required-fields.cjs` : `email`, `budgetMin`, `typeOccupants` (FAMILLE_NOMBREUSE / FAMILLE_PEU_NOMBREUSE / COUPLE / AUTRE) sur `rentalRequests` ; modalité `AVANCE_1_GARANTIE_3` (« 1 mois d'avance + 3 mois de garantie »). Réversible (vérifié undo → migrate).
+- `Backend/utils/contactValidation.js` (réutilisé par la collecte) :
+  - `checkEmail` : format + MX du domaine via DNS, borné par `EMAIL_MX_CHECK_TIMEOUT_MS` (3 s). Un DNS lent/en panne n'invalide jamais l'adresse ; seul un domaine inexistant ou sans MX est refusé (ex. `gmial.con`).
+  - `normalizePhone` : `0977 103 143` → `+243977103143`, numéros étrangers internationaux conservés.
+  - `normalizeCommissionnaireCode` : `ccm 42` → `CCM-042`, un code `CCL` est refusé (CCL = client).
+- `rentalRequest.controller.js` : validation serveur de tous les champs désormais obligatoires (coordonnées, canal, type/usage, milieu complet avec quartier appartenant à la commune, budget min ≤ max, modalité, urgence, occupants, éléments particuliers, orientation + code CCM), message 400 explicite par champ. Validation (DNS compris) **avant** d'ouvrir la transaction. E-mail reporté sur la `Person` s'il manquait (jamais écrasé) ; `budgetMin` reporté sur le `Client`.
+- `Frontend/app/demande-location/page.tsx` : e-mail, localisation en cascade (référentiel) si Bukavu / saisie libre sinon, budget min + max, occupants en pastilles (+ nombre si « Autre »), code CCM, validation par étape alignée sur le Backend. Clé de brouillon passée en `-v2` (format changé).
+- `dashboard/demandes` : affiche e-mail, budget min/max, type d'occupants.
+- Swagger de `POST /api/rental-requests` mis à jour (champs requis, normalisations).
+- Tests : `Backend/tests/contactValidation.test.js` (9), `rentalRequest.test.js` (+10 refus explicites, normalisations vérifiées), `Frontend/tests/lib/contactValidation.test.ts` (3). Backend 24/24 sur ces fichiers, Frontend 20/20, `tsc` OK.
+- Vérification navigateur (`/demande-location`, page publique) : refus du téléphone incomplet à l'étape 1, cascade Bukavu → Ibanda (quartiers d'Ibanda uniquement) → Panzi (avenues + « Autre avenue »). Brouillon de test effacé.
+
+### 1.3 Formulaire « Collecte de bien »
+
+- **Qui remplit** (première étape) : « Le responsable du bien » ou « Un collecteur ». Si collecteur : « Collecté par un commissionnaire ? » — Oui ajoute une dernière étape (nom, téléphone, **code CCM** requis) ; Non termine directement sur « Enregistrer le bien » après le responsable. Le wizard passe de 7 à 8 étapes selon la réponse (vérifié dans le navigateur).
+- **CCL → CCM** partout (CCM = Code CoMmissionnaire ; CCL reste l'identifiant client). Un code est normalisé (`ccm 42` → `CCM-042`) ; la recherche de la fiche commissionnaire accepte aussi la saisie d'origine, les codes existants n'ayant jamais été contraints.
+- « Le propriétaire » devient **« Le responsable »** : statut (Propriétaire / Mandataire / Gérant / Société-Établissement), nom, téléphone normalisé, e-mail (obligatoire quand le responsable remplit lui-même, vérifié par DNS sinon facultatif), numéro de pièce d'identité, disponibilité visite, commission. Fiche `Person` existante complétée sans jamais écraser.
+- Localisation obligatoire via le référentiel (quartier contrôlé contre la commune, avenue requise) ; composition obligatoire avec « Aucun » (0 ≠ non répondu).
+- **Prix minimum acceptable** (facultatif, ≤ prix fixé) : colonne `properties.prixMinimum`, filtrée dans `property.serializer.js` par `property:prix_minimum:read` — admin uniquement (accès total par construction), permission au catalogue pour un éventuel AccessGrant. Affiché sur la fiche du bien avec la mention « Confidentiel ».
+- **Modalités de paiement** identiques à la demande de location (`shared/paymentTerms.js`, partagé par les deux contrôleurs), requises pour une location.
+- Migration `20260915100000-property-collection-responsable.cjs` (types GERANT/SOCIETE sur `bailleurs`, `prixMinimum`/`modalitePaiement`/`modalitePaiementAutre` sur `properties`), réversible (vérifié). Seeder `20260915100010-seed-prix-minimum-permission.cjs`.
+- Swagger de `POST /api/property-collections` réécrit.
+- Tests `propertyCollection.test.js` réécrits : 8 refus explicites, création complète, prix minimum masqué pour `operations` / visible pour `admin`, réutilisation du bailleur, membre d'équipe sans identité, responsable qui remplit lui-même. Backend complet 249/249 (40 fichiers), Frontend 20/20, `tsc` OK.
+- Constat sur « Erreur lors de l'enregistrement du bien » : la route fonctionne en local (201) et répond correctement en production à une requête vide (400 JSON). La cause la plus probable en production était le quota partagé (corrigé en 0.1) ou des migrations non appliquées sur le serveur — **`npm run db:migrate` à lancer au déploiement**.
+
+### 1.4 Pièce d'identité du responsable en annexe
+
+- Obligatoire quand le **responsable remplit lui-même** la collecte (« Annexer votre carte d'identité ») ; facultative quand un collecteur la relève (« s'il y a possibilité »).
+- Transport : la collecte reste un JSON ; avec un fichier, multipart `data` (le JSON sérialisé, types préservés) + `pieceIdentite` — `middlewares/collectionUpload.middleware.js` (multer en mémoire, JPEG/PNG/WebP/PDF, `MAX_ID_DOCUMENT_SIZE_MB` = 8, erreurs en 400 explicites).
+- Stockage : `utils/identityDocuments.js`, dossier **privé** `IDENTITY_DOCUMENTS_DIR` (`private/identity-documents`, ignoré par git), jamais sous `uploads/` (servi publiquement par `app.js`). Images réencodées en JPEG 2000 px max — plus légères et **débarrassées des EXIF, position GPS comprise** ; PDF contrôlé par signature `%PDF-`. Garde contre la sortie du dossier à la lecture.
+- Écriture du fichier avant la transaction, suppression si elle échoue. Route publique : un document existant **n'est jamais remplacé** (connaître le téléphone d'un bailleur ne suffit pas à substituer sa pièce) — le fichier écarté est supprimé.
+- Migration `20260915200000-person-identity-document.cjs` (`idDocumentPath`, `idDocumentMimeType`, `idDocumentUploadedAt` sur `persons`), réversible (vérifié).
+- Consultation : `GET /api/bailleurs/:id/piece-identite`, permission `bailleurs:identity:read` (seeder, catalogue seul — admin par construction), `Cache-Control: private, no-store`. `bailleur.serializer.js` remplace le chemin par `person.hasIdDocument`.
+- Frontend : champ fichier à l'étape du responsable (hors brouillon, redemandé si un brouillon est restauré), bouton « Voir la pièce d'identité » sur la fiche bailleur — onglet ouvert avant l'appel réseau, sinon Safari iOS bloque la fenêtre.
+- `.env.example` : `IDENTITY_DOCUMENTS_DIR`, `MAX_ID_DOCUMENT_SIZE_MB`, et `EMAIL_MX_CHECK_TIMEOUT_MS` (oublié en 1.2). README : section pièces d'identité, **dossier à inclure dans les sauvegardes**.
+- Tests : `tests/identityDocument.test.js` (6 : obligatoire, format refusé, stockage privé + 404 en accès direct, chemin jamais exposé, 403 sans permission / 200 admin, non-remplacement sans orphelin) ; `propertyCollection.test.js` adapté. Backend 255/255 (41 fichiers), aucun fichier résiduel ; Frontend 20/20, `tsc` OK.
+
+_Phase 1 terminée. Au déploiement : `npm run db:migrate` puis `npm run db:seed`, créer le dossier privé inscriptible et l'ajouter aux sauvegardes._
+
+---
+
+## Phase 2 — Notifications et e-mails
+
+### 2.1 Configuration SMTP / IMAP et e-mails mis en file
+
+- `config/nodemailer.js` : transport applicatif configurable — `SMTP_HOST/PORT/SECURE/USER/PASSWORD` + `MAIL_FROM` en production ; `SMTP_HOST` vide = compte Gmail `EMAIL`/`EMAIL_PASSWORD` (développement, choix du porteur de projet). `createSmtpTransport` et `sendWithTimeout` réutilisables ; expéditeur par défaut ajouté à chaque envoi. Les `from: EMAIL` codés en dur dans `auth.controller.js` et `user.controller.js` sont retirés (un SMTP cPanel refuse un expéditeur Gmail).
+- `config/mailboxes.js` : boîtes professionnelles déclarées par variables (`MAILBOXES=contact,direction`, `MAILBOX_<CLÉ>_ADDRESS/USER/PASSWORD/IMAP_*/SMTP_*/ROLES/USERS`), lues à chaque appel. Audiences par défaut demandées par l'agence : contact → admin, communication, marketing ; direction → direction uniquement (pas l'admin). Une future boîte n'exige aucun code : ROLES/USERS + le compte dont l'e-mail est l'adresse de la boîte. `MAILBOX_<CLÉ>_USE_DEFAULT_ACCOUNT=true` relève le compte Gmail de développement.
+- `services/email.service.js` : `queueEmail` (événement outbox `email:send`, jamais d'envoi pendant la requête), `sendFromMailbox` (expéditeur = la boîte, transport injectable en test), `deliverQueuedEmail` (boîte si configurée, sinon transport applicatif). `outbox.worker.js` traite `email:send` avec les mêmes 5 tentatives que le push.
+- Variables ajoutées à `.env.example` ; `.env.development.local` (Gmail, `MAILBOXES=contact` sur le compte de test) et `.env.production.local` (placeholders contact@ / direction@ **à compléter par le porteur de projet**) — fichiers locaux non versionnés.
+- Dépendances : `imapflow`, `mailparser` (relève IMAP, 2.3).
+- Tests : `tests/mailboxes.test.js` (5), `tests/emailOutbox.test.js` (4). Auth/users/notifications inchangés : 29/29 sur ces fichiers.
+
+### 2.2 Formulaires : avis de réception et équipe prévenue (site + e-mail)
+
+- `utils/formEmail.templates.js` : gabarits à la charte (navy + orange bouton accessible), toute saisie visiteur échappée (`escapeHtml`). **Avis de réception** au client avec le texte de l'agence et ses variables : civilité (Monsieur/Madame selon le sexe renseigné, sinon « Madame, Monsieur »), nom complet, **N° de commande** = numéro de dossier client (`CLI-…`, celui affiché sur la page de confirmation), **date de la demande** à l'heure de Bukavu (`Africa/Lubumbashi`). Le nom complet est utilisé plutôt qu'un « prénom » deviné : l'ordre nom/prénom n'est pas fiable.
+- `services/formNotifications.service.js` :
+  - demande de location → avis de réception (depuis contact@ si configurée) + Notification et e-mail à chaque utilisateur actif des rôles `NOTIFY_RENTAL_REQUEST_ROLES` (défaut admin, communication, marketing, operations), lien vers la fiche client ;
+  - collecte → Notification et e-mail aux rôles `NOTIFY_PROPERTY_COLLECTION_ROLES` (défaut admin, operations), lien vers la fiche location ou vente ; confirmation au responsable s'il a enregistré son bien lui-même.
+  - Appelé après commit, tous les e-mails passent par l'outbox ; une erreur de notification est journalisée sans jamais faire échouer la soumission.
+- Seeder `20260915300000-seed-direction-role.cjs` : rôle **direction** (destinataire exclusif de direction@). Frontend : libellé + rôle assignable.
+- `dashboard/notifications` : liens vers la fiche client et la bonne fiche bien (catégorie portée par le type `property_collection:new:rent|sale`).
+- Tests : `tests/formNotifications.test.js` (texte et variables de l'avis, échappement, destinataires par rôle — trésorerie non prévenue, lien de collecte vers la fiche vente). 40/40 sur les fichiers formulaires, `tsc` OK.
+
+### 2.3 Boîtes contact@ / direction@ : relève IMAP, notifications, réponse depuis le site
+
+- Migration `20260915400000-create-inbound-emails.cjs` : `mailboxStates` (curseur UID + UIDVALIDITY, dernière erreur technique), `inboundEmails` (copie du message, unique par boîte + Message-ID), `inboundEmailReplies` (réponses envoyées, y compris les échecs). Réversible (vérifié).
+- `services/inboundMail.service.js` :
+  - relève **en lecture seule** (`getMailboxLock("INBOX", { readOnly: true })`) : les messages restent non lus dans le webmail de l'équipe ;
+  - première relève = point de départ, sans importer l'historique ; boîte renumérotée (UIDVALIDITY) = nouveau point de départ ;
+  - aucune commande IMAP pendant l'itération du fetch (contrainte imapflow), 50 messages max par relève, corps texte (HTML réduit en texte) tronqué à 20 000 caractères, message de la boîte à elle-même ignoré ;
+  - chaque nouveau message → Notification `inbound_email:new` pour l'**audience de la boîte** (rôles, comptes listés, compte portant l'adresse de la boîte) ;
+  - cron `INBOUND_MAIL_POLL_CRON` (2 min), sans chevauchement de relèves, démarré dans `server.js`, inerte sans boîte configurée ; erreur par boîte journalisée sans identifiants.
+- API `/api/inbound-emails` (Swagger) : boîtes accessibles, liste (sans corps), détail avec réponses et `canReply`, `POST /:id/reply` depuis la boîte d'origine (Re:, citation, In-Reply-To/References). Accès = règle contextuelle d'audience vérifiée à chaque appel ; **hors audience → 404** (l'admin ne voit pas direction@). Boîte sans SMTP → 409, échec d'envoi → 502 et trace `FAILED`.
+- Frontend : page `dashboard/messages` (liste filtrable par boîte, lecture, historique des réponses, réponse pré-remplie avec signature, bouton « Ouvrir ma messagerie » en secours), entrée de menu « Messages reçus », lien depuis les notifications.
+- CLAUDE.md §7 : décision « boîtes professionnelles » et règle d'audience documentées. README : relève.
+- Tests : `tests/inboundMail.test.js` (faux serveur IMAP, vrai `mailparser`) — point de départ, audiences contact/direction, non-réimport, 404 admin sur direction@, réponse depuis contact@ dans le fil, refus réponse vide / boîte sans SMTP. Backend complet 276/276 (45 fichiers), Frontend 20/20, build OK.
+- **Vérification réelle** : relève du compte Gmail de développement (`MAILBOX_CONTACT_USE_DEFAULT_ACCOUNT=true`) → connexion IMAP réussie, point de départ fixé.
+
+_Phase 2 terminée. Au déploiement : `npm run db:migrate`, `npm run db:seed`, compléter SMTP_* et MAILBOX_CONTACT_* / MAILBOX_DIRECTION_* dans `.env.production.local`, créer le compte au rôle « direction »._
+
+---
+
+## Phase 3 — Demandes reçues et fiche client
+
+### 3.1 « Assigner une tâche » depuis une demande, fiche PDF envoyée par e-mail
+
+- `services/task.service.js` : création de tâche extraite du contrôleur (`createTaskWithRelations` + `syncTaskRelations`, `notifyUsers`, `syncTaskDeadlineReminders`, `getCurrentAssigneeUserIds`) pour que le module Tâches et « Demandes reçues » partagent une seule implémentation (assignés, liens, rappels d'échéance, journal, notification des assignés hors créateur). `task.controller.js` l'utilise ; `task.test.js` inchangé et vert.
+- `utils/reports/rentalRequestPdf.js` (pdf-lib) : fiche complète multi-pages (bandeau navy, sections, retour à la ligne, libellés lisibles), mention « document interne confidentiel ». Caractères hors WinAnsi (emoji…) retirés : un emoji saisi par un client ne fait jamais échouer la génération.
+- `GET /api/rental-requests/:id/pdf` (clients:read, `no-store`).
+- `POST /api/rental-requests/:id/assign` (clients:read + tasks:manage) : utilisateurs, commissionnaires et adresses saisies à la main (10 max, format + domaine vérifiés) → tâche liée au client et aux commissionnaires, priorité déduite de l'urgence (immédiat → urgente, 1-2 semaines → haute), échéance et consigne ; un commissionnaire ayant un compte devient assigné. Fiche PDF jointe par e-mail (outbox) à chaque destinataire unique ; seuls les comptes reçoivent le lien vers la tâche ; commissionnaires sans e-mail signalés dans la réponse. Événement sur la timeline du client.
+- Migration `20260916000000-outbox-payload-mediumtext.cjs` : `outboxEvents.payload` en MEDIUMTEXT (une pièce jointe base64 dépasse le plafond de 64 Ko de TEXT). `queueEmail` accepte `attachments`.
+- Frontend : boutons « Assigner une tâche » et « Fiche PDF » au bas de la fiche d'une demande ; dialogue `rental-request-assign-dialog.tsx` (recherche, utilisateurs, commissionnaires si le rôle y a accès, adresses libres en pastilles, échéance, consigne, compte-rendu des envois).
+- Tests : `tests/rentalRequestAssign.test.js` (PDF avec emoji, refus sans destinataire / e-mail invalide / 403, tâche urgente liée au client, notification, PDF joint et dédoublonné, lien réservé aux comptes). Backend 281/281, Frontend 20/20, `tsc` OK.

@@ -1,12 +1,9 @@
 import api from "@/lib/axios";
-import axios from "axios";
+import { apiErrorMessage } from "@/lib/apiError";
 import { RentalRequest, RentalRequestPayload } from "@/lib/types";
 
 const handleError = (error: unknown, fallback: string): never => {
-  if (axios.isAxiosError(error)) {
-    throw new Error(error.response?.data?.message || fallback);
-  }
-  throw new Error("Erreur inconnue");
+  throw new Error(apiErrorMessage(error, fallback));
 };
 
 // Route publique (aucune authentification) — appelée depuis la page
@@ -42,5 +39,43 @@ export const getSingleRentalRequest = async (id: number): Promise<RentalRequest>
     return res.data.data;
   } catch (error) {
     return handleError(error, "Erreur lors de la récupération de la demande");
+  }
+};
+
+// Ouvre la fiche PDF dans un nouvel onglet. L'onglet est créé AVANT l'appel
+// réseau : Safari iOS bloque un window.open déclenché après un `await`.
+export const openRentalRequestPdf = async (id: number): Promise<void> => {
+  const tab = window.open("", "_blank");
+  try {
+    const res = await api.get<Blob>(`/api/rental-requests/${id}/pdf`, { responseType: "blob" });
+    const url = URL.createObjectURL(res.data);
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (error) {
+    tab?.close();
+    return handleError(error, "Impossible d'ouvrir la fiche PDF");
+  }
+};
+
+export interface AssignRentalRequestPayload {
+  assigneeUserIds: number[];
+  idCommissionnaires: number[];
+  extraEmails: string[];
+  dateEcheance?: string;
+  note?: string;
+}
+
+export const assignRentalRequest = async (
+  id: number,
+  payload: AssignRentalRequestPayload
+): Promise<{ idTask: number; emailsQueued: number; withoutEmail: string[] }> => {
+  try {
+    const res = await api.post<{
+      data: { idTask: number; emailsQueued: number; withoutEmail: string[] };
+    }>(`/api/rental-requests/${id}/assign`, payload);
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "L'assignation de la tâche a échoué");
   }
 };

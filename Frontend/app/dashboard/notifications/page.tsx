@@ -15,12 +15,17 @@ import { cn } from "@/lib/utils"
 // GOAL 20 — historique complet des notifications (au-delà de la cloche,
 // plafonnée à un aperçu déroulant) : même source `GET /api/notifications/me`,
 // affichage plein écran groupé par jour, avec marquage individuel ou groupé.
-const RELATED_ENTITY_HREF: Record<string, (id: number) => string> = {
+const RELATED_ENTITY_HREF: Record<string, (id: number, notification: Notification) => string> = {
   Task: (id) => `/dashboard/tasks/${id}`,
   Mission: (id) => `/dashboard/missions/${id}`,
   Alert: () => `/dashboard/alertes`,
   CalendarEvent: () => `/dashboard/calendrier`,
   Requisition: () => `/dashboard/requisitions`,
+  Client: (id) => `/dashboard/clients/${id}`,
+  InboundEmail: (id) => `/dashboard/messages?id=${id}`,
+  // Le type porte la catégorie du bien (…:rent / …:sale).
+  Property: (id, notification) =>
+    notification.type.endsWith(":sale") ? `/dashboard/sales/${id}` : `/dashboard/rentals/${id}`,
 }
 
 const groupByDay = (notifications: Notification[]) => {
@@ -126,7 +131,7 @@ export default function NotificationsPage() {
                 {dayNotifications.map((notification) => {
                   const href =
                     notification.relatedEntityType && notification.relatedEntityId
-                      ? RELATED_ENTITY_HREF[notification.relatedEntityType]?.(notification.relatedEntityId)
+                      ? RELATED_ENTITY_HREF[notification.relatedEntityType]?.(notification.relatedEntityId, notification)
                       : undefined
 
                   const content = (

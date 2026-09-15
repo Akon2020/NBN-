@@ -4,6 +4,10 @@ import {
   getAllRentalRequests,
   getSingleRentalRequest,
 } from "../controllers/rentalRequest.controller.js";
+import {
+  assignRentalRequest,
+  getRentalRequestPdf,
+} from "../controllers/rentalRequestAssignment.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
 import { publicFormLimiter } from "../middlewares/rateLimit.middleware.js";
@@ -22,19 +26,69 @@ const rentalRequestRouter = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [fullName, phone, conditionsAccepted]
+ *             required: [fullName, phone, email, canalContact, typesBien, usageBien, ville, quartier, avenues, budgetMin, loyerMax, modalitePaiement, urgence, typeOccupants, elementsParticuliers, orienteParAgent, conditionsAccepted]
  *             properties:
  *               fullName:
  *                 type: string
  *               phone:
  *                 type: string
+ *                 description: Normalisé au format international (0977… → +243977…). Refusé s'il est inexploitable.
+ *               email:
+ *                 type: string
+ *                 description: Format vérifié, puis domaine vérifié par DNS (MX). Un DNS indisponible n'invalide pas l'adresse.
+ *               canalContact:
+ *                 type: string
+ *                 enum: [TERRAIN, APPEL, WHATSAPP, RESEAU, AUTRE]
+ *               typesBien:
+ *                 type: array
+ *                 items: { type: string }
+ *               usageBien:
+ *                 type: string
+ *                 enum: [HABITATION, BUREAU, COMMERCIAL, MIXTE]
+ *               ville:
+ *                 type: string
+ *                 enum: [BUKAVU, AUTRE]
+ *               commune:
+ *                 type: string
+ *                 enum: [IBANDA, KADUTU, BAGIRA]
+ *                 description: Requise si ville = BUKAVU.
+ *               quartier:
+ *                 type: string
+ *                 description: Si ville = BUKAVU, doit appartenir à la commune (référentiel de l'agence).
+ *               avenues:
+ *                 type: string
+ *               budgetMin:
+ *                 type: number
+ *               loyerMax:
+ *                 type: number
+ *                 description: Budget maximum, supérieur ou égal à budgetMin.
+ *               modalitePaiement:
+ *                 type: string
+ *                 enum: [AVANCE_1_GARANTIE_3, MENSUEL, AVANCE_2_GARANTIE_3, AVANCE_3_GARANTIE_2, AVANCE_3_GARANTIE_3, GARANTIE_6, AUTRE]
+ *               urgence:
+ *                 type: string
+ *                 enum: [IMMEDIAT, 1_2_SEMAINES, 1_MOIS, FLEXIBLE, AUTRE]
+ *               typeOccupants:
+ *                 type: string
+ *                 enum: [FAMILLE_NOMBREUSE, FAMILLE_PEU_NOMBREUSE, COUPLE, AUTRE]
+ *               nombreOccupants:
+ *                 type: integer
+ *                 description: Requis si typeOccupants = AUTRE.
+ *               elementsParticuliers:
+ *                 type: array
+ *                 items: { type: string }
+ *               orienteParAgent:
+ *                 type: boolean
+ *               codeCommissionnaire:
+ *                 type: string
+ *                 description: Requis si orienteParAgent. Format CCM-042 (variantes « ccm 42 » normalisées).
  *               conditionsAccepted:
  *                 type: boolean
  *     responses:
  *       201:
  *         description: Demande enregistrée
  *       400:
- *         description: Champs requis manquants ou conditions non acceptées
+ *         description: Champ obligatoire manquant ou invalide (le message indique lequel), ou conditions non acceptées
  *       429:
  *         description: Trop de soumissions depuis cet appareil
  */
@@ -69,6 +123,68 @@ rentalRequestRouter.get(
   authMiddlware,
   requirePermission("clients:read"),
   getSingleRentalRequest
+);
+
+/**
+ * @swagger
+ * /api/rental-requests/{id}/pdf:
+ *   get:
+ *     summary: Fiche PDF de la demande (générée à la demande, jamais stockée)
+ *     tags: [RentalRequests]
+ *     responses:
+ *       200:
+ *         description: application/pdf
+ *       404:
+ *         description: Demande non trouvée
+ */
+rentalRequestRouter.get(
+  "/:id/pdf",
+  authMiddlware,
+  requirePermission("clients:read"),
+  getRentalRequestPdf
+);
+
+/**
+ * @swagger
+ * /api/rental-requests/{id}/assign:
+ *   post:
+ *     summary: Assigne le traitement de la demande — crée une tâche et envoie la fiche PDF par e-mail
+ *     description: >
+ *       Tâche liée au client et aux commissionnaires choisis (priorité déduite
+ *       de l'urgence). La fiche PDF part par e-mail (outbox) à chaque
+ *       utilisateur, commissionnaire et adresse saisie à la main, sans doublon.
+ *       Un commissionnaire qui a un compte devient aussi assigné.
+ *       Requiert clients:read et tasks:manage.
+ *     tags: [RentalRequests]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               assigneeUserIds: { type: array, items: { type: integer } }
+ *               idCommissionnaires: { type: array, items: { type: integer } }
+ *               extraEmails:
+ *                 type: array
+ *                 items: { type: string }
+ *                 description: Personnes sans compte (10 max, format et domaine vérifiés)
+ *               dateEcheance: { type: string, format: date }
+ *               note: { type: string, maxLength: 2000 }
+ *     responses:
+ *       201:
+ *         description: "{ idTask, emailsQueued, withoutEmail } — withoutEmail liste les commissionnaires sans e-mail"
+ *       400:
+ *         description: Aucun destinataire, e-mail invalide, utilisateur ou commissionnaire introuvable
+ *       403:
+ *         description: Permission manquante
+ */
+rentalRequestRouter.post(
+  "/:id/assign",
+  authMiddlware,
+  requirePermission("clients:read"),
+  requirePermission("tasks:manage"),
+  assignRentalRequest
 );
 
 export default rentalRequestRouter;
