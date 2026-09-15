@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import {
   DEFAULT_PASSWD,
-  EMAIL,
   FRONT_URL,
   HOST_URL,
   JWT_SECRET,
@@ -124,7 +123,6 @@ export const register = async (req, res, next) => {
     let mailEnvoye = true;
     try {
       await sendMail({
-        from: `"Nyumbani Express" <${EMAIL}>`,
         to: email,
         subject: "Bienvenue dans Nyumbani Express",
         html: welcomeEmailTemplate(fullName, email, FRONT_URL),
@@ -289,7 +287,6 @@ export const resetPassword = async (req, res, next) => {
     }
     const resetToken = generateToken(user);
     const mailOptions = {
-      from: `"Nyumbani Express" <${EMAIL}>`,
       to: email,
       subject: "Réinitialisation du mot de passe",
       html: resetPasswordEmailTemplate(

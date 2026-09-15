@@ -132,6 +132,22 @@ Toute modification de schéma passe par une migration versionnée — jamais par
   `person.hasIdDocument`. Ce dossier n'est pas versionné : **l'inclure dans les
   sauvegardes du serveur**.
 
+## E-mails
+
+| Usage | Configuration |
+|---|---|
+| E-mails applicatifs (bienvenue, mot de passe, accusés de réception, notifications d'équipe) | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`. `SMTP_HOST` vide = compte Gmail `EMAIL` / `EMAIL_PASSWORD` (développement). |
+| Boîtes professionnelles relevées et utilisées pour répondre (contact@, direction@…) | `MAILBOXES` + `MAILBOX_<CLÉ>_*`, voir [`config/mailboxes.js`](config/mailboxes.js) et [`.env.example`](.env.example). |
+
+Les e-mails déclenchés par un formulaire ne sont **jamais envoyés pendant la
+requête** : ils passent par l'outbox (`email:send`), et le worker les retente
+jusqu'à 5 fois. Un SMTP en panne ne fait donc ni échouer une soumission, ni
+perdre un accusé de réception.
+
+En développement avec Gmail : activer la validation en 2 étapes du compte, créer
+un **mot de passe d'application** (`EMAIL_PASSWORD`), et autoriser l'accès IMAP
+si la boîte `contact` relève ce compte (`MAILBOX_CONTACT_USE_DEFAULT_ACCOUNT=true`).
+
 ## Déploiement cPanel — démarrage lent
 
 Sur cPanel, Phusion Passenger **arrête l'application après une période sans

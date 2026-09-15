@@ -1086,3 +1086,16 @@ Source : PDF « Quartiers par commune » fourni par l'agence (442 lignes commune
 - Tests : `tests/identityDocument.test.js` (6 : obligatoire, format refusé, stockage privé + 404 en accès direct, chemin jamais exposé, 403 sans permission / 200 admin, non-remplacement sans orphelin) ; `propertyCollection.test.js` adapté. Backend 255/255 (41 fichiers), aucun fichier résiduel ; Frontend 20/20, `tsc` OK.
 
 _Phase 1 terminée. Au déploiement : `npm run db:migrate` puis `npm run db:seed`, créer le dossier privé inscriptible et l'ajouter aux sauvegardes._
+
+---
+
+## Phase 2 — Notifications et e-mails
+
+### 2.1 Configuration SMTP / IMAP et e-mails mis en file
+
+- `config/nodemailer.js` : transport applicatif configurable — `SMTP_HOST/PORT/SECURE/USER/PASSWORD` + `MAIL_FROM` en production ; `SMTP_HOST` vide = compte Gmail `EMAIL`/`EMAIL_PASSWORD` (développement, choix du porteur de projet). `createSmtpTransport` et `sendWithTimeout` réutilisables ; expéditeur par défaut ajouté à chaque envoi. Les `from: EMAIL` codés en dur dans `auth.controller.js` et `user.controller.js` sont retirés (un SMTP cPanel refuse un expéditeur Gmail).
+- `config/mailboxes.js` : boîtes professionnelles déclarées par variables (`MAILBOXES=contact,direction`, `MAILBOX_<CLÉ>_ADDRESS/USER/PASSWORD/IMAP_*/SMTP_*/ROLES/USERS`), lues à chaque appel. Audiences par défaut demandées par l'agence : contact → admin, communication, marketing ; direction → direction uniquement (pas l'admin). Une future boîte n'exige aucun code : ROLES/USERS + le compte dont l'e-mail est l'adresse de la boîte. `MAILBOX_<CLÉ>_USE_DEFAULT_ACCOUNT=true` relève le compte Gmail de développement.
+- `services/email.service.js` : `queueEmail` (événement outbox `email:send`, jamais d'envoi pendant la requête), `sendFromMailbox` (expéditeur = la boîte, transport injectable en test), `deliverQueuedEmail` (boîte si configurée, sinon transport applicatif). `outbox.worker.js` traite `email:send` avec les mêmes 5 tentatives que le push.
+- Variables ajoutées à `.env.example` ; `.env.development.local` (Gmail, `MAILBOXES=contact` sur le compte de test) et `.env.production.local` (placeholders contact@ / direction@ **à compléter par le porteur de projet**) — fichiers locaux non versionnés.
+- Dépendances : `imapflow`, `mailparser` (relève IMAP, 2.3).
+- Tests : `tests/mailboxes.test.js` (5), `tests/emailOutbox.test.js` (4). Auth/users/notifications inchangés : 29/29 sur ces fichiers.

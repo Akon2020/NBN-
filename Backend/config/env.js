@@ -17,6 +17,14 @@ export const {
   REFRESH_TOKEN_EXPIRES_MOBILE_DAYS,
   EMAIL,
   EMAIL_PASSWORD,
+  // SMTP des e-mails applicatifs en production. SMTP_HOST vide = compte
+  // Gmail EMAIL / EMAIL_PASSWORD (développement). Voir config/nodemailer.js.
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_SECURE,
+  SMTP_USER,
+  SMTP_PASSWORD,
+  MAIL_FROM,
   HOST_URL,
   FRONT_URL,
   DEFAULT_PASSWD,
@@ -43,4 +51,8 @@ export const {
   // servi statiquement) et taille maximale acceptée.
   IDENTITY_DOCUMENTS_DIR,
   MAX_ID_DOCUMENT_SIZE_MB,
+  // Rôles prévenus (site + e-mail) à la soumission d'un formulaire public,
+  // séparés par des virgules. Défauts dans services/formNotifications.service.js.
+  NOTIFY_RENTAL_REQUEST_ROLES,
+  NOTIFY_PROPERTY_COLLECTION_ROLES,
 } = process.env;

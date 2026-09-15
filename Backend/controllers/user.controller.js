@@ -1,7 +1,7 @@
 import { User, Session } from "../models/index.model.js";
 import { Op } from "sequelize";
 import bcrypt from "bcryptjs";
-import { DEFAULT_PASSWD, EMAIL, FRONT_URL } from "../config/env.js";
+import { DEFAULT_PASSWD, FRONT_URL } from "../config/env.js";
 import {
   getUserWithoutPassword,
   strongPasswd,
@@ -119,7 +119,6 @@ export const createUser = async (req, res, next) => {
     let mailEnvoye = true;
     try {
       const mailOptions = {
-        from: `"Nyumbani Express" <${EMAIL}>`,
         to: email,
         subject: "Bienvenue dans Nyumbani Express",
         html: newUserEmailTemplate(fullName, email, DEFAULT_PASSWD, FRONT_URL),

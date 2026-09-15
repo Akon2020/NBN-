@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { Op } from "sequelize";
 import { OutboxEvent } from "../models/index.model.js";
 import { deliverNotificationPush } from "./notification.service.js";
+import { deliverQueuedEmail } from "./email.service.js";
 
 // CLAUDE.md §7 — outbox pattern : ce worker retente les tentatives de
 // push en attente/échouées, garantissant qu'un push raté n'est jamais
@@ -44,6 +45,16 @@ export const processOutboxEvents = async () => {
             lastError: result.error || "Échec inconnu",
           });
         }
+      } else if (event.eventType === "email:send") {
+        // Une exception (SMTP injoignable, délai dépassé) est rattrapée plus
+        // bas : l'événement passe FAILED et sera retenté.
+        await deliverQueuedEmail(JSON.parse(event.payload));
+        await event.update({
+          statut: "SENT",
+          attempts: event.attempts + 1,
+          processedAt: new Date(),
+          lastError: null,
+        });
       } else {
         await event.update({
           statut: "FAILED",
