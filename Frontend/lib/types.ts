@@ -1219,7 +1219,10 @@ export const DEVISE_CHOICES = [
   { value: "CDF", label: "CDF (FC)" },
 ]
 
+// Commun à la demande de location et à la collecte de bien : les deux
+// parties doivent parler des mêmes modalités pour pouvoir être rapprochées.
 export const MODALITE_PAIEMENT_CHOICES = [
+  { value: "AVANCE_1_GARANTIE_3", label: "1 mois d'avance + 3 mois de garantie" },
   { value: "MENSUEL", label: "Mensuel" },
   { value: "AVANCE_2_GARANTIE_3", label: "2 mois d'avance + 3 mois de garantie" },
   { value: "AVANCE_3_GARANTIE_2", label: "3 mois d'avance + 2 mois de garantie" },
@@ -1278,6 +1281,13 @@ export const URGENCE_CHOICES = [
   { value: "AUTRE", label: "Autre" },
 ]
 
+export const TYPE_OCCUPANTS_CHOICES = [
+  { value: "FAMILLE_NOMBREUSE", label: "Famille nombreuse" },
+  { value: "FAMILLE_PEU_NOMBREUSE", label: "Famille moins nombreuse" },
+  { value: "COUPLE", label: "Couple" },
+  { value: "AUTRE", label: "Autre" },
+]
+
 export const ELEMENT_PARTICULIER_CHOICES = [
   { value: "ANIMAUX", label: "Animaux" },
   { value: "ENFANTS", label: "Beaucoup d'enfants" },
@@ -1285,29 +1295,31 @@ export const ELEMENT_PARTICULIER_CHOICES = [
   { value: "AUCUNE", label: "Aucune" },
 ]
 
-// Corps envoyé à POST /api/rental-requests — tous les champs sont
-// optionnels sauf ceux réellement exigés côté Backend.
+// Corps envoyé à POST /api/rental-requests — les champs non optionnels
+// sont exigés côté Backend (voir la documentation Swagger de la route).
 export interface RentalRequestPayload {
   fullName: string
   phone: string
+  email: string
   conditionsAccepted: boolean
   lieuProvenance?: string
   residenceActuelle?: string
   sexe?: string
   typeClient?: string
-  canalContact?: string
+  canalContact: string
   canalContactAutre?: string
-  typesBien?: string[]
+  typesBien: string[]
   typeBienAutre?: string
-  usageBien?: string
-  ville?: string
+  usageBien: string
+  ville: string
   villeAutre?: string
   commune?: string
-  quartier?: string
-  avenues?: string
-  loyerMax?: number
+  quartier: string
+  avenues: string
+  budgetMin: number
+  loyerMax: number
   devise?: string
-  modalitePaiement?: string
+  modalitePaiement: string
   modalitePaiementAutre?: string
   chargesIncluses?: string
   nombreChambres?: string
@@ -1317,12 +1329,13 @@ export interface RentalRequestPayload {
   equipements?: string[]
   avantages?: string[]
   avantageAutre?: string
-  urgence?: string
+  urgence: string
   urgenceAutre?: string
   dateEntree?: string
+  typeOccupants: string
   nombreOccupants?: number
-  elementsParticuliers?: string[]
-  orienteParAgent?: boolean
+  elementsParticuliers: string[]
+  orienteParAgent: boolean
   codeCommissionnaire?: string
   autresInfos?: string
 }

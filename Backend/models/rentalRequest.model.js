@@ -13,6 +13,9 @@ const RentalRequest = db.define(
 
     fullName: { type: DataTypes.STRING(150), allowNull: false },
     phone: { type: DataTypes.STRING(30), allowNull: false },
+    // Obligatoire dans le formulaire depuis la phase 1 (accusé de réception,
+    // bouton « Contacter »), nullable pour les demandes plus anciennes.
+    email: { type: DataTypes.STRING(150), allowNull: true },
     lieuProvenance: DataTypes.STRING(150),
     residenceActuelle: DataTypes.STRING(150),
     sexe: { type: DataTypes.ENUM("MASCULIN", "FEMININ"), allowNull: true },
@@ -39,10 +42,12 @@ const RentalRequest = db.define(
     quartier: DataTypes.STRING(150),
     avenues: DataTypes.TEXT,
 
+    budgetMin: DataTypes.DECIMAL(12, 2),
     loyerMax: DataTypes.DECIMAL(12, 2),
     devise: { type: DataTypes.ENUM("USD", "CDF"), allowNull: false, defaultValue: "USD" },
     modalitePaiement: {
       type: DataTypes.ENUM(
+        "AVANCE_1_GARANTIE_3",
         "MENSUEL",
         "AVANCE_2_GARANTIE_3",
         "AVANCE_3_GARANTIE_2",
@@ -70,6 +75,11 @@ const RentalRequest = db.define(
     urgenceAutre: DataTypes.STRING(150),
     dateEntree: DataTypes.DATEONLY,
 
+    typeOccupants: {
+      type: DataTypes.ENUM("FAMILLE_NOMBREUSE", "FAMILLE_PEU_NOMBREUSE", "COUPLE", "AUTRE"),
+      allowNull: true,
+    },
+    // Précisé par le client quand `typeOccupants` vaut AUTRE.
     nombreOccupants: DataTypes.INTEGER,
     elementsParticuliers: DataTypes.JSON,
     orienteParAgent: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

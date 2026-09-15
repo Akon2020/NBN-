@@ -25,18 +25,27 @@ let operationsEmail;
 const basePayload = {
   fullName: `Client Demande ${suffix}`,
   phone,
+  // Domaine réel : la route vérifie les enregistrements MX. Un DNS lent
+  // ou absent (CI hors ligne) n'invalide jamais l'adresse.
+  email: `client.demande.${suffix}@gmail.com`,
   typeClient: "PARTICULIER",
   canalContact: "WHATSAPP",
   typesBien: ["APPARTEMENT", "STUDIO"],
   usageBien: "HABITATION",
   ville: "BUKAVU",
   commune: "IBANDA",
-  quartier: "Nyalukemba",
+  // Saisie en minuscules : le quartier officiel doit être retenu.
+  quartier: "nyalukemba",
+  avenues: "Evariste Baganda, Mimoza",
+  budgetMin: 150,
   loyerMax: 300,
   devise: "USD",
-  modalitePaiement: "AVANCE_3_GARANTIE_2",
+  modalitePaiement: "AVANCE_1_GARANTIE_3",
   urgence: "1_MOIS",
-  nombreOccupants: 4,
+  typeOccupants: "COUPLE",
+  elementsParticuliers: ["AUCUNE"],
+  orienteParAgent: true,
+  codeCommissionnaire: "ccm 42",
   conditionsAccepted: true,
 };
 
@@ -87,6 +96,26 @@ describe("Formulaire public de demande de location", () => {
     expect(res.status).toBe(400);
   });
 
+  it.each([
+    ["un e-mail mal formé", { email: "client@gmail" }, /e-mail/],
+    ["un téléphone incomplet", { phone: "+24397710" }, /téléphone/],
+    ["sans « comment nous avez-vous connus »", { canalContact: undefined }, /connus/],
+    ["un quartier hors de la commune", { quartier: "Nyamugo" }, /quartier/],
+    ["sans avenue", { avenues: "" }, /avenue/],
+    ["un budget minimum supérieur au maximum", { budgetMin: 500 }, /minimum/],
+    ["sans modalité de paiement", { modalitePaiement: undefined }, /modalité/],
+    ["« Autre » occupants sans nombre", { typeOccupants: "AUTRE" }, /nombre d'occupants/],
+    ["sans réponse à l'orientation", { orienteParAgent: undefined }, /orienté/],
+    ["un code client CCL au lieu d'un CCM", { codeCommissionnaire: "CCL-042" }, /CCM-042/],
+  ])("refuse %s (400) avec un message explicite", async (_, override, message) => {
+    const res = await request(app)
+      .post("/api/rental-requests")
+      .send({ ...basePayload, ...override });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(message);
+  });
+
   it("crée sans authentification la demande, la Person, le Client sur le pipeline, et alerte l'équipe", async () => {
     const res = await request(app).post("/api/rental-requests").send(basePayload);
 
@@ -110,8 +139,18 @@ describe("Formulaire public de demande de location", () => {
     expect(client.person.phone).toBe(phone);
     // Correspondances vers le vocabulaire CRM.
     expect(client.besoinUsage).toBe("HABITATION");
-    expect(client.source).toBe("WHATSAPP");
+    // Orienté par un commissionnaire : la source commerciale le reflète.
+    expect(client.source).toBe("COMMISSIONNAIRE");
+    expect(client.sourceCommissionnaireCode).toBe("CCM-042");
+    expect(Number(client.budgetMin)).toBe(150);
     expect(Number(client.budgetMax)).toBe(300);
+    expect(client.person.email).toBe(basePayload.email);
+
+    // Valeurs normalisées sur la trace de la demande.
+    expect(stored.quartier).toBe("Nyalukemba");
+    expect(stored.codeCommissionnaire).toBe("CCM-042");
+    expect(stored.modalitePaiement).toBe("AVANCE_1_GARANTIE_3");
+    expect(stored.typeOccupants).toBe("COUPLE");
 
     const alert = await Alert.findOne({
       where: { type: "rental_request:new", relatedEntityId: client.idClient },

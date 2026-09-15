@@ -17,6 +17,7 @@ import {
   CLIENT_PIPELINE_LABELS,
   MODALITE_PAIEMENT_CHOICES,
   TYPE_BIEN_SOUHAITE_CHOICES,
+  TYPE_OCCUPANTS_CHOICES,
   URGENCE_CHOICES,
   USAGE_BIEN_CHOICES,
   type RentalRequest,
@@ -179,6 +180,7 @@ export default function DemandesPage() {
                 <section className="space-y-1.5">
                   <h4 className="text-sm font-semibold">Identification</h4>
                   <DetailLine label="Téléphone" value={selected.phone} />
+                  <DetailLine label="E-mail" value={selected.email} />
                   <DetailLine label="Lieu de provenance" value={selected.lieuProvenance} />
                   <DetailLine label="Résidence actuelle" value={selected.residenceActuelle} />
                   <DetailLine label="Sexe" value={selected.sexe} />
@@ -209,7 +211,11 @@ export default function DemandesPage() {
                 <section className="space-y-1.5">
                   <h4 className="text-sm font-semibold">Budget</h4>
                   <DetailLine
-                    label="Loyer maximum"
+                    label="Budget minimum"
+                    value={selected.budgetMin ? `${Number(selected.budgetMin).toLocaleString()} ${selected.devise}` : null}
+                  />
+                  <DetailLine
+                    label="Budget maximum"
                     value={selected.loyerMax ? `${Number(selected.loyerMax).toLocaleString()} ${selected.devise}` : null}
                   />
                   <DetailLine
@@ -250,7 +256,14 @@ export default function DemandesPage() {
 
                 <section className="space-y-1.5">
                   <h4 className="text-sm font-semibold">Compléments</h4>
-                  <DetailLine label="Occupants" value={selected.nombreOccupants} />
+                  <DetailLine
+                    label="Occupants"
+                    value={
+                      selected.typeOccupants === "AUTRE" || !selected.typeOccupants
+                        ? selected.nombreOccupants
+                        : labelOf(TYPE_OCCUPANTS_CHOICES, selected.typeOccupants)
+                    }
+                  />
                   <DetailLine label="Éléments à considérer" value={selected.elementsParticuliers?.join(", ")} />
                   <DetailLine
                     label="Orienté par un partenaire"

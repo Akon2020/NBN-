@@ -1045,3 +1045,17 @@ Source : PDF « Quartiers par commune » fourni par l'agence (442 lignes commune
 - `Backend/shared/bukavuLocations.js::resolveQuartier(commune, quartier)` : liste des quartiers **fermée** (un quartier inconnu est une erreur de saisie), insensible à la casse et aux accents. La liste des avenues reste ouverte (« Autre avenue » + texte libre).
 - `Frontend/components/forms/location-fields.tsx` : cascade commune → quartier → avenue(s) en pastilles, remise à zéro en aval à chaque changement ; `validateLocation` et `resolveAvenues` réutilisés par les deux formulaires.
 - Tests : `Backend/tests/bukavuLocations.test.js` (4), `Frontend/tests/components/location-fields.test.tsx` (4).
+
+### 1.2 Formulaire « Demande de location »
+
+- Migration `20260915000000-rental-request-required-fields.cjs` : `email`, `budgetMin`, `typeOccupants` (FAMILLE_NOMBREUSE / FAMILLE_PEU_NOMBREUSE / COUPLE / AUTRE) sur `rentalRequests` ; modalité `AVANCE_1_GARANTIE_3` (« 1 mois d'avance + 3 mois de garantie »). Réversible (vérifié undo → migrate).
+- `Backend/utils/contactValidation.js` (réutilisé par la collecte) :
+  - `checkEmail` : format + MX du domaine via DNS, borné par `EMAIL_MX_CHECK_TIMEOUT_MS` (3 s). Un DNS lent/en panne n'invalide jamais l'adresse ; seul un domaine inexistant ou sans MX est refusé (ex. `gmial.con`).
+  - `normalizePhone` : `0977 103 143` → `+243977103143`, numéros étrangers internationaux conservés.
+  - `normalizeCommissionnaireCode` : `ccm 42` → `CCM-042`, un code `CCL` est refusé (CCL = client).
+- `rentalRequest.controller.js` : validation serveur de tous les champs désormais obligatoires (coordonnées, canal, type/usage, milieu complet avec quartier appartenant à la commune, budget min ≤ max, modalité, urgence, occupants, éléments particuliers, orientation + code CCM), message 400 explicite par champ. Validation (DNS compris) **avant** d'ouvrir la transaction. E-mail reporté sur la `Person` s'il manquait (jamais écrasé) ; `budgetMin` reporté sur le `Client`.
+- `Frontend/app/demande-location/page.tsx` : e-mail, localisation en cascade (référentiel) si Bukavu / saisie libre sinon, budget min + max, occupants en pastilles (+ nombre si « Autre »), code CCM, validation par étape alignée sur le Backend. Clé de brouillon passée en `-v2` (format changé).
+- `dashboard/demandes` : affiche e-mail, budget min/max, type d'occupants.
+- Swagger de `POST /api/rental-requests` mis à jour (champs requis, normalisations).
+- Tests : `Backend/tests/contactValidation.test.js` (9), `rentalRequest.test.js` (+10 refus explicites, normalisations vérifiées), `Frontend/tests/lib/contactValidation.test.ts` (3). Backend 24/24 sur ces fichiers, Frontend 20/20, `tsc` OK.
+- Vérification navigateur (`/demande-location`, page publique) : refus du téléphone incomplet à l'étape 1, cascade Bukavu → Ibanda (quartiers d'Ibanda uniquement) → Panzi (avenues + « Autre avenue »). Brouillon de test effacé.

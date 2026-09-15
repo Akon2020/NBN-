@@ -36,4 +36,7 @@ export const {
   // Garde-fou global sur un envoi d'e-mail, résolution DNS comprise (les
   // délais SMTP ci-dessus ne la couvrent pas).
   MAIL_TIMEOUT_MS,
+  // Délai maximal de la vérification DNS (MX) d'une adresse e-mail saisie
+  // dans un formulaire public. Au-delà, l'adresse est acceptée.
+  EMAIL_MX_CHECK_TIMEOUT_MS,
 } = process.env;
