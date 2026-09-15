@@ -213,7 +213,7 @@ export default function BailleurDetailPage({
         </div>
 
         <div className="space-y-6">
-          {bailleur.margeAgence !== undefined && (
+          {bailleur.margeAgence != null && (
             <Card className="border-border">
               <CardHeader>
                 <CardTitle>Marge agence</CardTitle>
@@ -222,7 +222,7 @@ export default function BailleurDetailPage({
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-primary" />
                   <span className="text-2xl font-bold text-primary">
-                    ${bailleur.margeAgence.toLocaleString()}
+                    ${Number(bailleur.margeAgence).toLocaleString("fr-FR")}
                   </span>
                 </div>
               </CardContent>

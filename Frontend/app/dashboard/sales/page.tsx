@@ -177,9 +177,9 @@ export default function SalesPage() {
                     <div className="text-2xl font-bold text-secondary">
                       ${property.price.toLocaleString()}
                     </div>
-                    {property.margin !== undefined && (
+                    {property.margin != null && (
                       <div className="text-xs text-muted-foreground">
-                        Marge: ${property.margin.toLocaleString()}
+                        Marge: ${Number(property.margin).toLocaleString("fr-FR")}
                       </div>
                     )}
                   </div>

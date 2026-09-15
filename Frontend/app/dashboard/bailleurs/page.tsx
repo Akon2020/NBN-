@@ -128,9 +128,12 @@ export default function BailleursPage() {
                         {BAILLEUR_VALEUR_LABELS[bailleur.valeurBailleur]}
                       </Badge>
                     )}
-                    {bailleur.margeAgence !== undefined && (
+                    {/* `!= null` et non `!== undefined` : un bailleur créé par le
+                        formulaire de collecte n'a pas encore de marge (null),
+                        et `null.toLocaleString()` faisait planter toute la page. */}
+                    {bailleur.margeAgence != null && (
                       <div className="text-sm font-semibold text-primary mt-1">
-                        Marge : ${bailleur.margeAgence.toLocaleString()}
+                        Marge : ${Number(bailleur.margeAgence).toLocaleString("fr-FR")}
                       </div>
                     )}
                   </div>

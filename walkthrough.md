@@ -1015,3 +1015,11 @@ Cause de « le jeton expire trop vite » : access token de 15 min, et l'intercep
 - `.env.example`, et les fichiers locaux non versionnés `.env.production.local` / `.env.development.local` passés de `15m` à `24h` — **à reporter sur le serveur**.
 - `Frontend/lib/axios.ts` : intercepteur 401 → `POST /api/auth/refresh/` → rejeu unique. Renouvellement mutualisé entre requêtes simultanées (deux rotations concurrentes seraient vues comme une réutilisation frauduleuse et déconnecteraient l'utilisateur). Jamais de renouvellement sur login/refresh/logout.
 - Tests : `Frontend/tests/lib/axios.test.ts` (4 cas), cas `Max-Age` dans `Backend/tests/auth.test.js`. Frontend 9/9, Backend auth+session 11/11.
+
+### 0.4 Onglet Bailleurs qui plante
+
+Cause réelle de la « ligne d'erreur » (et du fait que l'onglet ne s'affichait que jeton expiré — liste vide, donc rien à rendre) : `bailleurs/page.tsx` testait `margeAgence !== undefined` puis appelait `margeAgence.toLocaleString()`. Tout bailleur créé par le formulaire de collecte a une marge `null` — la condition passait et la page entière plantait pour tout utilisateur ayant `bailleur:marge:read`.
+
+- `!= null` + `Number(...)` (MySQL renvoie les DECIMAL en chaîne) sur la liste, la fiche `bailleurs/[id]` et le même motif dans `sales/page.tsx` (`property.margin`).
+- Test : `tests/app/bailleurs-page.test.tsx` rend l'onglet avec un bailleur sans marge et un avec marge en chaîne. Frontend 10/10.
+- Vérification navigateur non faite : le dashboard exige une connexion, et la saisie d'un mot de passe par l'agent est exclue.
