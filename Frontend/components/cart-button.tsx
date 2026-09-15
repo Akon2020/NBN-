@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -9,18 +10,51 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet"
-import { ShoppingBag, Trash2, X } from "lucide-react"
+import { Loader2, Send, ShoppingBag, Trash2, UserRound, X } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/components/cart-provider"
 import { getImageUrl } from "@/lib/imageUrl"
 import { PROPERTY_TYPE_LABELS } from "@/lib/types"
 import { openWhatsAppShare } from "@/lib/whatsappProposal"
+import { whatsAppNumberOf } from "@/lib/clientContact"
+import { sendProposals } from "@/actions/proposals"
+import { toast } from "sonner"
 
 // GOAL 5 — point d'entrée du panier depuis n'importe quelle page du
 // dashboard (monté une seule fois dans le layout, cf. dashboard/layout.tsx).
+// Quand la sélection est préparée pour un client (« Proposer des biens »),
+// l'envoi part vers son WhatsApp et chaque bien est tracé comme proposition.
 export function CartButton() {
-  const { items, removeItem, clear, maxItems } = useCart()
+  const { items, removeItem, clear, maxItems, proposalTarget, setProposalTarget } = useCart()
   const [open, setOpen] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+
+  const clientNumber = whatsAppNumberOf(proposalTarget?.phone)
+
+  const handleSendToClient = async () => {
+    if (!proposalTarget || !clientNumber) return
+    setIsSending(true)
+    // Appelé sans attendre : l'onglet WhatsApp s'ouvre dans le geste de
+    // l'utilisateur, avant tout appel réseau (sinon bloqué sur iPhone).
+    void openWhatsAppShare(items, clientNumber)
+    try {
+      const result = await sendProposals({
+        idClient: proposalTarget.idClient,
+        idProperties: items.map((item) => item.idProperty),
+        channel: "WHATSAPP",
+      })
+      toast.success(
+        `${result.created} bien(s) proposé(s) à ${proposalTarget.fullName} — ${result.total} proposition(s) au total`
+      )
+      clear()
+      setProposalTarget(null)
+      setOpen(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    } finally {
+      setIsSending(false)
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -40,11 +74,37 @@ export function CartButton() {
           </SheetTitle>
         </SheetHeader>
 
+        {proposalTarget && (
+          <div className="flex items-start gap-3 border-b border-border bg-muted/50 px-4 py-3">
+            <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1 text-sm">
+              <p>
+                Sélection pour{" "}
+                <Link href={`/dashboard/clients/${proposalTarget.idClient}`} className="font-semibold hover:underline">
+                  {proposalTarget.fullName}
+                </Link>
+              </p>
+              {!clientNumber && (
+                <p className="text-xs text-muted-foreground">Aucun numéro WhatsApp valide sur la fiche.</p>
+              )}
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 shrink-0"
+              title="Ne plus préparer pour ce client"
+              onClick={() => setProposalTarget(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
               Aucun bien sélectionné pour l&apos;instant. Ajoutez des biens depuis les listes
-              (location, vente, recherche, favoris) via l&apos;icône panier.
+              (galerie, location, vente, recherche, favoris) via l&apos;icône panier.
             </p>
           ) : (
             items.map((property) => (
@@ -76,7 +136,21 @@ export function CartButton() {
 
         {items.length > 0 && (
           <SheetFooter className="border-t border-border flex-col gap-2 sm:flex-col">
-            <Button className="w-full gap-2 bg-secondary-600 text-white hover:bg-secondary-600/90" onClick={() => openWhatsAppShare(items)}>
+            {proposalTarget && (
+              <Button
+                className="w-full gap-2 bg-accent-600 text-white hover:bg-accent-600/90"
+                disabled={!clientNumber || isSending}
+                onClick={handleSendToClient}
+              >
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Envoyer à {proposalTarget.fullName} sur WhatsApp
+              </Button>
+            )}
+            <Button
+              variant={proposalTarget ? "outline" : "default"}
+              className={proposalTarget ? "w-full gap-2" : "w-full gap-2 bg-secondary-600 text-white hover:bg-secondary-600/90"}
+              onClick={() => openWhatsAppShare(items)}
+            >
               Partager via WhatsApp
             </Button>
             <Button variant="outline" className="w-full gap-2" onClick={clear}>

@@ -1156,3 +1156,17 @@ _Phase 2 terminée. Au déploiement : `npm run db:migrate`, `npm run db:seed`, c
 - `components/client-contact-dialog.tsx` : choix WhatsApp / E-mail (canal grisé si le numéro ou l'adresse manque), message et objet modifiables, ouverture immédiate dans le geste de l'utilisateur (sinon bloquée comme pop-up sur iPhone). `dernierContact` est mis à jour sur la fiche en arrière-plan (non bloquant pour un rôle sans clients:manage).
 - La vérification des coordonnées demandée (« le formulaire doit vérifier si ces 2 données sont exactes ») est déjà faite à la soumission de la demande (phase 1.2 : format + domaine e-mail, téléphone normalisé).
 - Tests : `tests/lib/clientContact.test.ts` (4). Frontend 24/24, `tsc` OK.
+
+### 3.4 « Proposer des biens » et « Propositions envoyées (n) »
+
+- Migration `20260916200000-proposal-channel-sender.cjs` : `channel` (WHATSAPP/EMAIL/AUTRE) et `sentBy` sur `proposals`. Réversible (vérifié) — un index composite (idClient, sentAt) a été retiré : MySQL le rattachait à la clé étrangère et refusait le rollback.
+- `POST /api/proposals/batch` (clients:manage) : une proposition par bien (20 max), dans une transaction ; un client « Nouveau » passe à « Proposé », un dossier plus avancé ne recule jamais ; événements sur la timeline du client.
+- `GET /api/proposals/client/:id` et `GET /api/proposals` corrigés : l'include `Property` sans alias levait une erreur Sequelize. Le bien n'expose que ce que le client a reçu (type, localisation, composition, prix, statut, première image) — **jamais le bailleur, le prix minimum, la marge ni l'informateur** (confidentialité demandée : ces liens ne se voient que dans Bailleurs et Galerie). Expéditeur inclus.
+- Frontend :
+  - fiche client : « Proposer des biens » fixe le client comme cible du panier et ouvre la galerie ; « Propositions envoyées (n) » ouvre la liste (image, type, localisation, composition, prix, date, canal, agent, lien vers la fiche du bien) ;
+  - galerie : bandeau « Sélection pour X » ;
+  - panier : cible affichée, « Envoyer à X sur WhatsApp » ouvre WhatsApp sur le numéro du client dans le geste de l'utilisateur, enregistre les propositions, puis vide le panier. Cible persistée comme le panier.
+- Le rendu du message WhatsApp et l'envoi des images restent la phase 5 (modèle de message attendu).
+- Tests : `tests/proposalBatch.test.js` (400, 403, création + pipeline, non-régression d'un dossier avancé, historique sans données confidentielles). Backend 290/290 (48 fichiers), Frontend 24/24, `tsc` OK.
+
+_Phase 3 terminée. Au déploiement : `npm run db:migrate`._

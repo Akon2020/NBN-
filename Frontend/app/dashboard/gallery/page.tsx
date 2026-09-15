@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2 } from "lucide-react"
+import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2, ShoppingBag } from "lucide-react"
+import { useCart } from "@/components/cart-provider"
 import { getAllProperties } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import type { Property } from "@/lib/types"
@@ -21,6 +22,7 @@ export default function GalleryPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
+  const { proposalTarget, setProposalTarget, items } = useCart()
 
   useEffect(() => {
     const load = async () => {
@@ -62,6 +64,18 @@ export default function GalleryPage() {
 
   return (
     <div className="space-y-6">
+      {proposalTarget && (
+        <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm">
+            Sélection pour <strong>{proposalTarget.fullName}</strong> : ajoutez les biens au panier (icône
+            <ShoppingBag className="mx-1 inline h-3.5 w-3.5" />), puis ouvrez le panier pour les lui envoyer sur WhatsApp.
+            {items.length > 0 && ` ${items.length} bien(s) sélectionné(s).`}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => setProposalTarget(null)}>
+            Annuler la sélection pour ce client
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Galerie d'images</h1>

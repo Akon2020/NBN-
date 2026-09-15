@@ -205,6 +205,7 @@ Property.belongsTo(Bailleur, { foreignKey: "idBailleur" });
 // champs clientName/clientPhone jamais activés).
 Client.hasMany(Proposal, { foreignKey: "idClient" });
 Proposal.belongsTo(Client, { foreignKey: "idClient", as: "client" });
+Proposal.belongsTo(User, { foreignKey: "sentBy", as: "sender" });
 
 // BACK-G08 — Matching : 1 client ↔ plusieurs biens.
 Client.belongsToMany(Property, {

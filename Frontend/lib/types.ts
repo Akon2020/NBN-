@@ -401,6 +401,52 @@ export interface ClientDossierProposal {
   sentAt: string
 }
 
+// Propositions envoyées depuis le panier (GET /api/proposals/client/:id).
+// Le bien n'y porte que ce que le client a reçu — jamais le bailleur, le prix
+// minimum, la marge ni l'informateur.
+export type ProposalChannel = "WHATSAPP" | "EMAIL" | "AUTRE"
+
+export const PROPOSAL_CHANNEL_LABELS: Record<ProposalChannel, string> = {
+  WHATSAPP: "WhatsApp",
+  EMAIL: "E-mail",
+  AUTRE: "Autre",
+}
+
+export interface SentProposal {
+  idProposal: number
+  idProperty: number
+  idClient?: number | null
+  message?: string | null
+  channel?: ProposalChannel | null
+  sentAt: string
+  sender?: { idUser: number; fullName: string } | null
+  property?: Pick<
+    Property,
+    | "idProperty"
+    | "category"
+    | "propertyType"
+    | "commune"
+    | "quartier"
+    | "avenue"
+    | "bedrooms"
+    | "livingRooms"
+    | "toilets"
+    | "kitchens"
+    | "price"
+    | "statut"
+    | "images"
+  > | null
+}
+
+// Client pour lequel le panier est en train d'être constitué.
+export interface ProposalTarget {
+  idClient: number
+  fullName: string
+  phone?: string | null
+  email?: string | null
+  dossierNumber?: string | null
+}
+
 export interface ClientDossier {
   matchings: ClientDossierMatching[]
   occupiedProperties: ClientDossierMatching[]
