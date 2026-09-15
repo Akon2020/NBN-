@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { Op } from "sequelize";
 import db from "../database/db.js";
 import {
   Property,
@@ -13,21 +14,49 @@ import {
 import { recalculatePropertyMargin } from "../shared/marginCalculator.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 import { createAlert } from "../services/notification.service.js";
+import { resolveQuartier } from "../shared/bukavuLocations.js";
+import { MODALITES_PAIEMENT } from "../shared/paymentTerms.js";
+import {
+  checkEmail,
+  normalizeCommissionnaireCode,
+  normalizePhone,
+} from "../utils/contactValidation.js";
 
-// Champs du formulaire de collecte repris tels quels sur `Property` —
-// liste explicite (jamais `req.body` propagé en bloc) : ce formulaire est
-// atteignable sans authentification, aucun champ non prévu ne doit
-// pouvoir être écrit (ni `margin`, ni `statut`, ni `assignedTo`).
-const PROPERTY_FIELDS = [
-  "propertyType",
-  "commune",
-  "quartier",
-  "avenue",
-  "bedrooms",
-  "livingRooms",
-  "toilets",
-  "kitchens",
-  "depots",
+const MISSION_TYPES = ["COLLECTE_BIEN", "APPORT_CLIENT", "SUIVI", "MISE_A_JOUR"];
+const PROPERTY_TYPES = [
+  "APPARTEMENT",
+  "MAISON",
+  "CONSTRUCTION_DURABLE",
+  "CONSTRUCTION_SEMI_DURABLE",
+  "TERRAIN_PLAT",
+  "TERRAIN_PENTE",
+  "PARCELLE",
+  "CHAMBRE",
+];
+const COMMUNES = ["IBANDA", "KADUTU", "BAGIRA"];
+
+// Qui remplit le formulaire : le responsable du bien lui-même, ou un
+// collecteur (commissionnaire ou membre de l'équipe) qui le relève.
+const REMPLISSEURS = ["RESPONSABLE", "COLLECTEUR"];
+const RESPONSABLE_STATUTS = ["PROPRIETAIRE", "MANDATAIRE", "GERANT", "SOCIETE"];
+const DISPONIBILITES_VISITE = ["OUI", "NON", "SUR_PROGRAMME"];
+const ACCEPTATIONS_COMMISSION = ["OUI", "NON", "A_NEGOCIER"];
+
+// Composition obligatoire : « 0 » est une réponse, l'absence n'en est pas
+// une (on ne sait pas si la pièce manque ou si la question a été sautée).
+const COUNT_FIELDS = {
+  bedrooms: "chambres",
+  toilets: "salles de bain",
+  livingRooms: "salons",
+  kitchens: "cuisines",
+  depots: "dépôts",
+};
+
+// Relevés d'état/accès restés facultatifs, repris tels quels — liste
+// explicite, jamais `req.body` propagé : ce formulaire est atteignable sans
+// authentification, aucun champ non prévu ne doit pouvoir être écrit (ni
+// `margin`, ni `statut`, ni `assignedTo`).
+const OPTIONAL_FIELDS = [
   "hasElectricity",
   "hasWater",
   "accessibilite",
@@ -35,10 +64,9 @@ const PROPERTY_FIELDS = [
   "etatBien",
   "observations",
   "description",
-  "price",
 ];
 
-const MISSION_TYPES = ["COLLECTE_BIEN", "APPORT_CLIENT", "SUIVI", "MISE_A_JOUR"];
+const text = (value) => String(value ?? "").trim();
 
 // Un bien collecté sur le terrain arrive rarement avec un prix « propre » :
 // le formulaire accepte une saisie libre ("250$", "250 000 FC"), on en
@@ -51,87 +79,196 @@ const parseAmount = (raw) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-// Les compteurs du formulaire acceptent "1".."10" ou une saisie libre
-// ("12", "beaucoup") : seul un entier exploitable est conservé, le reste
-// est ignoré silencieusement plutôt que de bloquer la collecte.
 const parseCount = (raw) => {
-  const parsed = Number.parseInt(String(raw ?? ""), 10);
+  if (raw === undefined || raw === null || text(raw) === "") return null;
+  const parsed = Number.parseInt(String(raw), 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 };
 
-// Route accessible sans compte (un commissionnaire terrain n'en a pas
-// toujours, CLAUDE.md §4) mais jamais indexée côté client. Elle crée
-// réellement le bien — et, en parallèle, une Mission SOUMISE qui laisse à
-// l'agence la trace et le contrôle de ce qui est entré par ce canal.
-export const createPropertyCollection = async (req, res, next) => {
-  const transaction = await db.transaction();
-  try {
-    const {
-      typeMission,
-      typeOperation,
-      propertyType,
-      prix,
-      proprietaireNom,
-      proprietairePhone,
-      proprietaireDisponibiliteVisite,
-      proprietaireAccepteCommission,
+// Renvoie `{ error }` (premier manque, dans l'ordre du formulaire) ou
+// `{ values }` normalisées. Même règles que les étapes du formulaire web,
+// qui n'est qu'un client parmi d'autres de cette route.
+const validateCollection = async (body) => {
+  const fail = (error) => ({ error });
+
+  if (!REMPLISSEURS.includes(body.remplisseur)) {
+    return fail("Indiquez qui remplit ce formulaire (le responsable du bien ou un collecteur).");
+  }
+  const parResponsable = body.remplisseur === "RESPONSABLE";
+  if (!parResponsable && typeof body.parCommissionnaire !== "boolean") {
+    return fail("Indiquez si le bien est collecté par un commissionnaire.");
+  }
+  const parCommissionnaire = !parResponsable && body.parCommissionnaire === true;
+
+  if (!MISSION_TYPES.includes(body.typeMission)) return fail("Le type de mission est requis.");
+  if (!["RENT", "SALE"].includes(body.typeOperation)) {
+    return fail("Le type d'opération (location/vente) est requis.");
+  }
+  if (!PROPERTY_TYPES.includes(body.propertyType)) return fail("Le type de bien est requis.");
+
+  // --- Localisation (obligatoire) ---
+  if (!COMMUNES.includes(body.commune)) return fail("La commune est requise.");
+  if (!text(body.quartier)) return fail("Le quartier est requis.");
+  const quartier = resolveQuartier(body.commune, body.quartier);
+  if (!quartier) return fail("Le quartier choisi n'appartient pas à cette commune.");
+  const avenue = text(body.avenue);
+  if (!avenue) return fail("L'avenue est requise.");
+
+  // --- Prix ---
+  const price = parseAmount(body.prix);
+  if (price === null) return fail("Le prix fixé est requis.");
+
+  let prixMinimum = null;
+  if (text(body.prixMinimum)) {
+    prixMinimum = parseAmount(body.prixMinimum);
+    if (prixMinimum === null) return fail("Le prix minimum acceptable n'est pas un montant valide.");
+    if (prixMinimum > price) {
+      return fail("Le prix minimum acceptable ne peut pas dépasser le prix fixé.");
+    }
+  }
+
+  let modalitePaiement = null;
+  let modalitePaiementAutre = null;
+  if (body.typeOperation === "RENT") {
+    if (!MODALITES_PAIEMENT.includes(body.modalitePaiement)) {
+      return fail("Indiquez la modalité de paiement.");
+    }
+    modalitePaiement = body.modalitePaiement;
+    if (modalitePaiement === "AUTRE") {
+      modalitePaiementAutre = text(body.modalitePaiementAutre);
+      if (!modalitePaiementAutre) return fail("Précisez la modalité de paiement.");
+    }
+  }
+
+  // --- Composition (obligatoire) ---
+  const counts = {};
+  for (const [field, label] of Object.entries(COUNT_FIELDS)) {
+    const count = parseCount(body[field]);
+    if (count === null) return fail(`Indiquez le nombre de ${label} (0 s'il n'y en a pas).`);
+    counts[field] = count;
+  }
+
+  // --- Responsable du bien ---
+  if (!RESPONSABLE_STATUTS.includes(body.responsableStatut)) {
+    return fail("Indiquez le statut du responsable du bien.");
+  }
+  const responsableNom = text(body.responsableNom);
+  if (!responsableNom) return fail("Le nom du responsable est requis.");
+  const responsablePhone = normalizePhone(body.responsablePhone);
+  if (!responsablePhone) return fail("Le téléphone du responsable n'est pas valide.");
+
+  let responsableEmail = null;
+  if (text(body.responsableEmail)) {
+    const emailCheck = await checkEmail(body.responsableEmail);
+    if (!emailCheck.ok) return fail(emailCheck.reason);
+    responsableEmail = emailCheck.email;
+  } else if (parResponsable) {
+    // Le responsable qui remplit lui-même doit pouvoir être recontacté
+    // par écrit — c'est aussi là qu'il recevra la confirmation.
+    return fail("Votre adresse e-mail est requise.");
+  }
+
+  if (!DISPONIBILITES_VISITE.includes(body.responsableDisponibiliteVisite)) {
+    return fail("Indiquez si le responsable est disponible pour les visites.");
+  }
+  if (!ACCEPTATIONS_COMMISSION.includes(body.responsableAccepteCommission)) {
+    return fail("Indiquez si le responsable accepte la commission de l'agence.");
+  }
+
+  // --- Commissionnaire ---
+  let collecteurNom = text(body.collecteurNom) || null;
+  let collecteurPhone = null;
+  let codeCommissionnaire = null;
+  if (parCommissionnaire) {
+    if (!collecteurNom) return fail("Le nom du commissionnaire est requis.");
+    collecteurPhone = normalizePhone(body.collecteurPhone);
+    if (!collecteurPhone) return fail("Le téléphone du commissionnaire n'est pas valide.");
+    codeCommissionnaire = normalizeCommissionnaireCode(body.codeCommissionnaire);
+    if (!codeCommissionnaire) {
+      return fail("Le code commissionnaire est requis, au format CCM-042.");
+    }
+  }
+  if (parResponsable) collecteurNom = null;
+
+  return {
+    values: {
+      parResponsable,
+      parCommissionnaire,
+      quartier,
+      avenue,
+      price,
+      prixMinimum,
+      modalitePaiement,
+      modalitePaiementAutre,
+      counts,
+      responsableNom,
+      responsablePhone,
+      responsableEmail,
+      responsableIdNumber: text(body.responsableIdNumber) || null,
       collecteurNom,
       collecteurPhone,
       codeCommissionnaire,
-      commune,
-    } = req.body;
+    },
+  };
+};
 
-    if (!typeMission || !MISSION_TYPES.includes(typeMission)) {
-      await transaction.rollback();
-      return res.status(400).json({ message: "Le type de mission est requis." });
-    }
-    if (!typeOperation || !["RENT", "SALE"].includes(typeOperation)) {
-      await transaction.rollback();
-      return res.status(400).json({ message: "Le type d'opération (location/vente) est requis." });
-    }
-    if (!propertyType) {
-      await transaction.rollback();
-      return res.status(400).json({ message: "Le type de bien est requis." });
-    }
-    if (!commune) {
-      await transaction.rollback();
-      return res.status(400).json({ message: "La commune est requise." });
-    }
-    if (!proprietaireNom || !proprietairePhone) {
-      await transaction.rollback();
-      return res
-        .status(400)
-        .json({ message: "Le nom et le téléphone du propriétaire sont requis." });
-    }
-    if (!collecteurNom) {
-      await transaction.rollback();
-      return res.status(400).json({ message: "Le nom du collecteur est requis." });
-    }
+// Route accessible sans compte (un commissionnaire terrain ou un bailleur
+// n'en a pas toujours, CLAUDE.md §4) mais jamais indexée côté client. Elle
+// crée réellement le bien et son bailleur — et, quand un commissionnaire
+// connu l'a collecté, une Mission SOUMISE qui laisse à l'agence la trace et
+// le contrôle de ce qui est entré par ce canal.
+export const createPropertyCollection = async (req, res, next) => {
+  // Validation (DNS de l'e-mail compris) hors transaction : aucune
+  // connexion MySQL retenue pendant la vérification.
+  const { error: validationError, values } = await validateCollection(req.body);
+  if (validationError) {
+    return res.status(400).json({ message: validationError });
+  }
 
-    const price = parseAmount(prix);
-    if (price === null) {
-      await transaction.rollback();
-      return res.status(400).json({ message: "Le prix fixé est requis." });
-    }
+  const { typeMission, typeOperation, propertyType, commune } = req.body;
+  const collecteur =
+    values.collecteurNom || (values.parResponsable ? null : req.user?.fullName || null);
 
-    // --- Propriétaire → Person + Bailleur (dédoublonnés par téléphone) ---
-    const ownerPhone = String(proprietairePhone).trim();
-    let ownerPerson = await Person.findOne({ where: { phone: ownerPhone }, transaction });
+  const transaction = await db.transaction();
+  try {
+    // --- Responsable → Person + Bailleur (dédoublonnés par téléphone) ---
+    let ownerPerson = await Person.findOne({
+      where: { phone: values.responsablePhone },
+      transaction,
+    });
     if (!ownerPerson) {
       ownerPerson = await Person.create(
-        { fullName: String(proprietaireNom).trim(), phone: ownerPhone },
+        {
+          fullName: values.responsableNom,
+          phone: values.responsablePhone,
+          email: values.responsableEmail,
+          idNumber: values.responsableIdNumber,
+        },
         { transaction }
       );
+    } else {
+      // Complète une fiche existante sans jamais écraser ce que l'agence
+      // a déjà renseigné ou corrigé.
+      const missing = {};
+      if (!ownerPerson.email && values.responsableEmail) missing.email = values.responsableEmail;
+      if (!ownerPerson.idNumber && values.responsableIdNumber) {
+        missing.idNumber = values.responsableIdNumber;
+      }
+      if (Object.keys(missing).length) await ownerPerson.update(missing, { transaction });
     }
 
-    let bailleur = await Bailleur.findOne({ where: { idPerson: ownerPerson.idPerson }, transaction });
+    let bailleur = await Bailleur.findOne({
+      where: { idPerson: ownerPerson.idPerson },
+      transaction,
+    });
     const ownerConditions = {
-      disponibiliteVisite: proprietaireDisponibiliteVisite || null,
-      accepteCommission: proprietaireAccepteCommission || null,
+      type: req.body.responsableStatut,
+      disponibiliteVisite: req.body.responsableDisponibiliteVisite,
+      accepteCommission: req.body.responsableAccepteCommission,
     };
     if (!bailleur) {
       bailleur = await Bailleur.create(
-        { idPerson: ownerPerson.idPerson, type: "PROPRIETAIRE", ...ownerConditions },
+        { idPerson: ownerPerson.idPerson, ...ownerConditions },
         { transaction }
       );
       await bailleur.update(
@@ -147,23 +284,28 @@ export const createPropertyCollection = async (req, res, next) => {
     // --- Bien ---
     const propertyData = {
       category: typeOperation,
-      price,
+      propertyType,
+      commune,
+      quartier: values.quartier,
+      avenue: values.avenue,
+      price: values.price,
+      prixMinimum: values.prixMinimum,
+      modalitePaiement: values.modalitePaiement,
+      modalitePaiementAutre: values.modalitePaiementAutre,
+      ...values.counts,
       idBailleur: bailleur.idBailleur,
-      codeCommissionnaire: codeCommissionnaire || null,
-      informateur: collecteurNom ? String(collecteurNom).trim() : null,
+      codeCommissionnaire: values.codeCommissionnaire,
+      informateur: values.parResponsable
+        ? `${values.responsableNom} (responsable du bien)`
+        : collecteur,
       // Un utilisateur connecté est tracé ; une soumission anonyme reste
       // rattachable via `informateur`/`codeCommissionnaire`.
       createdBy: req.user?.idUser ?? null,
     };
-    PROPERTY_FIELDS.forEach((field) => {
-      if (req.body[field] === undefined || req.body[field] === "") return;
-      if (["bedrooms", "livingRooms", "toilets", "kitchens", "depots"].includes(field)) {
-        const count = parseCount(req.body[field]);
-        if (count !== null) propertyData[field] = count;
-        return;
+    OPTIONAL_FIELDS.forEach((field) => {
+      if (req.body[field] !== undefined && req.body[field] !== "") {
+        propertyData[field] = req.body[field];
       }
-      if (field === "price") return; // déjà normalisé ci-dessus
-      propertyData[field] = req.body[field];
     });
 
     const property = await Property.create(propertyData, { transaction });
@@ -181,7 +323,7 @@ export const createPropertyCollection = async (req, res, next) => {
     }
 
     await PropertyPhone.create(
-      { idProperty: property.idProperty, phoneNumber: ownerPhone },
+      { idProperty: property.idProperty, phoneNumber: values.responsablePhone },
       { transaction }
     );
 
@@ -193,10 +335,16 @@ export const createPropertyCollection = async (req, res, next) => {
     // --- Mission de traçabilité ---
     // Rattachée au commissionnaire dont le code est fourni, s'il existe
     // réellement — un code inconnu n'invalide jamais la collecte (le bien
-    // est déjà en base), il laisse simplement la mission non rattachée.
+    // est déjà en base). Les codes enregistrés avant la normalisation CCM
+    // restent retrouvables par leur saisie d'origine.
     let mission = null;
-    const commissionnaire = codeCommissionnaire
-      ? await Commissionnaire.findOne({ where: { code: codeCommissionnaire }, transaction })
+    const commissionnaire = values.codeCommissionnaire
+      ? await Commissionnaire.findOne({
+          where: {
+            code: { [Op.in]: [values.codeCommissionnaire, text(req.body.codeCommissionnaire)] },
+          },
+          transaction,
+        })
       : null;
 
     if (commissionnaire) {
@@ -206,7 +354,7 @@ export const createPropertyCollection = async (req, res, next) => {
           idCommissionnaire: commissionnaire.idCommissionnaire,
           type: typeMission,
           idProperty: property.idProperty,
-          notes: [collecteurNom, collecteurPhone].filter(Boolean).join(" — ") || null,
+          notes: [values.collecteurNom, values.collecteurPhone].filter(Boolean).join(" — ") || null,
         },
         { transaction }
       );
@@ -214,20 +362,30 @@ export const createPropertyCollection = async (req, res, next) => {
 
     await transaction.commit();
 
+    const source = values.parResponsable
+      ? `Soumis par le responsable (${values.responsableNom})`
+      : `Collecté par ${collecteur || "un membre de l'équipe"}${
+          values.codeCommissionnaire ? ` (${values.codeCommissionnaire})` : ""
+        }`;
+
     await recordTimelineEvent({
       entityType: "PROPERTY",
       entityId: property.idProperty,
       eventType: "CREATED",
-      title: `Bien collecté sur le terrain (${typeOperation === "RENT" ? "à louer" : "à vendre"})`,
-      description: [propertyType, commune, property.quartier].filter(Boolean).join(" — "),
+      title: `Bien collecté (${typeOperation === "RENT" ? "à louer" : "à vendre"})`,
+      description: [propertyType, commune, values.quartier].filter(Boolean).join(" — "),
       actorUserId: req.user?.idUser ?? null,
-      metadata: { collecteurNom, codeCommissionnaire: codeCommissionnaire || null },
+      metadata: {
+        remplisseur: req.body.remplisseur,
+        collecteurNom: values.collecteurNom,
+        codeCommissionnaire: values.codeCommissionnaire,
+      },
     });
 
     await createAlert({
       type: "property_collection:new",
       title: `Nouveau bien collecté — ${propertyType} à ${commune}`,
-      description: `Collecté par ${collecteurNom}${codeCommissionnaire ? ` (${codeCommissionnaire})` : ""}`,
+      description: source,
       severite: "INFO",
       relatedEntityType: "Property",
       relatedEntityId: property.idProperty,

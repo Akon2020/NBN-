@@ -1059,3 +1059,16 @@ Source : PDF « Quartiers par commune » fourni par l'agence (442 lignes commune
 - Swagger de `POST /api/rental-requests` mis à jour (champs requis, normalisations).
 - Tests : `Backend/tests/contactValidation.test.js` (9), `rentalRequest.test.js` (+10 refus explicites, normalisations vérifiées), `Frontend/tests/lib/contactValidation.test.ts` (3). Backend 24/24 sur ces fichiers, Frontend 20/20, `tsc` OK.
 - Vérification navigateur (`/demande-location`, page publique) : refus du téléphone incomplet à l'étape 1, cascade Bukavu → Ibanda (quartiers d'Ibanda uniquement) → Panzi (avenues + « Autre avenue »). Brouillon de test effacé.
+
+### 1.3 Formulaire « Collecte de bien »
+
+- **Qui remplit** (première étape) : « Le responsable du bien » ou « Un collecteur ». Si collecteur : « Collecté par un commissionnaire ? » — Oui ajoute une dernière étape (nom, téléphone, **code CCM** requis) ; Non termine directement sur « Enregistrer le bien » après le responsable. Le wizard passe de 7 à 8 étapes selon la réponse (vérifié dans le navigateur).
+- **CCL → CCM** partout (CCM = Code CoMmissionnaire ; CCL reste l'identifiant client). Un code est normalisé (`ccm 42` → `CCM-042`) ; la recherche de la fiche commissionnaire accepte aussi la saisie d'origine, les codes existants n'ayant jamais été contraints.
+- « Le propriétaire » devient **« Le responsable »** : statut (Propriétaire / Mandataire / Gérant / Société-Établissement), nom, téléphone normalisé, e-mail (obligatoire quand le responsable remplit lui-même, vérifié par DNS sinon facultatif), numéro de pièce d'identité, disponibilité visite, commission. Fiche `Person` existante complétée sans jamais écraser.
+- Localisation obligatoire via le référentiel (quartier contrôlé contre la commune, avenue requise) ; composition obligatoire avec « Aucun » (0 ≠ non répondu).
+- **Prix minimum acceptable** (facultatif, ≤ prix fixé) : colonne `properties.prixMinimum`, filtrée dans `property.serializer.js` par `property:prix_minimum:read` — admin uniquement (accès total par construction), permission au catalogue pour un éventuel AccessGrant. Affiché sur la fiche du bien avec la mention « Confidentiel ».
+- **Modalités de paiement** identiques à la demande de location (`shared/paymentTerms.js`, partagé par les deux contrôleurs), requises pour une location.
+- Migration `20260915100000-property-collection-responsable.cjs` (types GERANT/SOCIETE sur `bailleurs`, `prixMinimum`/`modalitePaiement`/`modalitePaiementAutre` sur `properties`), réversible (vérifié). Seeder `20260915100010-seed-prix-minimum-permission.cjs`.
+- Swagger de `POST /api/property-collections` réécrit.
+- Tests `propertyCollection.test.js` réécrits : 8 refus explicites, création complète, prix minimum masqué pour `operations` / visible pour `admin`, réutilisation du bailleur, membre d'équipe sans identité, responsable qui remplit lui-même. Backend complet 249/249 (40 fichiers), Frontend 20/20, `tsc` OK.
+- Constat sur « Erreur lors de l'enregistrement du bien » : la route fonctionne en local (201) et répond correctement en production à une requête vide (400 JSON). La cause la plus probable en production était le quota partagé (corrigé en 0.1) ou des migrations non appliquées sur le serveur — **`npm run db:migrate` à lancer au déploiement**.

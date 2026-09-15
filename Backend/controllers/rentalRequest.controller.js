@@ -4,6 +4,7 @@ import { RentalRequest, Client, Person } from "../models/index.model.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 import { createAlert } from "../services/notification.service.js";
 import { resolveQuartier } from "../shared/bukavuLocations.js";
+import { MODALITES_PAIEMENT } from "../shared/paymentTerms.js";
 import {
   checkEmail,
   normalizeCommissionnaireCode,
@@ -84,15 +85,6 @@ const CLIENT_URGENCES = ["IMMEDIAT", "1_2_SEMAINES", "1_MOIS", "FLEXIBLE"];
 const buildLocalisation = ({ commune, quartier, avenues }) =>
   [commune, quartier, avenues].filter(Boolean).join(" — ") || null;
 
-const MODALITES_PAIEMENT = [
-  "AVANCE_1_GARANTIE_3",
-  "MENSUEL",
-  "AVANCE_2_GARANTIE_3",
-  "AVANCE_3_GARANTIE_2",
-  "AVANCE_3_GARANTIE_3",
-  "GARANTIE_6",
-  "AUTRE",
-];
 const TYPES_OCCUPANTS = ["FAMILLE_NOMBREUSE", "FAMILLE_PEU_NOMBREUSE", "COUPLE", "AUTRE"];
 const URGENCES = [...CLIENT_URGENCES, "AUTRE"];
 

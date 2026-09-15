@@ -6,30 +6,41 @@ import Image from "next/image"
 import { Manrope, Inter } from "next/font/google"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle2, Lock } from "lucide-react"
+import { CheckCircle2, EyeOff, Lock } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { FormWizard, useFormDraft, type WizardStep } from "@/components/forms/form-wizard"
 import {
   ChoiceChips,
   Field,
   MultiChoiceChips,
-  TextAreaField,
   TextField,
 } from "@/components/forms/form-fields"
+import {
+  LocationFields,
+  resolveAvenues,
+  validateLocation,
+  type LocationValue,
+} from "@/components/forms/location-fields"
 import { getMyCommissionnaireCode, submitPropertyCollection } from "@/actions/propertyCollections"
 import { getAuthUser } from "@/lib/auth"
+import {
+  isEmailFormatValid,
+  normalizeCommissionnaireCode,
+  normalizePhone,
+} from "@/lib/contactValidation"
 import {
   ACCEPTE_COMMISSION_CHOICES,
   ACCESSIBILITE_CHOICES,
   COLLECTE_TYPE_BIEN_CHOICES,
-  COMMUNE_CHOICES,
   countChoices,
   DISPONIBILITE_CHOICES,
   DISPONIBILITE_VISITE_CHOICES,
   ETAT_BIEN_CHOICES,
+  MODALITE_PAIEMENT_CHOICES,
   OBSERVATION_CHOICES,
   OUI_NON_CHOICES,
-  QUARTIER_SUGGESTIONS,
+  REMPLISSEUR_CHOICES,
+  RESPONSABLE_STATUT_CHOICES,
   TYPE_MISSION_CHOICES,
   TYPE_OPERATION_CHOICES,
   type PropertyCollectionPayload,
@@ -39,14 +50,21 @@ import { toast } from "sonner"
 const manrope = Manrope({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" })
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" })
 
+const EMPTY_LOCATION: LocationValue = { commune: "", quartier: "", avenues: [], avenueAutre: "" }
+
 const EMPTY_FORM = {
+  // "RESPONSABLE" | "COLLECTEUR"
+  remplisseur: "",
+  // Tri-état ("" = pas encore répondu), comme toutes les questions oui/non.
+  parCommissionnaire: "",
   typeMission: "COLLECTE_BIEN",
   typeOperation: "",
   propertyType: "",
-  commune: "",
-  quartier: "",
-  avenue: "",
+  location: EMPTY_LOCATION,
   prix: "",
+  prixMinimum: "",
+  modalitePaiement: "",
+  modalitePaiementAutre: "",
   bedrooms: "",
   bedroomsAutre: "",
   livingRooms: "",
@@ -64,20 +82,37 @@ const EMPTY_FORM = {
   etatBien: "",
   observations: [] as string[],
   observationAutre: "",
-  proprietaireNom: "",
-  proprietairePhone: "",
-  proprietaireDisponibiliteVisite: "",
-  proprietaireAccepteCommission: "",
+  responsableStatut: "",
+  responsableNom: "",
+  responsablePhone: "",
+  responsableEmail: "",
+  responsableIdNumber: "",
+  responsableDisponibiliteVisite: "",
+  responsableAccepteCommission: "",
   collecteurNom: "",
   collecteurPhone: "",
   codeCommissionnaire: "",
 }
 
+// v2 : « propriétaire » devenu « responsable », localisation structurée.
+const DRAFT_KEY = "nbn-collecte-bien-v2"
+
+type CountKey = "bedrooms" | "livingRooms" | "toilets" | "kitchens" | "depots"
+
+const COUNTS: { key: CountKey; label: string; max: number }[] = [
+  { key: "bedrooms", label: "Nombre de chambres", max: 10 },
+  { key: "toilets", label: "Nombre de salles de bain", max: 10 },
+  { key: "livingRooms", label: "Nombre de salons", max: 5 },
+  { key: "kitchens", label: "Nombre de cuisines", max: 5 },
+  { key: "depots", label: "Nombre de dépôts", max: 5 },
+]
+
 // Un compteur vaut soit une pastille ("3"), soit la saisie libre associée.
 const resolveCount = (value: string, autre: string) => (value === "AUTRE" ? autre.trim() : value)
+const isCount = (value: string) => /^\d+$/.test(value)
 
 export default function CollecteBienPage() {
-  const { value: form, setValue: setForm, clear, restored } = useFormDraft("nbn-collecte-bien", EMPTY_FORM)
+  const { value: form, setValue: setForm, clear, restored } = useFormDraft(DRAFT_KEY, EMPTY_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [prefilled, setPrefilled] = useState(false)
@@ -85,7 +120,12 @@ export default function CollecteBienPage() {
   const set = <K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
-  // Préremplissage du collecteur quand la personne est connectée — la
+  const parResponsable = form.remplisseur === "RESPONSABLE"
+  const parCommissionnaire = form.remplisseur === "COLLECTEUR" && form.parCommissionnaire === "OUI"
+  const isRent = form.typeOperation === "RENT"
+  const countOf = (key: CountKey) => resolveCount(form[key], form[`${key}Autre`])
+
+  // Préremplissage du commissionnaire quand la personne est connectée — la
   // saisie manuelle reste possible et prioritaire (un champ déjà rempli
   // par le brouillon n'est jamais écrasé).
   useEffect(() => {
@@ -117,31 +157,44 @@ export default function CollecteBienPage() {
       ].join(" · ")
 
       const payload: PropertyCollectionPayload = {
+        remplisseur: form.remplisseur as PropertyCollectionPayload["remplisseur"],
+        parCommissionnaire: parResponsable ? undefined : parCommissionnaire,
         typeMission: form.typeMission,
         typeOperation: form.typeOperation,
         propertyType: form.propertyType,
-        commune: form.commune,
+        commune: form.location.commune,
+        quartier: form.location.quartier,
+        avenue: resolveAvenues(form.location)[0] ?? "",
         prix: form.prix.trim(),
-        proprietaireNom: form.proprietaireNom.trim(),
-        proprietairePhone: form.proprietairePhone.trim(),
-        collecteurNom: form.collecteurNom.trim(),
-        quartier: form.quartier.trim() || undefined,
-        avenue: form.avenue.trim() || undefined,
-        bedrooms: resolveCount(form.bedrooms, form.bedroomsAutre) || undefined,
-        livingRooms: resolveCount(form.livingRooms, form.livingRoomsAutre) || undefined,
-        toilets: resolveCount(form.toilets, form.toiletsAutre) || undefined,
-        kitchens: resolveCount(form.kitchens, form.kitchensAutre) || undefined,
-        depots: resolveCount(form.depots, form.depotsAutre) || undefined,
+        prixMinimum: form.prixMinimum.trim() || undefined,
+        modalitePaiement: isRent ? form.modalitePaiement : undefined,
+        modalitePaiementAutre: isRent ? form.modalitePaiementAutre.trim() || undefined : undefined,
+        bedrooms: countOf("bedrooms"),
+        livingRooms: countOf("livingRooms"),
+        toilets: countOf("toilets"),
+        kitchens: countOf("kitchens"),
+        depots: countOf("depots"),
         hasElectricity: form.hasElectricity ? form.hasElectricity === "OUI" : undefined,
         hasWater: form.hasWater ? form.hasWater === "OUI" : undefined,
         accessibilite: form.accessibilite || undefined,
         disponibilite: form.disponibilite || undefined,
         etatBien: form.etatBien || undefined,
         observations: observations || undefined,
-        proprietaireDisponibiliteVisite: form.proprietaireDisponibiliteVisite || undefined,
-        proprietaireAccepteCommission: form.proprietaireAccepteCommission || undefined,
-        collecteurPhone: form.collecteurPhone.trim() || undefined,
-        codeCommissionnaire: form.codeCommissionnaire.trim() || undefined,
+        responsableStatut: form.responsableStatut,
+        responsableNom: form.responsableNom.trim(),
+        responsablePhone: normalizePhone(form.responsablePhone) ?? form.responsablePhone.trim(),
+        responsableEmail: form.responsableEmail.trim().toLowerCase() || undefined,
+        responsableIdNumber: form.responsableIdNumber.trim() || undefined,
+        responsableDisponibiliteVisite: form.responsableDisponibiliteVisite,
+        responsableAccepteCommission: form.responsableAccepteCommission,
+        ...(parCommissionnaire
+          ? {
+              collecteurNom: form.collecteurNom.trim(),
+              collecteurPhone: normalizePhone(form.collecteurPhone) ?? form.collecteurPhone.trim(),
+              codeCommissionnaire:
+                normalizeCommissionnaireCode(form.codeCommissionnaire) ?? form.codeCommissionnaire.trim(),
+            }
+          : {}),
       }
 
       await submitPropertyCollection(payload)
@@ -154,32 +207,53 @@ export default function CollecteBienPage() {
     }
   }
 
-  const quartierSuggestions = QUARTIER_SUGGESTIONS[form.commune] || []
-
-  const countField = (
-    label: string,
-    key: "bedrooms" | "livingRooms" | "toilets" | "kitchens" | "depots",
-    autreKey: "bedroomsAutre" | "livingRoomsAutre" | "toiletsAutre" | "kitchensAutre" | "depotsAutre",
-    max: number
-  ) => (
-    <Field label={label}>
-      <ChoiceChips
-        choices={countChoices(max)}
-        value={form[key]}
-        onChange={(v) => set(key, v)}
-        otherValue="AUTRE"
-        otherText={form[autreKey]}
-        onOtherTextChange={(v) => set(autreKey, v)}
-        otherPlaceholder="Combien ?"
-      />
-    </Field>
+  const mediaNote = (
+    <p className="rounded-md bg-muted/60 px-3 py-2.5 text-xs text-muted-foreground leading-relaxed">
+      Les photos et vidéos du bien s&apos;ajoutent depuis la fiche du bien une fois cette collecte
+      enregistrée — pas besoin de les avoir sous la main maintenant.
+    </p>
   )
 
   const steps: WizardStep[] = [
     {
+      id: "remplisseur",
+      title: "Qui remplit ce formulaire ?",
+      subtitle: "La suite du formulaire s'adapte à votre réponse.",
+      validate: () => {
+        if (!form.remplisseur) return "Indiquez qui remplit ce formulaire."
+        if (form.remplisseur === "COLLECTEUR" && !form.parCommissionnaire) {
+          return "Indiquez si le bien est collecté par un commissionnaire."
+        }
+        return null
+      },
+      content: (
+        <div className="space-y-5">
+          <Field label="Vous êtes" required>
+            <ChoiceChips
+              choices={REMPLISSEUR_CHOICES}
+              value={form.remplisseur}
+              onChange={(v) => set("remplisseur", v)}
+            />
+          </Field>
+          {form.remplisseur === "COLLECTEUR" && (
+            <Field
+              label="Le bien est-il collecté par un commissionnaire ?"
+              required
+              hint="Si oui, son identité et son code CCM seront demandés à la dernière étape."
+            >
+              <ChoiceChips
+                choices={OUI_NON_CHOICES}
+                value={form.parCommissionnaire}
+                onChange={(v) => set("parCommissionnaire", v)}
+              />
+            </Field>
+          )}
+        </div>
+      ),
+    },
+    {
       id: "mission",
       title: "Nature de la collecte",
-      subtitle: "Commençons par situer ce que vous rapportez du terrain.",
       validate: () => {
         if (!form.typeMission) return "Indiquez le type de mission."
         if (!form.typeOperation) return "Indiquez s'il s'agit d'une location ou d'une vente."
@@ -215,63 +289,87 @@ export default function CollecteBienPage() {
     {
       id: "localisation",
       title: "Où se trouve le bien ?",
-      validate: () => (form.commune ? null : "La commune est requise."),
+      validate: () => validateLocation(form.location),
       content: (
-        <div className="space-y-5">
-          <Field label="Commune" required>
-            <ChoiceChips choices={COMMUNE_CHOICES} value={form.commune} onChange={(v) => set("commune", v)} />
-          </Field>
-          <Field label="Quartier">
-            <div className="space-y-2">
-              <TextField value={form.quartier} onChange={(v) => set("quartier", v)} placeholder="Nom du quartier" />
-              {quartierSuggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {quartierSuggestions.map((q) => (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => set("quartier", q)}
-                      className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-primary-900/40 hover:text-foreground"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Field>
-          <Field label="Avenue / repère connu">
-            <TextField
-              value={form.avenue}
-              onChange={(v) => set("avenue", v)}
-              placeholder="Ex. Av. Lumumba, près de l'école..."
-            />
-          </Field>
-        </div>
+        <LocationFields
+          value={form.location}
+          onChange={(v) => set("location", v)}
+          required
+          avenueLabel="Avenue"
+        />
       ),
     },
     {
       id: "prix",
-      title: "Prix fixé",
-      subtitle: "Le montant demandé par le propriétaire. Précisez la devise si ce n'est pas des dollars.",
-      validate: () => (form.prix.trim() ? null : "Le prix fixé est requis."),
+      title: "Prix et paiement",
+      subtitle: "Le montant demandé par le responsable. Précisez la devise si ce n'est pas des dollars.",
+      validate: () => {
+        if (!form.prix.trim()) return "Le prix fixé est requis."
+        if (isRent && !form.modalitePaiement) return "Choisissez la modalité de paiement."
+        if (isRent && form.modalitePaiement === "AUTRE" && !form.modalitePaiementAutre.trim()) {
+          return "Précisez la modalité de paiement."
+        }
+        return null
+      },
       content: (
-        <Field label="Prix fixé" required>
-          <TextField value={form.prix} onChange={(v) => set("prix", v)} placeholder="Ex. 250$ ou 500000 FC" />
-        </Field>
+        <div className="space-y-5">
+          <Field label="Prix fixé" required>
+            <TextField value={form.prix} onChange={(v) => set("prix", v)} placeholder="Ex. 250$ ou 500000 FC" />
+          </Field>
+          <Field
+            label="Avez-vous un autre minimum acceptable ?"
+            hint="Le prix le plus bas accepté si un client intéressé négocie."
+          >
+            <div className="space-y-2">
+              <TextField
+                value={form.prixMinimum}
+                onChange={(v) => set("prixMinimum", v)}
+                placeholder="Ex. 220$"
+              />
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <EyeOff className="h-3.5 w-3.5 shrink-0" />
+                Visible uniquement par l&apos;administration de l&apos;agence.
+              </p>
+            </div>
+          </Field>
+          {isRent && (
+            <Field label="Modalité de paiement" required>
+              <ChoiceChips
+                choices={MODALITE_PAIEMENT_CHOICES}
+                value={form.modalitePaiement}
+                onChange={(v) => set("modalitePaiement", v)}
+                otherValue="AUTRE"
+                otherText={form.modalitePaiementAutre}
+                onOtherTextChange={(v) => set("modalitePaiementAutre", v)}
+              />
+            </Field>
+          )}
+        </div>
       ),
     },
     {
       id: "composition",
       title: "Composition du bien",
-      subtitle: "Laissez vide ce qui ne s'applique pas (une parcelle nue, par exemple).",
+      subtitle: "Choisissez « Aucun » quand la pièce n'existe pas.",
+      validate: () => {
+        const missing = COUNTS.find(({ key }) => !isCount(countOf(key)))
+        return missing ? `${missing.label} : choisissez une valeur (« Aucun » s'il n'y en a pas).` : null
+      },
       content: (
         <div className="space-y-5">
-          {countField("Nombre de chambres", "bedrooms", "bedroomsAutre", 10)}
-          {countField("Nombre de salles de bain", "toilets", "toiletsAutre", 10)}
-          {countField("Nombre de salons", "livingRooms", "livingRoomsAutre", 5)}
-          {countField("Nombre de cuisines", "kitchens", "kitchensAutre", 5)}
-          {countField("Nombre de dépôts", "depots", "depotsAutre", 5)}
+          {COUNTS.map(({ key, label, max }) => (
+            <Field key={key} label={label} required>
+              <ChoiceChips
+                choices={countChoices(max, true)}
+                value={form[key]}
+                onChange={(v) => set(key, v)}
+                otherValue="AUTRE"
+                otherText={form[`${key}Autre`]}
+                onOtherTextChange={(v) => set(`${key}Autre`, v)}
+                otherPlaceholder="Combien ?"
+              />
+            </Field>
+          ))}
         </div>
       ),
     },
@@ -321,77 +419,128 @@ export default function CollecteBienPage() {
       ),
     },
     {
-      id: "proprietaire",
-      title: "Le propriétaire",
-      subtitle: "Ses coordonnées et sa position sur les conditions de l'agence.",
+      id: "responsable",
+      title: parResponsable ? "Vous, responsable du bien" : "Le responsable du bien",
+      subtitle: parResponsable
+        ? "Vos coordonnées, pour que l'agence puisse vous recontacter."
+        : "Le propriétaire, mandataire, gérant ou la société qui gère ce bien.",
       validate: () => {
-        if (!form.proprietaireNom.trim()) return "Le nom du propriétaire est requis."
-        if (!form.proprietairePhone.trim()) return "Le téléphone du propriétaire est requis."
+        if (!form.responsableStatut) return "Indiquez le statut du responsable."
+        if (!form.responsableNom.trim()) return "Le nom du responsable est requis."
+        if (!normalizePhone(form.responsablePhone)) return "Le téléphone du responsable n'est pas valide."
+        if (parResponsable && !form.responsableEmail.trim()) return "Votre adresse e-mail est requise."
+        if (form.responsableEmail.trim() && !isEmailFormatValid(form.responsableEmail)) {
+          return "L'adresse e-mail n'est pas valide."
+        }
+        if (!form.responsableDisponibiliteVisite) return "Indiquez la disponibilité pour les visites."
+        if (!form.responsableAccepteCommission) return "Indiquez la position sur la commission de l'agence."
         return null
       },
       content: (
         <div className="space-y-5">
-          <Field label="Nom du propriétaire" required>
-            <TextField value={form.proprietaireNom} onChange={(v) => set("proprietaireNom", v)} />
+          <Field label="Statut" required>
+            <ChoiceChips
+              choices={RESPONSABLE_STATUT_CHOICES}
+              value={form.responsableStatut}
+              onChange={(v) => set("responsableStatut", v)}
+            />
           </Field>
-          <Field label="Téléphone du propriétaire" required>
+          <Field
+            label={form.responsableStatut === "SOCIETE" ? "Nom de la société / de l'établissement" : "Nom complet"}
+            required
+          >
+            <TextField value={form.responsableNom} onChange={(v) => set("responsableNom", v)} />
+          </Field>
+          <Field label="Téléphone" required>
             <TextField
-              value={form.proprietairePhone}
-              onChange={(v) => set("proprietairePhone", v)}
+              value={form.responsablePhone}
+              onChange={(v) => set("responsablePhone", v)}
               type="tel"
               inputMode="tel"
               placeholder="+243 ..."
             />
           </Field>
-          <Field label="Est-il disponible pour les visites ?" required>
+          <Field label="Adresse e-mail" required={parResponsable}>
+            <TextField
+              value={form.responsableEmail}
+              onChange={(v) => set("responsableEmail", v)}
+              type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="exemple@gmail.com"
+            />
+          </Field>
+          <Field label="Numéro de la pièce d'identité">
+            <TextField
+              value={form.responsableIdNumber}
+              onChange={(v) => set("responsableIdNumber", v)}
+              autoCapitalize="characters"
+            />
+          </Field>
+          <Field label="Disponible pour les visites ?" required>
             <ChoiceChips
               choices={DISPONIBILITE_VISITE_CHOICES}
-              value={form.proprietaireDisponibiliteVisite}
-              onChange={(v) => set("proprietaireDisponibiliteVisite", v)}
+              value={form.responsableDisponibiliteVisite}
+              onChange={(v) => set("responsableDisponibiliteVisite", v)}
             />
           </Field>
-          <Field label="Accepte-t-il la commission agence ?" required>
+          <Field label="Accepte la commission de l'agence ?" required>
             <ChoiceChips
               choices={ACCEPTE_COMMISSION_CHOICES}
-              value={form.proprietaireAccepteCommission}
-              onChange={(v) => set("proprietaireAccepteCommission", v)}
+              value={form.responsableAccepteCommission}
+              onChange={(v) => set("responsableAccepteCommission", v)}
             />
           </Field>
+          {!parCommissionnaire && mediaNote}
         </div>
       ),
     },
-    {
-      id: "collecteur",
-      title: "Vous",
-      subtitle: "Pour que la collecte vous soit correctement attribuée.",
-      validate: () => (form.collecteurNom.trim() ? null : "Votre nom est requis."),
-      content: (
-        <div className="space-y-5">
-          <Field label="Votre nom complet" required>
-            <TextField value={form.collecteurNom} onChange={(v) => set("collecteurNom", v)} />
-          </Field>
-          <Field label="Votre numéro (WhatsApp actif)">
-            <TextField
-              value={form.collecteurPhone}
-              onChange={(v) => set("collecteurPhone", v)}
-              type="tel"
-              inputMode="tel"
-            />
-          </Field>
-          <Field label="Code CCL" hint="Le code qui vous a été attribué par l'agence, si vous en avez un.">
-            <TextField
-              value={form.codeCommissionnaire}
-              onChange={(v) => set("codeCommissionnaire", v)}
-              placeholder="Ex. CCL-042"
-            />
-          </Field>
-          <p className="rounded-md bg-muted/60 px-3 py-2.5 text-xs text-muted-foreground leading-relaxed">
-            Les photos et vidéos du bien s&apos;ajoutent depuis la fiche du bien une fois cette collecte
-            enregistrée — vous n&apos;avez pas besoin de les avoir sous la main maintenant.
-          </p>
-        </div>
-      ),
-    },
+    ...(parCommissionnaire
+      ? [
+          {
+            id: "commissionnaire",
+            title: "Le commissionnaire",
+            subtitle: "Pour que la collecte lui soit correctement attribuée.",
+            validate: () => {
+              if (!form.collecteurNom.trim()) return "Le nom du commissionnaire est requis."
+              if (!normalizePhone(form.collecteurPhone)) return "Le téléphone du commissionnaire n'est pas valide."
+              if (!normalizeCommissionnaireCode(form.codeCommissionnaire)) {
+                return "Le code commissionnaire est requis, au format CCM-042."
+              }
+              return null
+            },
+            content: (
+              <div className="space-y-5">
+                <Field label="Nom complet" required>
+                  <TextField value={form.collecteurNom} onChange={(v) => set("collecteurNom", v)} />
+                </Field>
+                <Field label="Numéro (WhatsApp actif)" required>
+                  <TextField
+                    value={form.collecteurPhone}
+                    onChange={(v) => set("collecteurPhone", v)}
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="+243 ..."
+                  />
+                </Field>
+                <Field label="Code CCM" required hint="Code CoMmissionnaire attribué par l'agence.">
+                  <TextField
+                    value={form.codeCommissionnaire}
+                    onChange={(v) => set("codeCommissionnaire", v)}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder="Ex. CCM-042"
+                  />
+                </Field>
+                {mediaNote}
+              </div>
+            ),
+          } satisfies WizardStep,
+        ]
+      : []),
   ]
 
   return (
@@ -431,14 +580,14 @@ export default function CollecteBienPage() {
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary-900/10 px-3 py-1.5 text-xs font-medium text-primary-900 dark:bg-white/10 dark:text-white">
                 <Lock className="h-3.5 w-3.5" />
-                Usage interne — équipe et commissionnaires
+                Usage interne — équipe, commissionnaires et responsables de biens
               </div>
               <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                 Collecte de bien
               </h1>
               <p className="text-muted-foreground leading-relaxed">
-                Enregistrez un bien relevé sur le terrain. Vos réponses sont sauvegardées au fur et à mesure —
-                vous pouvez interrompre et reprendre plus tard.
+                Enregistrez un bien. Vos réponses sont sauvegardées au fur et à mesure — vous pouvez
+                interrompre et reprendre plus tard.
               </p>
             </div>
 
@@ -448,7 +597,7 @@ export default function CollecteBienPage() {
                 onSubmit={handleSubmit}
                 submitLabel="Enregistrer le bien"
                 isSubmitting={isSubmitting}
-                draftKey="nbn-collecte-bien"
+                draftKey={DRAFT_KEY}
                 onClearDraft={() => {
                   clear()
                   toast.success("Brouillon effacé")

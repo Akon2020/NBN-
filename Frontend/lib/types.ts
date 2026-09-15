@@ -157,6 +157,12 @@ export interface Property {
   toilets?: number | null
   kitchens?: number | null
   price: number
+  commune?: "IBANDA" | "KADUTU" | "BAGIRA" | null
+  // Plancher de négociation du responsable — absent de la réponse sans
+  // property:prix_minimum:read (administration uniquement).
+  prixMinimum?: number | null
+  modalitePaiement?: string | null
+  modalitePaiementAutre?: string | null
   // GOAL 9 — `margin` est désormais dérivé (jamais saisi directement) :
   // price * pourcentage effectif (override du bien ou défaut du type).
   margin?: number
@@ -400,7 +406,7 @@ export interface ClientDossier {
   complaints: ClientComplaint[]
 }
 
-export type BailleurType = "PROPRIETAIRE" | "MANDATAIRE"
+export type BailleurType = "PROPRIETAIRE" | "MANDATAIRE" | "GERANT" | "SOCIETE"
 export type BailleurTypeCollaboration = "OCCASIONNELLE" | "REGULIERE" | "EXCLUSIVE"
 export type BailleurFiabilite = "SERIEUX" | "MOYEN" | "DIFFICILE"
 export type BailleurStatutRelation = "ACTIF" | "INACTIF" | "A_RELANCER" | "SUSPENDU"
@@ -409,6 +415,8 @@ export type BailleurValeur = "FAIBLE" | "MOYEN" | "FORT" | "PARTENAIRE_CLE"
 export const BAILLEUR_TYPE_LABELS: Record<BailleurType, string> = {
   PROPRIETAIRE: "Propriétaire",
   MANDATAIRE: "Mandataire",
+  GERANT: "Gérant",
+  SOCIETE: "Société / Établissement",
 }
 
 export const BAILLEUR_STATUT_LABELS: Record<BailleurStatutRelation, string> = {
@@ -1204,15 +1212,7 @@ export const COMMUNE_CHOICES = [
   { value: "BAGIRA", label: "Bagira" },
 ]
 
-// Le cahier des charges ne fournit la liste des quartiers que pour Ibanda.
-// Le champ reste donc libre partout, avec des suggestions rapides quand
-// elles sont connues — jamais une liste fermée inventée pour les deux
-// autres communes.
-export const QUARTIER_SUGGESTIONS: Record<string, string[]> = {
-  IBANDA: ["Nyalukemba", "Ndendere", "Panzi"],
-  KADUTU: [],
-  BAGIRA: [],
-}
+// Quartiers et avenues : voir lib/locations.ts (référentiel de l'agence).
 
 export const DEVISE_CHOICES = [
   { value: "USD", label: "USD ($)" },
@@ -1420,37 +1420,61 @@ export const OBSERVATION_CHOICES = [
   { value: "AUTRE", label: "Autre" },
 ]
 
-// Compteurs 1..N proposés en pastilles, plus une saisie libre — évite un
-// menu déroulant pour une valeur qui est presque toujours petite.
-export const countChoices = (max: number) => [
+// Compteurs proposés en pastilles, plus une saisie libre — évite un menu
+// déroulant pour une valeur qui est presque toujours petite. `withZero`
+// quand la question est obligatoire : « aucun » doit rester une réponse.
+export const countChoices = (max: number, withZero = false) => [
+  ...(withZero ? [{ value: "0", label: "Aucun" }] : []),
   ...Array.from({ length: max }, (_, i) => ({ value: String(i + 1), label: String(i + 1) })),
   { value: "AUTRE", label: "Autre" },
 ]
 
+export const REMPLISSEUR_CHOICES = [
+  { value: "RESPONSABLE", label: "Le responsable du bien" },
+  { value: "COLLECTEUR", label: "Un collecteur" },
+]
+
+export const RESPONSABLE_STATUT_CHOICES = [
+  { value: "PROPRIETAIRE", label: "Propriétaire" },
+  { value: "MANDATAIRE", label: "Mandataire" },
+  { value: "GERANT", label: "Gérant" },
+  { value: "SOCIETE", label: "Société / Établissement" },
+]
+
+// Corps envoyé à POST /api/property-collections (voir la documentation
+// Swagger de la route pour les champs conditionnels).
 export interface PropertyCollectionPayload {
+  remplisseur: "RESPONSABLE" | "COLLECTEUR"
+  parCommissionnaire?: boolean
   typeMission: string
   typeOperation: string
   propertyType: string
   commune: string
+  quartier: string
+  avenue: string
   prix: string
-  proprietaireNom: string
-  proprietairePhone: string
-  collecteurNom: string
-  quartier?: string
-  avenue?: string
-  bedrooms?: string
-  livingRooms?: string
-  toilets?: string
-  kitchens?: string
-  depots?: string
+  prixMinimum?: string
+  modalitePaiement?: string
+  modalitePaiementAutre?: string
+  bedrooms: string
+  livingRooms: string
+  toilets: string
+  kitchens: string
+  depots: string
   hasElectricity?: boolean
   hasWater?: boolean
   accessibilite?: string
   disponibilite?: string
   etatBien?: string
   observations?: string
-  proprietaireDisponibiliteVisite?: string
-  proprietaireAccepteCommission?: string
+  responsableStatut: string
+  responsableNom: string
+  responsablePhone: string
+  responsableEmail?: string
+  responsableIdNumber?: string
+  responsableDisponibiliteVisite: string
+  responsableAccepteCommission: string
+  collecteurNom?: string
   collecteurPhone?: string
   codeCommissionnaire?: string
 }

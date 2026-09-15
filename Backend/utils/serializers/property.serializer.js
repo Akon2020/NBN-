@@ -16,6 +16,14 @@ export const serializeProperty = async (property, user) => {
     delete plain.marginOverridePercentage;
   }
 
+  // Le prix minimum acceptable révèle jusqu'où le responsable peut
+  // descendre : réservé à l'administration, sinon la négociation est
+  // perdue d'avance.
+  const canReadPrixMinimum = await hasPermission(user, "property:prix_minimum:read");
+  if (!canReadPrixMinimum) {
+    delete plain.prixMinimum;
+  }
+
   return plain;
 };
 

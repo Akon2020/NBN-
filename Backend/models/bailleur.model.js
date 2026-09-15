@@ -21,8 +21,9 @@ const Bailleur = db.define(
       type: DataTypes.BIGINT,
       allowNull: false,
     },
+    // Statut du responsable du bien vis-à-vis de l'agence.
     type: {
-      type: DataTypes.ENUM("PROPRIETAIRE", "MANDATAIRE"),
+      type: DataTypes.ENUM("PROPRIETAIRE", "MANDATAIRE", "GERANT", "SOCIETE"),
       allowNull: false,
     },
     typeCollaboration: {
