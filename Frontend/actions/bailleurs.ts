@@ -51,22 +51,43 @@ export const getSingleBailleur = async (id: number): Promise<Bailleur> => {
   }
 };
 
+// Création avec pièce d'identité : multipart `data` (JSON) + `pieceIdentite`.
 export const createBailleur = async (
-  payload: BailleurCreatePayload
+  payload: BailleurCreatePayload,
+  pieceIdentite: File
 ): Promise<Bailleur> => {
   try {
-    const res = await api.post<{ message: string; data: Bailleur }>(
-      "/api/bailleurs",
-      payload
-    );
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    formData.append("pieceIdentite", pieceIdentite);
+    const res = await api.post<{ message: string; data: Bailleur }>("/api/bailleurs", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return res.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(
-        error.response?.data?.message || "Erreur lors de la création du bailleur"
-      );
-    }
-    throw new Error("Erreur inconnue");
+    throw new Error(apiErrorMessage(error, "Erreur lors de la création du bailleur"));
+  }
+};
+
+// « Joindre un bien existant » : seuls les biens sans bailleur sont acceptés.
+export const linkBailleurProperties = async (id: number, idProperties: number[]): Promise<number> => {
+  try {
+    const res = await api.post<{ data: { linked: number } }>(`/api/bailleurs/${id}/properties`, { idProperties });
+    return res.data.data.linked;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Les biens n'ont pas pu être rattachés"));
+  }
+};
+
+export const uploadBailleurIdentityDocument = async (id: number, file: File): Promise<void> => {
+  try {
+    const formData = new FormData();
+    formData.append("pieceIdentite", file);
+    await api.post(`/api/bailleurs/${id}/piece-identite`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "La pièce d'identité n'a pas pu être envoyée"));
   }
 };
 

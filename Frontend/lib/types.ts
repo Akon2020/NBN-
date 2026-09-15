@@ -532,12 +532,16 @@ export interface Bailleur {
   updatedAt: string
 }
 
+// Corps `data` de POST /api/bailleurs (multipart avec `pieceIdentite`).
 export interface BailleurCreatePayload {
   idPerson?: number
   fullName?: string
   phone?: string
   email?: string
+  idNumber?: string
   type: BailleurType
+  priorite?: BailleurPriorite
+  idProperties?: number[]
   typeCollaboration?: BailleurTypeCollaboration
   margeAgence?: number
 }

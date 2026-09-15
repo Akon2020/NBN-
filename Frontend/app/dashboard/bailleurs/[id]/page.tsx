@@ -15,15 +15,24 @@ import {
   DollarSign,
   Home,
   IdCard,
+  Link2,
   Loader2,
+  MapPin,
+  Paperclip,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditBailleurModal } from "@/components/bailleur-modals/edit-bailleur-modal";
 import { DeleteBailleurModal } from "@/components/bailleur-modals/delete-bailleur-modal";
 import { EntityTimeline } from "@/components/entity-timeline";
-import { getBailleurIdentityDocument, getSingleBailleur } from "@/actions/bailleurs";
+import {
+  getBailleurIdentityDocument,
+  getSingleBailleur,
+  uploadBailleurIdentityDocument,
+} from "@/actions/bailleurs";
 import { BailleurPhotoUploader } from "@/components/bailleur-photo-uploader";
+import { BailleurLinkPropertiesDialog } from "@/components/bailleur-link-properties-dialog";
+import { prefillCollecteForBailleur } from "@/lib/collectePrefill";
 import { BailleurPropertiesDialog } from "@/components/bailleur-properties-dialog";
 import {
   BAILLEUR_STATUT_LABELS,
@@ -48,6 +57,8 @@ export default function BailleurDetailPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isOpeningDocument, setIsOpeningDocument] = useState(false);
   const [showProperties, setShowProperties] = useState(false);
+  const [showLinkProperties, setShowLinkProperties] = useState(false);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
   // L'onglet est ouvert AVANT l'appel réseau : Safari iOS bloque tout
   // window.open déclenché après un `await` (il ne le relie plus au tap).
@@ -127,6 +138,25 @@ export default function BailleurDetailPage({
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setShowLinkProperties(true)}
+          >
+            <Link2 className="h-4 w-4 mr-2" />
+            Joindre un bien existant
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              prefillCollecteForBailleur(bailleur);
+              router.push("/collecte-bien");
+            }}
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            Collecter un nouveau bien
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowEditModal(true)}
           >
             <Edit className="h-4 w-4 mr-2" />
@@ -196,6 +226,40 @@ export default function BailleurDetailPage({
                   </div>
                 )}
               </div>
+
+              {!bailleur.person?.hasIdDocument && (
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
+                  {isUploadingDocument ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                  Ajouter la pièce d&apos;identité
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="sr-only"
+                    disabled={isUploadingDocument}
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingDocument(true);
+                      try {
+                        await uploadBailleurIdentityDocument(bailleur.idBailleur, file);
+                        setBailleur({
+                          ...bailleur,
+                          person: bailleur.person ? { ...bailleur.person, hasIdDocument: true } : bailleur.person,
+                        });
+                        toast.success("Pièce d'identité ajoutée");
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "Erreur inconnue");
+                      } finally {
+                        setIsUploadingDocument(false);
+                      }
+                    }}
+                  />
+                </label>
+              )}
 
               {bailleur.person?.hasIdDocument && (
                 <Button
@@ -317,6 +381,14 @@ export default function BailleurDetailPage({
         entityId={bailleur.idBailleur}
       />
 
+      <BailleurLinkPropertiesDialog
+        bailleur={bailleur}
+        open={showLinkProperties}
+        onOpenChange={setShowLinkProperties}
+        onLinked={() => {
+          getSingleBailleur(Number(id)).then(setBailleur).catch(() => {});
+        }}
+      />
       <BailleurPropertiesDialog
         bailleur={bailleur}
         open={showProperties}

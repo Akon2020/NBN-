@@ -174,7 +174,8 @@ describe("Pièce d'identité du responsable", () => {
       .toBuffer();
 
     const dir = path.resolve(path.dirname(storedPath));
-    const filesBefore = fs.readdirSync(dir).length;
+    const relativeDir = path.dirname(storedPath);
+    const filesBefore = new Set(fs.readdirSync(dir));
 
     const res = await submitWithDocument(payload, other);
     expect(res.status).toBe(201);
@@ -183,7 +184,13 @@ describe("Pièce d'identité du responsable", () => {
     const person = await Person.findOne({ where: { phone: responsablePhone } });
     expect(person.idDocumentPath).toBe(storedPath);
 
-    // Le fichier écarté n'est pas laissé orphelin sur le disque.
-    expect(fs.readdirSync(dir).length).toBe(filesBefore);
+    // Le fichier écarté n'est pas laissé orphelin sur le disque. D'autres
+    // fichiers de tests écrivent en parallèle dans ce dossier : on vérifie
+    // que chaque nouveau fichier appartient bien à une personne.
+    const newFiles = fs.readdirSync(dir).filter((name) => !filesBefore.has(name));
+    for (const name of newFiles) {
+      const owner = await Person.count({ where: { idDocumentPath: `${relativeDir}/${name}` } });
+      expect(owner, `fichier orphelin : ${name}`).toBe(1);
+    }
   });
 });

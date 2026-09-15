@@ -6,11 +6,14 @@ import {
   getBailleurIdentityDocument,
   getBailleurProperties,
   getSingleBailleur,
+  linkBailleurProperties,
   updateBailleur,
+  uploadBailleurIdentityDocument,
   uploadBailleurPhoto,
 } from "../controllers/bailleur.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
+import { parseCollectionUpload } from "../middlewares/collectionUpload.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
 
 const bailleurRouter = Router();
@@ -64,38 +67,45 @@ bailleurRouter.get(
  * @swagger
  * /api/bailleurs:
  *   post:
- *     summary: Crée un nouveau bailleur (CDC §3 module 3 "FICHE BAILLEUR")
+ *     summary: « Ajouter un Bailleur » — identité, pièce d'identité obligatoire, biens existants à rattacher
+ *     description: >
+ *       Multipart `data` (JSON ci-dessous) + `pieceIdentite` (JPEG, PNG, WebP ou
+ *       PDF, stocké hors du dossier public). La pièce n'est facultative que si
+ *       la personne (`idPerson`) en a déjà une. Un contact déjà bailleur (même
+ *       téléphone) répond 409 avec son `idBailleur`.
  *     tags: [Bailleurs]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - type
+ *             required: [data, pieceIdentite]
  *             properties:
- *               idPerson:
- *                 type: integer
- *               fullName:
+ *               data:
  *                 type: string
- *               phone:
+ *                 description: >
+ *                   JSON — type* (PROPRIETAIRE, MANDATAIRE, GERANT, SOCIETE), fullName*, phone*,
+ *                   email, idNumber, priorite (VIP, PREMIUM, STANDARD, INACTIF), idProperties
+ *                   (biens sans bailleur à rattacher), typeCollaboration, notes, margeAgence
+ *               pieceIdentite:
  *                 type: string
- *               email:
- *                 type: string
- *               type:
- *                 type: string
- *                 enum: [PROPRIETAIRE, MANDATAIRE]
+ *                 format: binary
  *     responses:
  *       201:
  *         description: Bailleur créé avec succès
  *       400:
- *         description: Données invalides
+ *         description: Statut, nom, téléphone, e-mail, priorité ou pièce d'identité manquant/invalide
+ *       404:
+ *         description: Personne ou bien introuvable
+ *       409:
+ *         description: Contact déjà bailleur, ou bien déjà rattaché à un autre bailleur
  */
 bailleurRouter.post(
   "/",
   authMiddlware,
   requirePermission("bailleurs:manage"),
+  parseCollectionUpload,
   createBailleur
 );
 
@@ -216,6 +226,54 @@ bailleurRouter.get(
   authMiddlware,
   requirePermission("bailleurs:read"),
   getBailleurProperties
+);
+
+/**
+ * @swagger
+ * /api/bailleurs/{id}/properties:
+ *   post:
+ *     summary: « Joindre un bien existant » — rattache des biens sans bailleur
+ *     tags: [Bailleurs]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idProperties]
+ *             properties:
+ *               idProperties: { type: array, items: { type: integer } }
+ *     responses:
+ *       200:
+ *         description: "{ linked }"
+ *       409:
+ *         description: Un des biens appartient déjà à un autre bailleur
+ */
+bailleurRouter.post(
+  "/:id/properties",
+  authMiddlware,
+  requirePermission("bailleurs:manage"),
+  linkBailleurProperties
+);
+
+/**
+ * @swagger
+ * /api/bailleurs/{id}/piece-identite:
+ *   post:
+ *     summary: Ajoute ou remplace la pièce d'identité du bailleur (multipart `pieceIdentite`)
+ *     tags: [Bailleurs]
+ *     responses:
+ *       200:
+ *         description: Pièce enregistrée (l'ancienne est supprimée)
+ *       400:
+ *         description: Fichier manquant ou illisible
+ */
+bailleurRouter.post(
+  "/:id/piece-identite",
+  authMiddlware,
+  requirePermission("bailleurs:manage"),
+  parseCollectionUpload,
+  uploadBailleurIdentityDocument
 );
 
 /**
