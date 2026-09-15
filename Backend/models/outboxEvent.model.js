@@ -19,8 +19,9 @@ const OutboxEvent = db.define(
       type: DataTypes.STRING(100),
       allowNull: false,
     },
+    // MEDIUMTEXT : un e-mail en file peut contenir une pièce jointe PDF.
     payload: {
-      type: DataTypes.TEXT,
+      type: DataTypes.TEXT("medium"),
       allowNull: false,
     },
     statut: {

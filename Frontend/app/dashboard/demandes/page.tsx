@@ -11,8 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ClipboardList, Loader2, Phone, Search, ShieldAlert, User } from "lucide-react"
-import { getAllRentalRequests } from "@/actions/rentalRequests"
+import { Button } from "@/components/ui/button"
+import { ClipboardList, FileDown, ListChecks, Loader2, Phone, Search, ShieldAlert, User } from "lucide-react"
+import { getAllRentalRequests, openRentalRequestPdf } from "@/actions/rentalRequests"
+import { RentalRequestAssignDialog } from "@/components/rental-request-assign-dialog"
 import {
   CLIENT_PIPELINE_LABELS,
   MODALITE_PAIEMENT_CHOICES,
@@ -49,6 +51,7 @@ export default function DemandesPage() {
   const [forbidden, setForbidden] = useState(false)
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<RentalRequest | null>(null)
+  const [assigning, setAssigning] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -276,6 +279,29 @@ export default function DemandesPage() {
                   />
                 </section>
               </div>
+
+              <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap">
+                <Button
+                  onClick={() => setAssigning(true)}
+                  className="bg-accent-600 text-white hover:bg-accent-600/90"
+                >
+                  <ListChecks className="mr-2 h-4 w-4" />
+                  Assigner une tâche
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    openRentalRequestPdf(selected.idRentalRequest).catch((error) =>
+                      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+                    )
+                  }
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Fiche PDF
+                </Button>
+              </div>
+
+              <RentalRequestAssignDialog request={selected} open={assigning} onOpenChange={setAssigning} />
             </>
           )}
         </DialogContent>

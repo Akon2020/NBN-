@@ -135,6 +135,20 @@ export const propertyCollectionTeamEmail = ({ title, source, localisation, price
     ${actionButton(link, "Ouvrir la fiche du bien")}`),
 });
 
+// Tâche assignée depuis « Demandes reçues », fiche PDF en pièce jointe. Le
+// destinataire peut ne pas avoir de compte (adresse saisie à la main).
+export const taskAssignmentEmail = ({ recipientName, clientName, assignedBy, note, dueDate, link, hasAccount }) => ({
+  subject: `Tâche assignée : demande de location de ${clientName}`,
+  html: layout(`
+    <p>Bonjour${recipientName ? ` <strong>${escapeHtml(recipientName)}</strong>` : ""},</p>
+    <p><strong>${escapeHtml(assignedBy)}</strong> vous confie le traitement de la demande de location de
+    <strong>${escapeHtml(clientName)}</strong>. La fiche complète est jointe à cet e-mail (PDF).</p>
+    ${note ? `<p style="background:${SURFACE};padding:12px;border-radius:6px;white-space:pre-wrap">${escapeHtml(note)}</p>` : ""}
+    ${detailRows([["Échéance", dueDate]])}
+    ${hasAccount ? actionButton(link, "Voir la tâche") : ""}
+    <p style="color:${MUTED};font-size:13px">Cette fiche contient des données personnelles : ne la transmettez pas en dehors de l'agence.</p>`),
+});
+
 // Confirmation au responsable qui a lui-même enregistré son bien.
 export const propertyCollectionConfirmation = ({ fullName, localisation, requestedAt }) => ({
   subject: "Votre bien a bien été enregistré",

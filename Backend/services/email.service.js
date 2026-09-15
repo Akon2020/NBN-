@@ -7,11 +7,14 @@ import { getMailbox } from "../config/mailboxes.js";
 // pendant la requête. La réponse au formulaire ne dépend jamais du serveur
 // SMTP, et un envoi raté est retenté par le worker (services/outbox.worker.js)
 // au lieu d'être perdu.
-export const queueEmail = async ({ to, subject, html, text, replyTo, mailboxKey }) => {
+// `attachments` au format nodemailer, contenu en base64
+// ({ filename, content, encoding: "base64", contentType }) : la charge utile
+// est du JSON stocké en base, jamais un Buffer.
+export const queueEmail = async ({ to, subject, html, text, replyTo, mailboxKey, attachments }) => {
   if (!to) return null;
   return OutboxEvent.create({
     eventType: "email:send",
-    payload: JSON.stringify({ to, subject, html, text, replyTo, mailboxKey }),
+    payload: JSON.stringify({ to, subject, html, text, replyTo, mailboxKey, attachments }),
   });
 };
 

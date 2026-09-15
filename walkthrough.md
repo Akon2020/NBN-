@@ -1127,3 +1127,17 @@ _Phase 1 terminée. Au déploiement : `npm run db:migrate` puis `npm run db:seed
 - **Vérification réelle** : relève du compte Gmail de développement (`MAILBOX_CONTACT_USE_DEFAULT_ACCOUNT=true`) → connexion IMAP réussie, point de départ fixé.
 
 _Phase 2 terminée. Au déploiement : `npm run db:migrate`, `npm run db:seed`, compléter SMTP_* et MAILBOX_CONTACT_* / MAILBOX_DIRECTION_* dans `.env.production.local`, créer le compte au rôle « direction »._
+
+---
+
+## Phase 3 — Demandes reçues et fiche client
+
+### 3.1 « Assigner une tâche » depuis une demande, fiche PDF envoyée par e-mail
+
+- `services/task.service.js` : création de tâche extraite du contrôleur (`createTaskWithRelations` + `syncTaskRelations`, `notifyUsers`, `syncTaskDeadlineReminders`, `getCurrentAssigneeUserIds`) pour que le module Tâches et « Demandes reçues » partagent une seule implémentation (assignés, liens, rappels d'échéance, journal, notification des assignés hors créateur). `task.controller.js` l'utilise ; `task.test.js` inchangé et vert.
+- `utils/reports/rentalRequestPdf.js` (pdf-lib) : fiche complète multi-pages (bandeau navy, sections, retour à la ligne, libellés lisibles), mention « document interne confidentiel ». Caractères hors WinAnsi (emoji…) retirés : un emoji saisi par un client ne fait jamais échouer la génération.
+- `GET /api/rental-requests/:id/pdf` (clients:read, `no-store`).
+- `POST /api/rental-requests/:id/assign` (clients:read + tasks:manage) : utilisateurs, commissionnaires et adresses saisies à la main (10 max, format + domaine vérifiés) → tâche liée au client et aux commissionnaires, priorité déduite de l'urgence (immédiat → urgente, 1-2 semaines → haute), échéance et consigne ; un commissionnaire ayant un compte devient assigné. Fiche PDF jointe par e-mail (outbox) à chaque destinataire unique ; seuls les comptes reçoivent le lien vers la tâche ; commissionnaires sans e-mail signalés dans la réponse. Événement sur la timeline du client.
+- Migration `20260916000000-outbox-payload-mediumtext.cjs` : `outboxEvents.payload` en MEDIUMTEXT (une pièce jointe base64 dépasse le plafond de 64 Ko de TEXT). `queueEmail` accepte `attachments`.
+- Frontend : boutons « Assigner une tâche » et « Fiche PDF » au bas de la fiche d'une demande ; dialogue `rental-request-assign-dialog.tsx` (recherche, utilisateurs, commissionnaires si le rôle y a accès, adresses libres en pastilles, échéance, consigne, compte-rendu des envois).
+- Tests : `tests/rentalRequestAssign.test.js` (PDF avec emoji, refus sans destinataire / e-mail invalide / 403, tâche urgente liée au client, notification, PDF joint et dédoublonné, lien réservé aux comptes). Backend 281/281, Frontend 20/20, `tsc` OK.

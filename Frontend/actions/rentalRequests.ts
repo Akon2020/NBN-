@@ -41,3 +41,41 @@ export const getSingleRentalRequest = async (id: number): Promise<RentalRequest>
     return handleError(error, "Erreur lors de la récupération de la demande");
   }
 };
+
+// Ouvre la fiche PDF dans un nouvel onglet. L'onglet est créé AVANT l'appel
+// réseau : Safari iOS bloque un window.open déclenché après un `await`.
+export const openRentalRequestPdf = async (id: number): Promise<void> => {
+  const tab = window.open("", "_blank");
+  try {
+    const res = await api.get<Blob>(`/api/rental-requests/${id}/pdf`, { responseType: "blob" });
+    const url = URL.createObjectURL(res.data);
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (error) {
+    tab?.close();
+    return handleError(error, "Impossible d'ouvrir la fiche PDF");
+  }
+};
+
+export interface AssignRentalRequestPayload {
+  assigneeUserIds: number[];
+  idCommissionnaires: number[];
+  extraEmails: string[];
+  dateEcheance?: string;
+  note?: string;
+}
+
+export const assignRentalRequest = async (
+  id: number,
+  payload: AssignRentalRequestPayload
+): Promise<{ idTask: number; emailsQueued: number; withoutEmail: string[] }> => {
+  try {
+    const res = await api.post<{
+      data: { idTask: number; emailsQueued: number; withoutEmail: string[] };
+    }>(`/api/rental-requests/${id}/assign`, payload);
+    return res.data.data;
+  } catch (error) {
+    return handleError(error, "L'assignation de la tâche a échoué");
+  }
+};

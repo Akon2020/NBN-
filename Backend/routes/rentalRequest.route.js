@@ -4,6 +4,10 @@ import {
   getAllRentalRequests,
   getSingleRentalRequest,
 } from "../controllers/rentalRequest.controller.js";
+import {
+  assignRentalRequest,
+  getRentalRequestPdf,
+} from "../controllers/rentalRequestAssignment.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
 import { publicFormLimiter } from "../middlewares/rateLimit.middleware.js";
@@ -119,6 +123,68 @@ rentalRequestRouter.get(
   authMiddlware,
   requirePermission("clients:read"),
   getSingleRentalRequest
+);
+
+/**
+ * @swagger
+ * /api/rental-requests/{id}/pdf:
+ *   get:
+ *     summary: Fiche PDF de la demande (générée à la demande, jamais stockée)
+ *     tags: [RentalRequests]
+ *     responses:
+ *       200:
+ *         description: application/pdf
+ *       404:
+ *         description: Demande non trouvée
+ */
+rentalRequestRouter.get(
+  "/:id/pdf",
+  authMiddlware,
+  requirePermission("clients:read"),
+  getRentalRequestPdf
+);
+
+/**
+ * @swagger
+ * /api/rental-requests/{id}/assign:
+ *   post:
+ *     summary: Assigne le traitement de la demande — crée une tâche et envoie la fiche PDF par e-mail
+ *     description: >
+ *       Tâche liée au client et aux commissionnaires choisis (priorité déduite
+ *       de l'urgence). La fiche PDF part par e-mail (outbox) à chaque
+ *       utilisateur, commissionnaire et adresse saisie à la main, sans doublon.
+ *       Un commissionnaire qui a un compte devient aussi assigné.
+ *       Requiert clients:read et tasks:manage.
+ *     tags: [RentalRequests]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               assigneeUserIds: { type: array, items: { type: integer } }
+ *               idCommissionnaires: { type: array, items: { type: integer } }
+ *               extraEmails:
+ *                 type: array
+ *                 items: { type: string }
+ *                 description: Personnes sans compte (10 max, format et domaine vérifiés)
+ *               dateEcheance: { type: string, format: date }
+ *               note: { type: string, maxLength: 2000 }
+ *     responses:
+ *       201:
+ *         description: "{ idTask, emailsQueued, withoutEmail } — withoutEmail liste les commissionnaires sans e-mail"
+ *       400:
+ *         description: Aucun destinataire, e-mail invalide, utilisateur ou commissionnaire introuvable
+ *       403:
+ *         description: Permission manquante
+ */
+rentalRequestRouter.post(
+  "/:id/assign",
+  authMiddlware,
+  requirePermission("clients:read"),
+  requirePermission("tasks:manage"),
+  assignRentalRequest
 );
 
 export default rentalRequestRouter;
