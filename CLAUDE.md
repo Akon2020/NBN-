@@ -323,7 +323,9 @@ Le Mobile ne dépend jamais de Socket.IO pour recevoir une information critique 
 - Idempotence stricte exigée sur toute opération financière.
 
 ### Notifications / Alertes / Rappels
-Voir §4. Architecture événementielle interne légère (`EventEmitter` in-process), pas de message broker externe. Outbox pattern uniquement pour les effets secondaires dont la perte serait coûteuse (ex. paiement, changement de statut de compte) — pas systématique.
+Voir §4. Architecture événementielle interne légère (`EventEmitter` in-process), pas de message broker externe. Outbox pattern uniquement pour les effets secondaires dont la perte serait coûteuse (ex. paiement, changement de statut de compte) — pas systématique. Les e-mails déclenchés par un formulaire public (avis de réception, notification d'équipe) passent par l'outbox (`email:send`) : un accusé de réception perdu est coûteux commercialement.
+
+**Boîtes professionnelles** (décision du porteur de projet, 2026-09-15) : contact@, direction@ et les futures adresses pro sont relevées en IMAP (lecture seule) et déclarées par variables d'environnement (`MAILBOXES`, `MAILBOX_<CLÉ>_*`). L'accès aux messages reçus est une **règle contextuelle par audience de boîte** (rôles + comptes listés + compte dont l'e-mail est l'adresse de la boîte), pas une permission RBAC : contact@ → admin, communication, marketing ; direction@ → rôle `direction` uniquement, **admin exclu**. Un message hors audience répond 404. En développement, Gmail (`EMAIL`/`EMAIL_PASSWORD`).
 
 ### Tâches / Kanban
 Voir §4. Workflows métier (pipeline commercial, cycle de vie d'un bien, validation de réquisition, collecte terrain) restent séparés et autonomes du module `tasks` générique.

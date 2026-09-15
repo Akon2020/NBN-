@@ -55,4 +55,6 @@ export const {
   // séparés par des virgules. Défauts dans services/formNotifications.service.js.
   NOTIFY_RENTAL_REQUEST_ROLES,
   NOTIFY_PROPERTY_COLLECTION_ROLES,
+  // Fréquence de relève IMAP des boîtes professionnelles (expression cron).
+  INBOUND_MAIL_POLL_CRON,
 } = process.env;

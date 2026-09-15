@@ -144,6 +144,15 @@ requête** : ils passent par l'outbox (`email:send`), et le worker les retente
 jusqu'à 5 fois. Un SMTP en panne ne fait donc ni échouer une soumission, ni
 perdre un accusé de réception.
 
+**Relève des boîtes** (`services/inboundMail.service.js`) : toutes les 2 minutes
+(`INBOUND_MAIL_POLL_CRON`), chaque boîte avec identifiants est lue en IMAP **en
+lecture seule** — les messages restent non lus dans le webmail. La première
+relève fixe un point de départ (pas d'import de l'historique). Chaque nouveau
+message devient une copie consultable dans « Messages reçus » et une
+notification pour l'audience de la boîte ; la réponse part depuis la boîte
+elle-même, dans le même fil. Un message hors de l'audience de l'utilisateur
+répond 404 (la direction reste confidentielle, y compris vis-à-vis de l'admin).
+
 En développement avec Gmail : activer la validation en 2 étapes du compte, créer
 un **mot de passe d'application** (`EMAIL_PASSWORD`), et autoriser l'accès IMAP
 si la boîte `contact` relève ce compte (`MAILBOX_CONTACT_USE_DEFAULT_ACCOUNT=true`).

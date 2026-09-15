@@ -61,6 +61,9 @@ import ClientComplaint from "./clientComplaint.model.js";
 import RentalRequest from "./rentalRequest.model.js";
 import MarginSetting from "./marginSetting.model.js";
 import AppSetting from "./appSetting.model.js";
+import MailboxState from "./mailboxState.model.js";
+import InboundEmail from "./inboundEmail.model.js";
+import InboundEmailReply from "./inboundEmailReply.model.js";
 import MarginHistory from "./marginHistory.model.js";
 
 // User - Property
@@ -396,6 +399,12 @@ MarginSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
 
 // GOAL 13 — centre de configuration générique.
 AppSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
+
+// Messages reçus sur les boîtes professionnelles et réponses envoyées.
+InboundEmail.hasMany(InboundEmailReply, { foreignKey: "idInboundEmail", as: "replies" });
+InboundEmailReply.belongsTo(InboundEmail, { foreignKey: "idInboundEmail", as: "inboundEmail" });
+InboundEmailReply.belongsTo(User, { foreignKey: "idUser", as: "author" });
+InboundEmail.belongsTo(User, { foreignKey: "repliedBy", as: "replier" });
 MarginHistory.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
 MarginHistory.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
 
@@ -472,5 +481,8 @@ export {
   MarginSetting,
   AppSetting,
   MarginHistory,
+  MailboxState,
+  InboundEmail,
+  InboundEmailReply,
   syncModels,
 };

@@ -3,6 +3,7 @@ import { PORT, HOST_URL } from "./config/env.js";
 import { syncModels } from "./models/index.model.js";
 import { startOutboxCron } from "./services/outbox.worker.js";
 import { startReminderCron } from "./services/reminder.worker.js";
+import { startInboundMailCron } from "./services/inboundMail.service.js";
 import { initSocketGateway } from "./shared/socketGateway.js";
 
 const server = app.listen(PORT, async () => {
@@ -10,6 +11,9 @@ const server = app.listen(PORT, async () => {
     await syncModels();
     startOutboxCron();
     startReminderCron();
+    // Sans boîte configurée (MAILBOXES vide ou identifiants manquants),
+    // chaque tick ne fait rien : aucun impact sur le reste de l'API.
+    startInboundMailCron();
     // BACK-G18 — attaché au même serveur HTTP que l'API REST (pas un port
     // séparé). Si l'hébergement cible ne supporte pas les WebSocket
     // persistants (cPanel, CLAUDE.md §12 point ouvert), cette ligne est le

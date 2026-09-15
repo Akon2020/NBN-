@@ -1079,6 +1079,45 @@ export const ASSIGNABLE_ROLES = [
   "consultant",
 ] as const
 
+// --- Boîtes professionnelles et messages reçus (GET /api/inbound-emails) ---
+
+export interface Mailbox {
+  key: string
+  label: string
+  address: string
+  canSend: boolean
+  canReceive: boolean
+}
+
+export interface InboundEmail {
+  idInboundEmail: number
+  mailboxKey: string
+  mailboxAddress: string
+  messageId: string
+  fromName?: string | null
+  fromAddress?: string | null
+  toAddresses?: string | null
+  subject?: string | null
+  receivedAt: string
+  repliedAt?: string | null
+  repliedBy?: number | null
+}
+
+export interface InboundEmailReply {
+  idInboundEmailReply: number
+  body: string
+  statut: "SENT" | "FAILED"
+  error?: string | null
+  createdAt: string
+  author?: { idUser: number; fullName: string } | null
+}
+
+export interface InboundEmailDetail extends InboundEmail {
+  textBody?: string | null
+  replies: InboundEmailReply[]
+  canReply: boolean
+}
+
 export const USER_STATUS_LABELS: Record<"ACTIVE" | "INACTIVE", string> = {
   ACTIVE: "Actif",
   INACTIVE: "Inactif",

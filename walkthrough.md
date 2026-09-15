@@ -1110,3 +1110,20 @@ _Phase 1 terminée. Au déploiement : `npm run db:migrate` puis `npm run db:seed
 - Seeder `20260915300000-seed-direction-role.cjs` : rôle **direction** (destinataire exclusif de direction@). Frontend : libellé + rôle assignable.
 - `dashboard/notifications` : liens vers la fiche client et la bonne fiche bien (catégorie portée par le type `property_collection:new:rent|sale`).
 - Tests : `tests/formNotifications.test.js` (texte et variables de l'avis, échappement, destinataires par rôle — trésorerie non prévenue, lien de collecte vers la fiche vente). 40/40 sur les fichiers formulaires, `tsc` OK.
+
+### 2.3 Boîtes contact@ / direction@ : relève IMAP, notifications, réponse depuis le site
+
+- Migration `20260915400000-create-inbound-emails.cjs` : `mailboxStates` (curseur UID + UIDVALIDITY, dernière erreur technique), `inboundEmails` (copie du message, unique par boîte + Message-ID), `inboundEmailReplies` (réponses envoyées, y compris les échecs). Réversible (vérifié).
+- `services/inboundMail.service.js` :
+  - relève **en lecture seule** (`getMailboxLock("INBOX", { readOnly: true })`) : les messages restent non lus dans le webmail de l'équipe ;
+  - première relève = point de départ, sans importer l'historique ; boîte renumérotée (UIDVALIDITY) = nouveau point de départ ;
+  - aucune commande IMAP pendant l'itération du fetch (contrainte imapflow), 50 messages max par relève, corps texte (HTML réduit en texte) tronqué à 20 000 caractères, message de la boîte à elle-même ignoré ;
+  - chaque nouveau message → Notification `inbound_email:new` pour l'**audience de la boîte** (rôles, comptes listés, compte portant l'adresse de la boîte) ;
+  - cron `INBOUND_MAIL_POLL_CRON` (2 min), sans chevauchement de relèves, démarré dans `server.js`, inerte sans boîte configurée ; erreur par boîte journalisée sans identifiants.
+- API `/api/inbound-emails` (Swagger) : boîtes accessibles, liste (sans corps), détail avec réponses et `canReply`, `POST /:id/reply` depuis la boîte d'origine (Re:, citation, In-Reply-To/References). Accès = règle contextuelle d'audience vérifiée à chaque appel ; **hors audience → 404** (l'admin ne voit pas direction@). Boîte sans SMTP → 409, échec d'envoi → 502 et trace `FAILED`.
+- Frontend : page `dashboard/messages` (liste filtrable par boîte, lecture, historique des réponses, réponse pré-remplie avec signature, bouton « Ouvrir ma messagerie » en secours), entrée de menu « Messages reçus », lien depuis les notifications.
+- CLAUDE.md §7 : décision « boîtes professionnelles » et règle d'audience documentées. README : relève.
+- Tests : `tests/inboundMail.test.js` (faux serveur IMAP, vrai `mailparser`) — point de départ, audiences contact/direction, non-réimport, 404 admin sur direction@, réponse depuis contact@ dans le fil, refus réponse vide / boîte sans SMTP. Backend complet 276/276 (45 fichiers), Frontend 20/20, build OK.
+- **Vérification réelle** : relève du compte Gmail de développement (`MAILBOX_CONTACT_USE_DEFAULT_ACCOUNT=true`) → connexion IMAP réussie, point de départ fixé.
+
+_Phase 2 terminée. Au déploiement : `npm run db:migrate`, `npm run db:seed`, compléter SMTP_* et MAILBOX_CONTACT_* / MAILBOX_DIRECTION_* dans `.env.production.local`, créer le compte au rôle « direction »._
