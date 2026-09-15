@@ -1031,3 +1031,17 @@ Cause réelle de la « ligne d'erreur » (et du fait que l'onglet ne s'affichait
 - Tests : `tests/lib/apiError.test.ts`. Frontend 13/13, Backend 216/216 (38 fichiers).
 
 _Phase 0 terminée. À faire côté serveur : redéployer Backend et Frontend, `ACCESS_TOKEN_EXPIRES_IN="24h"` dans `.env.production.local`, réglage Passenger._
+
+---
+
+## Phase 1 — Formulaires
+
+### 1.1 Référentiel des quartiers et avenues de Bukavu
+
+Source : PDF « Quartiers par commune » fourni par l'agence (442 lignes commune/quartier/avenue, extraites puis dédoublonnées). 3 communes, 14 quartiers, leurs avenues.
+
+- Orthographes tranchées par le porteur de projet : **Kadurhu** (et non Kadhuru), **Evariste Baganda** (et non Évariste). Coquilles d'accent évidentes corrigées au passage : Cimetière, Athénée d'Ibanda, Kilomètre quatre, Place Lumumba.
+- `Frontend/lib/locations.data.json` et `Backend/shared/bukavuLocations.data.json` : fichiers identiques (pas de package partagé, CLAUDE.md §9).
+- `Backend/shared/bukavuLocations.js::resolveQuartier(commune, quartier)` : liste des quartiers **fermée** (un quartier inconnu est une erreur de saisie), insensible à la casse et aux accents. La liste des avenues reste ouverte (« Autre avenue » + texte libre).
+- `Frontend/components/forms/location-fields.tsx` : cascade commune → quartier → avenue(s) en pastilles, remise à zéro en aval à chaque changement ; `validateLocation` et `resolveAvenues` réutilisés par les deux formulaires.
+- Tests : `Backend/tests/bukavuLocations.test.js` (4), `Frontend/tests/components/location-fields.test.tsx` (4).
