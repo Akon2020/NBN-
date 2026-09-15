@@ -1170,3 +1170,17 @@ _Phase 2 terminée. Au déploiement : `npm run db:migrate`, `npm run db:seed`, c
 - Tests : `tests/proposalBatch.test.js` (400, 403, création + pipeline, non-régression d'un dossier avancé, historique sans données confidentielles). Backend 290/290 (48 fichiers), Frontend 24/24, `tsc` OK.
 
 _Phase 3 terminée. Au déploiement : `npm run db:migrate`._
+
+---
+
+## Phase 4 — Onglet Bailleurs
+
+### 4.1 Liste par priorité, Aperçu / Profil, photo, confidentialité du lien bien ↔ bailleur
+
+- Migration `20260917000000-bailleur-priority-photo.cjs` : `priorite` (VIP/PREMIUM/STANDARD/INACTIF, défaut STANDARD) et `photo` sur `bailleurs`. Réversible (vérifié).
+- `GET /api/bailleurs` : tri SQL par profil (`FIELD(priorite…)`) puis nom, `propertiesCount` calculé en sous-requête (une requête pour toute la liste), filtre `?priorite`. Même compteur sur le détail et la réponse de mise à jour.
+- `GET /api/bailleurs/:id/properties` (« Aperçu », bailleurs:read) ; `POST /api/bailleurs/:id/photo` (bailleurs:manage, image compressée, ancienne photo supprimée).
+- `PATCH /api/bailleurs/:id` : priorité et statut du responsable (listes fermées, 400 sinon), identité modifiable (nom, téléphone normalisé, e-mail vérifié, n° de pièce — portés par la `Person`), événement timeline au changement de profil.
+- **Confidentialité** (demande de l'agence) : `property.serializer.js` retire `idBailleur` et `phones` (numéros du responsable issus de la collecte) sans `bailleurs:read`. Droits évalués une seule fois par liste au lieu de 3 lectures par bien.
+- Frontend : liste en cartes (photo ou initiales, badge de profil coloré, nombre de biens, recherche, filtres par profil avec compteurs), boutons **Aperçu** (dialogue des biens) et **Profil** ; fiche : photo modifiable au tap, badge de profil, « Aperçu des biens (n) », fenêtre « Modifier le profil » enrichie (identité + profil agence). Galerie : « Bailleur : nom » sur chaque carte, seulement si le rôle peut lister les bailleurs. Tri identique côté client (`lib/bailleurs.ts`, comparaison en français).
+- Tests : `Backend/tests/bailleurPortfolio.test.js` (ordre, compteurs, Aperçu, priorité invalide, identité normalisée, photo, lien bien ↔ bailleur masqué pour marketing / visible pour operations), `Frontend/tests/lib/bailleurs.test.ts`, cas ajouté à `bailleurs-page.test.tsx`. Backend 297/297 (49 fichiers), Frontend 27/27, `tsc` OK.

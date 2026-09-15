@@ -1,6 +1,7 @@
 import api from "@/lib/axios";
 import axios from "axios";
-import { Bailleur, BailleurCreatePayload, BailleurUpdatePayload } from "@/lib/types";
+import { Bailleur, BailleurCreatePayload, BailleurUpdatePayload, Property } from "@/lib/types";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export const getAllBailleurs = async (): Promise<Bailleur[]> => {
   try {
@@ -86,6 +87,29 @@ export const updateBailleur = async (
       );
     }
     throw new Error("Erreur inconnue");
+  }
+};
+
+// « Aperçu » : les biens à l'actif du bailleur.
+export const getBailleurProperties = async (id: number): Promise<Property[]> => {
+  try {
+    const res = await api.get<{ nombre: number; data: Property[] }>(`/api/bailleurs/${id}/properties`);
+    return res.data.data;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Erreur lors de la récupération des biens du bailleur"));
+  }
+};
+
+export const uploadBailleurPhoto = async (id: number, file: File): Promise<string> => {
+  try {
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await api.post<{ data: { photo: string } }>(`/api/bailleurs/${id}/photo`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.data.photo;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "La photo n'a pas pu être envoyée"));
   }
 };
 

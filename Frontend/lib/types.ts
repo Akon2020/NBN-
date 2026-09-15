@@ -485,12 +485,35 @@ export const BAILLEUR_VALEUR_LABELS: Record<BailleurValeur, string> = {
 // `margeAgence` est absent de la réponse si l'utilisateur n'a pas
 // `bailleur:marge:read` (field-level authorization, même principe que
 // Property.margin) — jamais présumer sa présence.
+// Profil défini par l'agence — ordonne la liste des bailleurs.
+export type BailleurPriorite = "VIP" | "PREMIUM" | "STANDARD" | "INACTIF"
+
+export const BAILLEUR_PRIORITES: BailleurPriorite[] = ["VIP", "PREMIUM", "STANDARD", "INACTIF"]
+
+export const BAILLEUR_PRIORITE_LABELS: Record<BailleurPriorite, string> = {
+  VIP: "VIP",
+  PREMIUM: "Premium",
+  STANDARD: "Standard",
+  INACTIF: "Inactif",
+}
+
+export const BAILLEUR_PRIORITE_BADGE_CLASS: Record<BailleurPriorite, string> = {
+  VIP: "bg-accent-600 text-white",
+  PREMIUM: "bg-primary-900 text-white",
+  STANDARD: "bg-muted text-foreground",
+  INACTIF: "bg-transparent border border-border text-muted-foreground",
+}
+
 export interface Bailleur {
   idBailleur: number
   // GOAL 6 — voir Client.dossierNumber.
   dossierNumber?: string | null
   idPerson: number
   type: BailleurType
+  priorite: BailleurPriorite
+  photo?: string | null
+  // Biens à l'actif du bailleur (calculé par le Backend).
+  propertiesCount?: number
   typeCollaboration?: BailleurTypeCollaboration | null
   dureeCollaboration?: string | null
   margeAgence?: number
@@ -520,6 +543,12 @@ export interface BailleurCreatePayload {
 }
 
 export interface BailleurUpdatePayload {
+  priorite?: BailleurPriorite
+  type?: BailleurType
+  fullName?: string
+  phone?: string
+  email?: string
+  idNumber?: string
   typeCollaboration?: BailleurTypeCollaboration
   dureeCollaboration?: string
   margeAgence?: number

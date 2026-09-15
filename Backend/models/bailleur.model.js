@@ -54,6 +54,16 @@ const Bailleur = db.define(
     },
     restrictions: DataTypes.STRING(255),
     exigencesFinancieres: DataTypes.TEXT,
+    // Profil défini par l'agence : ordonne la liste des bailleurs.
+    priorite: {
+      type: DataTypes.ENUM("VIP", "PREMIUM", "STANDARD", "INACTIF"),
+      allowNull: false,
+      defaultValue: "STANDARD",
+    },
+    photo: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
     statutRelation: {
       type: DataTypes.ENUM("ACTIF", "INACTIF", "A_RELANCER", "SUSPENDU"),
       allowNull: false,

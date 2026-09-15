@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2, ShoppingBag } from "lucide-react"
 import { useCart } from "@/components/cart-provider"
+import { getAllBailleurs } from "@/actions/bailleurs"
 import { getAllProperties } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import type { Property } from "@/lib/types"
@@ -23,15 +24,21 @@ export default function GalleryPage() {
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
   const { proposalTarget, setProposalTarget, items } = useCart()
+  const [bailleurNames, setBailleurNames] = useState<Map<number, string>>(new Map())
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [allProperties, myFavorites] = await Promise.all([
+        const [allProperties, myFavorites, bailleurs] = await Promise.all([
           getAllProperties(),
           getMyFavorites().catch(() => []),
+          // Le lien bien ↔ bailleur n'est visible que dans Bailleurs et la
+          // Galerie, et seulement pour les rôles qui gèrent les bailleurs (le
+          // Backend refuse la liste aux autres : on n'affiche alors rien).
+          getAllBailleurs().catch(() => []),
         ])
         setProperties(allProperties)
+        setBailleurNames(new Map(bailleurs.map((b) => [b.idBailleur, b.person?.fullName || b.dossierNumber || ""])))
         setFavorites(new Set(myFavorites.map((f) => f.idProperty)))
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Erreur inconnue")
@@ -162,6 +169,14 @@ export default function GalleryPage() {
                   </div>
                   <div className="font-semibold text-sm">${property.price}</div>
                 </div>
+                {property.idBailleur && bailleurNames.get(property.idBailleur) && (
+                  <Link
+                    href={`/dashboard/bailleurs/${property.idBailleur}`}
+                    className="mt-1 block truncate text-xs text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    Bailleur : {bailleurNames.get(property.idBailleur)}
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ))}

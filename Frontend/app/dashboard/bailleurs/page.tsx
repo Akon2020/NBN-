@@ -1,36 +1,44 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, Phone, Eye, Edit, Trash2, ShieldAlert, Building2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Building2, Eye, Home, Loader2, Phone, Plus, Search, ShieldAlert, UserRound } from "lucide-react"
 import {
+  BAILLEUR_PRIORITE_BADGE_CLASS,
+  BAILLEUR_PRIORITE_LABELS,
+  BAILLEUR_PRIORITES,
   BAILLEUR_STATUT_LABELS,
   BAILLEUR_TYPE_LABELS,
-  BAILLEUR_VALEUR_LABELS,
   type Bailleur,
+  type BailleurPriorite,
 } from "@/lib/types"
 import { getAllBailleurs } from "@/actions/bailleurs"
+import { sortBailleurs } from "@/lib/bailleurs"
 import { AddBailleurModal } from "@/components/bailleur-modals/add-bailleur-modal"
-import { EditBailleurModal } from "@/components/bailleur-modals/edit-bailleur-modal"
-import { DeleteBailleurModal } from "@/components/bailleur-modals/delete-bailleur-modal"
-import Link from "next/link"
+import { BailleurAvatar } from "@/components/bailleur-avatar"
+import { BailleurPropertiesDialog } from "@/components/bailleur-properties-dialog"
+import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
+// Listing des bailleurs : classés par profil (VIP → Inactif) puis par ordre
+// alphabétique, chacun avec ses biens (« Aperçu ») et son identité (« Profil »).
 export default function BailleursPage() {
   const [bailleurs, setBailleurs] = useState<Bailleur[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [selectedBailleur, setSelectedBailleur] = useState<Bailleur | null>(null)
+  const [search, setSearch] = useState("")
+  const [prioriteFilter, setPrioriteFilter] = useState<BailleurPriorite | "">("")
+  const [previewBailleur, setPreviewBailleur] = useState<Bailleur | null>(null)
 
   useEffect(() => {
     const load = async () => {
       try {
-        setBailleurs(await getAllBailleurs())
+        setBailleurs(sortBailleurs(await getAllBailleurs()))
       } catch (error) {
         if (error instanceof Error && error.message.toLowerCase().includes("permission")) {
           setForbidden(true)
@@ -44,13 +52,27 @@ export default function BailleursPage() {
     load()
   }, [])
 
-  const handleAdd = (bailleur: Bailleur) => setBailleurs([bailleur, ...bailleurs])
-  const handleEdit = (updated: Bailleur) =>
-    setBailleurs(bailleurs.map((b) => (b.idBailleur === updated.idBailleur ? updated : b)))
-  const handleDelete = (id: number) => {
-    setBailleurs(bailleurs.filter((b) => b.idBailleur !== id))
-    setShowDeleteModal(false)
-  }
+  const countsByPriorite = useMemo(
+    () =>
+      Object.fromEntries(
+        BAILLEUR_PRIORITES.map((priorite) => [priorite, bailleurs.filter((b) => b.priorite === priorite).length])
+      ) as Record<BailleurPriorite, number>,
+    [bailleurs]
+  )
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return bailleurs.filter(
+      (b) =>
+        (!prioriteFilter || b.priorite === prioriteFilter) &&
+        (!q ||
+          (b.person?.fullName || "").toLowerCase().includes(q) ||
+          (b.person?.phone || "").includes(q) ||
+          (b.dossierNumber || "").toLowerCase().includes(q))
+    )
+  }, [bailleurs, search, prioriteFilter])
+
+  const handleAdd = (bailleur: Bailleur) => setBailleurs((prev) => sortBailleurs([bailleur, ...prev]))
 
   if (forbidden) {
     return (
@@ -69,103 +91,111 @@ export default function BailleursPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Bailleurs</h1>
-          <p className="text-muted-foreground mt-2">Fiches VIP des propriétaires et mandataires</p>
+          <p className="text-muted-foreground mt-2">Classés par profil (VIP → Inactif) puis par ordre alphabétique</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto bg-primary text-primary-foreground">
+        <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto bg-accent-600 text-white hover:bg-accent-600/90">
           <Plus className="mr-2 h-4 w-4" />
           Ajouter un bailleur
         </Button>
+      </div>
+
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative lg:max-w-sm lg:flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Nom, téléphone ou n° de dossier..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant={prioriteFilter === "" ? "default" : "outline"} onClick={() => setPrioriteFilter("")}>
+            Tous ({bailleurs.length})
+          </Button>
+          {BAILLEUR_PRIORITES.map((priorite) => (
+            <Button
+              key={priorite}
+              size="sm"
+              variant={prioriteFilter === priorite ? "default" : "outline"}
+              onClick={() => setPrioriteFilter(prioriteFilter === priorite ? "" : priorite)}
+            >
+              {BAILLEUR_PRIORITE_LABELS[priorite]} ({countsByPriorite[priorite] ?? 0})
+            </Button>
+          ))}
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      ) : bailleurs.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Building2 className="h-16 w-16 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold">Aucun bailleur</h3>
+          <h3 className="text-lg font-semibold">{bailleurs.length ? "Aucun résultat" : "Aucun bailleur"}</h3>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {bailleurs.map((bailleur) => (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((bailleur) => (
             <Card key={bailleur.idBailleur} className="border-border">
               <CardContent className="p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <Link href={`/dashboard/bailleurs/${bailleur.idBailleur}`}>
-                      <h3 className="font-semibold text-lg hover:underline">{bailleur.person?.fullName}</h3>
-                    </Link>
+                <div className="flex items-start gap-3">
+                  <BailleurAvatar photo={bailleur.photo} fullName={bailleur.person?.fullName} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="truncate font-semibold text-lg">{bailleur.person?.fullName}</h3>
+                      <Badge className={cn("shrink-0", BAILLEUR_PRIORITE_BADGE_CLASS[bailleur.priorite])}>
+                        {BAILLEUR_PRIORITE_LABELS[bailleur.priorite]}
+                      </Badge>
+                    </div>
                     {bailleur.dossierNumber && (
                       <p className="text-[10px] font-mono text-muted-foreground">{bailleur.dossierNumber}</p>
                     )}
-                    <Badge variant="outline" className="mt-1 text-xs">
-                      {BAILLEUR_TYPE_LABELS[bailleur.type]}
-                    </Badge>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {BAILLEUR_TYPE_LABELS[bailleur.type]}
+                      </Badge>
+                      {bailleur.statutRelation !== "ACTIF" && (
+                        <Badge variant="secondary" className="text-xs">
+                          {BAILLEUR_STATUT_LABELS[bailleur.statutRelation]}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <Badge
-                    className={
-                      bailleur.statutRelation === "ACTIF"
-                        ? "bg-secondary text-secondary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    }
-                  >
-                    {BAILLEUR_STATUT_LABELS[bailleur.statutRelation]}
-                  </Badge>
                 </div>
 
-                {bailleur.person?.phone && (
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Phone className="h-3 w-3" />
-                    {bailleur.person.phone}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  {bailleur.person?.phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {bailleur.person.phone}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <Home className="h-3 w-3" />
+                    {bailleur.propertiesCount ?? 0} bien(s)
+                  </span>
+                </div>
+
+                {/* `!= null` : un bailleur créé par la collecte n'a pas encore de marge. */}
+                {bailleur.margeAgence != null && (
+                  <div className="text-sm font-semibold text-primary">
+                    Marge : ${Number(bailleur.margeAgence).toLocaleString("fr-FR")}
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <div>
-                    {bailleur.valeurBailleur && (
-                      <Badge variant="secondary" className="text-xs">
-                        {BAILLEUR_VALEUR_LABELS[bailleur.valeurBailleur]}
-                      </Badge>
-                    )}
-                    {/* `!= null` et non `!== undefined` : un bailleur créé par le
-                        formulaire de collecte n'a pas encore de marge (null),
-                        et `null.toLocaleString()` faisait planter toute la page. */}
-                    {bailleur.margeAgence != null && (
-                      <div className="text-sm font-semibold text-primary mt-1">
-                        Marge : ${Number(bailleur.margeAgence).toLocaleString("fr-FR")}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
+                <div className="flex gap-2 border-t border-border pt-3">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => setPreviewBailleur(bailleur)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Aperçu
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" asChild>
                     <Link href={`/dashboard/bailleurs/${bailleur.idBailleur}`}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <UserRound className="mr-2 h-4 w-4" />
+                      Profil
                     </Link>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => {
-                        setSelectedBailleur(bailleur)
-                        setShowEditModal(true)
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => {
-                        setSelectedBailleur(bailleur)
-                        setShowDeleteModal(true)
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -174,17 +204,10 @@ export default function BailleursPage() {
       )}
 
       <AddBailleurModal open={showAddModal} onOpenChange={setShowAddModal} onAdd={handleAdd} />
-      <EditBailleurModal
-        open={showEditModal}
-        onOpenChange={setShowEditModal}
-        bailleur={selectedBailleur}
-        onEdit={handleEdit}
-      />
-      <DeleteBailleurModal
-        open={showDeleteModal}
-        onOpenChange={setShowDeleteModal}
-        bailleur={selectedBailleur}
-        onDelete={handleDelete}
+      <BailleurPropertiesDialog
+        bailleur={previewBailleur}
+        open={previewBailleur !== null}
+        onOpenChange={(open) => !open && setPreviewBailleur(null)}
       />
     </div>
   )
