@@ -1212,3 +1212,8 @@ _Phase 3 terminée. Au déploiement : `npm run db:migrate`._
 - Tests : `tests/bailleurRelances.test.js` (403/400, e-mail futur non traité puis envoyé et jamais renvoyé, bailleur sans e-mail écarté, WhatsApp à envoyer + notification + marquage, annulation et 409, historique). Frontend 30/30, `tsc` OK.
 
 _Phase 4 terminée. Au déploiement : `npm run db:migrate`._
+
+### Isolation des tests de la file d'envoi (outbox)
+
+- Constat : `notification.test.js` purgeait **toutes** les lignes `outboxEvents` en attente de la base pour tester le worker, pendant que d'autres fichiers (demandes, assignation, e-mails et relances des bailleurs) vérifiaient les leurs en parallèle — cause probable de l'échec intermittent observé en 3.2 ; son premier test attendait aussi une notification asynchrone avec un délai fixe de 50 ms, insuffisant sous charge (échec vu une fois sur la suite complète, jamais seul).
+- `processOutboxEvents({ ids })` : passage restreint à des événements précis (le cron, sans argument, est inchangé). Le test ne purge plus la table partagée et interroge la base jusqu'à l'arrivée de la notification (5 s max). Backend complet vert.

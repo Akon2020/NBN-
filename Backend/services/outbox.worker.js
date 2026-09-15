@@ -13,11 +13,16 @@ import { deliverQueuedEmail } from "./email.service.js";
 const MAX_ATTEMPTS = 5;
 const BATCH_SIZE = 20;
 
-export const processOutboxEvents = async () => {
+// `ids` restreint le passage à des événements précis (tests d'intégration :
+// la table est partagée par des fichiers qui tournent en parallèle, un test
+// ne doit ni dépendre de l'arriéré des autres ni le consommer). Sans
+// argument, le cron traite le lot habituel.
+export const processOutboxEvents = async ({ ids } = {}) => {
   const pending = await OutboxEvent.findAll({
     where: {
       statut: { [Op.in]: ["PENDING", "FAILED"] },
       attempts: { [Op.lt]: MAX_ATTEMPTS },
+      ...(ids ? { idOutboxEvent: { [Op.in]: ids } } : {}),
     },
     limit: BATCH_SIZE,
     order: [["createdAt", "ASC"]],
