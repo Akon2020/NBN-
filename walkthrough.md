@@ -1252,3 +1252,14 @@ Le plan (phase 2) prévoyait que la correspondance « boîte → rôles / utilis
 - Frontend : panneau « Boîtes mail professionnelles » dans Paramètres (rôles à cocher, comptes en plus, « Rétablir le réglage du serveur »), affiché aux seuls membres d'une boîte. CLAUDE.md §7 mis à jour.
 - Tests : `inboundMail.test.js` (+4 : visibilité par membre et 404 admin sur direction@, refus rôle inconnu / adresse / vide / retrait de soi, notifications et lecture suivant l'audience réglée puis rétablie, route générique refusée), `Frontend/tests/components/mailbox-audience-panel.test.tsx`. Backend 317/317 (52 fichiers), Frontend 42/42, `tsc` OK.
 - Autre point du plan, le maintien en éveil de l'API : déjà couvert par le README (réglages Passenger ou moniteur externe sur `GET /`), une tâche interne ne pouvant pas réveiller une application arrêtée.
+
+---
+
+## CI Backend au vert
+
+Le workflow Backend échouait sur tous les commits récents (`dev` et `main`), toujours à l'étape `npm ci` : migrations et tests n'y tournaient plus. Frontend vert, Mobile vert à son dernier déclenchement.
+
+- **Installation** : le lockfile avait été régénéré en local avec npm 12 ; le runner (Node 20 / npm 10) le refusait (« Missing: yaml@2.9.1 from lock file »), reproduit en local avec `npx npm@10 ci --dry-run`. Lockfile régénéré avec npm 10 (`--package-lock-only`), accepté par npm 10 et npm 12 ; seule l'entrée `yaml` manquante est ajoutée, aucun paquet retiré.
+- **Base neuve** : toutes les migrations et seeders rejoués depuis zéro sur une base temporaire (comme le CI) — OK (10 rôles, 38 permissions, admin). La suite y révélait un échec invisible sur la base de développement : `appSettings.test.js` supprimait ses utilisateurs alors que `cart.maxItems` les gardait en `updatedBy` (clé étrangère). Les paramètres touchés sont détachés avant suppression. Backend 317/317 (52 fichiers) sur base neuve ; base temporaire supprimée.
+- Résultat : badge « Backend CI » **passing** sur `dev`.
+- Reste non bloquant : GitHub signale que `actions/checkout@v4` et `actions/setup-node@v4` ciblent Node 20 (dépréciés sur les runners, simple avertissement). Pour éviter de retomber sur le problème de lockfile, régénérer `package-lock.json` avec la version de npm du CI, ou aligner `node-version` du workflow sur la version utilisée en local.
