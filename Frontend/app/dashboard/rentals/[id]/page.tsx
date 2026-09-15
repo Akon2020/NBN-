@@ -28,6 +28,7 @@ import { PropertyStatutControl } from "@/components/property-statut-control"
 import { PropertyMarginControl } from "@/components/property-margin-control"
 import { PropertyMediaManager } from "@/components/property-media-manager"
 import { PropertyMediaViewer } from "@/components/property-media-viewer"
+import { WhatsAppProposalDialog } from "@/components/whatsapp-proposal-dialog"
 import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
@@ -48,6 +49,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [showProposal, setShowProposal] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -112,18 +114,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
     }
   }
 
-  const handleWhatsAppProposal = () => {
-    const guarantee = property.rentalDetails
-      ? `${property.rentalDetails.guarantee ?? 0} ${RENTAL_UNIT_LABELS[property.rentalDetails.unit].toLowerCase()}`
-      : "N/A"
-    const priceSuffix = property.rentalDetails
-      ? RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]
-      : ""
-    const message = `Bonjour! Je vous propose ce bien à louer:\n\n${PROPERTY_TYPE_LABELS[property.propertyType]}\nAdresse: ${property.avenue}, ${property.quartier}, Bukavu\n${property.bedrooms ?? 0} chambres, ${property.livingRooms ?? 0} salons, ${property.toilets ?? 0} douches, ${property.kitchens ?? 0} cuisines\nPrix: $${property.price}${priceSuffix}\nGarantie: ${guarantee}\n\nPour plus d'informations, contactez-nous!`
-
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, "_blank")
-  }
+  const handleWhatsAppProposal = () => setShowProposal(true)
 
   const images = property.images || []
   const phones = property.phones || []
@@ -340,6 +331,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
 
       <EntityTimeline key={property.updatedAt} entityType="PROPERTY" entityId={property.idProperty} />
 
+      <WhatsAppProposalDialog open={showProposal} onOpenChange={setShowProposal} properties={[property]} />
       <EditRentalModal open={showEditModal} onOpenChange={setShowEditModal} property={property} onEdit={handleEdit} />
       <DeleteRentalModal
         open={showDeleteModal}

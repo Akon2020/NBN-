@@ -12,7 +12,7 @@ import { getAllProperties } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import type { Property } from "@/lib/types"
 import { getImageUrl } from "@/lib/imageUrl"
-import { openWhatsAppShare } from "@/lib/whatsappProposal"
+import { WhatsAppProposalDialog } from "@/components/whatsapp-proposal-dialog"
 import { AddToCartButton } from "@/components/add-to-cart-button"
 import Image from "next/image"
 import Link from "next/link"
@@ -67,7 +67,8 @@ export default function GalleryPage() {
     }
   }
 
-  const handlePropose = (property: Property) => openWhatsAppShare([property])
+  const [proposing, setProposing] = useState<Property | null>(null)
+  const handlePropose = (property: Property) => setProposing(property)
 
   return (
     <div className="space-y-6">
@@ -190,6 +191,12 @@ export default function GalleryPage() {
           <p className="text-sm text-muted-foreground mt-1">Ajoutez des biens pour voir leurs images ici</p>
         </div>
       )}
+
+      <WhatsAppProposalDialog
+        open={proposing !== null}
+        onOpenChange={(open) => !open && setProposing(null)}
+        properties={proposing ? [proposing] : []}
+      />
     </div>
   )
 }

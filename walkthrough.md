@@ -1226,3 +1226,15 @@ _Phase 4 terminée. Au déploiement : `npm run db:migrate`._
 - Formats vidéo de téléphone acceptés : .mp4, .mov, .webm, .m4v, .3gp ; un fichier annoncé sans type précis (`application/octet-stream`, fréquent sous Windows pour un .mov) est jugé sur son extension.
 - Frontend : `lib/mediaFiles.ts` (même règle côté navigateur) ; `property-media-manager` envoie par lots (10 images / 5 vidéos). Nouveau `property-media-viewer` sur les fiches location et vente : onglets **Photos (n)** / **Vidéos (n)**, lecteur avec `preload="metadata"` (connexion faible), miniatures.
 - Tests : `propertyMedia.test.js` (message clair au refus, .mov sans type accepté, 6 vidéos refusées avec message), `Frontend/tests/lib/mediaFiles.test.ts`. 7/7 sur le fichier, Frontend 33/33, `tsc` OK.
+
+### 5.2 Panier WhatsApp : un message par bien, avec sa photo
+
+- Constats : un seul long message pour tout le panier, chiffres encadrés (1️⃣…) affichés en carrés sur certains téléphones, et aucune photo — le lien `wa.me` ne transporte que du texte, c'est une limite de WhatsApp et non du tableau de bord.
+- `lib/whatsappProposal.ts` : **modèle unique** d'un message par bien (`buildPropertyCaption`) — salutation du client dans le premier message, type et « à louer / à vendre », numérotation « Bien 1/3 », avenue / quartier / commune, pièces (pas pour un terrain), prix et garantie, extrait de description, référence `NBN-<id>`, signature de l'agence (Paramètres). Modèle remplaçable à ce seul endroit quand l'agence fournira le sien.
+- `components/whatsapp-proposal-dialog.tsx` : fenêtre d'envoi bien par bien. La photo principale est téléchargée à l'ouverture ; sur téléphone, « Envoyer avec la photo » ouvre le partage natif (Web Share API) avec **l'image et sa légende** — choisir WhatsApp puis le contact. « Texte seul » ouvre `wa.me` (directement vers le numéro du client s'il est connu, avec le lien de la photo) ; « Copier » pour coller la légende. Sur ordinateur, le navigateur ne sait pas joindre une image à WhatsApp : message avec lien de photo et explication affichée.
+- Propositions : enregistrées **une seule fois**, à « Terminer », pour les seuls biens réellement envoyés (l'API ne dédoublonne pas) ; les biens envoyés sortent du panier.
+- Même fenêtre depuis le panier, la galerie et les fiches location / vente (« Proposer »), qui construisaient chacune leur propre texte.
+- Envoi automatique des photos sans intervention : nécessite l'API WhatsApp Business (reportée, décision de la phase 2).
+- Tests : `tests/lib/whatsappProposal.test.ts` (forme du message, lien photo seulement sans pièce jointe, terrain, repli groupé, lien vers le numéro), `tests/components/whatsapp-proposal-dialog.test.tsx` (un message par bien, salutation, enregistrement des seuls biens envoyés, rien sans client). Frontend 40/40, `tsc` OK.
+
+_Phase 5 terminée._
