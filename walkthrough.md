@@ -999,3 +999,10 @@ Constat en production (`api.nbnexpress.org`, en-têtes `Server: openresty` + `X-
 - `app.js` : `app.set("trust proxy", ...)` avant le rate limiter.
 - `auth.controller.js::login` : email normalisé (`trim` + minuscules) — les claviers iOS ajoutent majuscule initiale et espace après suggestion ; corps vide → 401 au lieu d'une exception.
 - Tests : `tests/trustProxy.test.js` (deux appareils derrière le même proxy gardent des IP distinctes), deux cas ajoutés dans `tests/auth.test.js`.
+
+### 0.2 Page de connexion : vraie raison de l'échec, champs adaptés à iOS
+
+- `actions/auth.ts` lisait `response.data.error`, alors que le Backend répond toujours dans `message` : chaque échec (mot de passe, compte désactivé, quota, mot de passe par défaut) s'affichait comme le même message générique, rendant le diagnostic impossible depuis un téléphone. Lecture de `message`, et message distinct « Serveur injoignable » quand aucune réponse n'arrive (API en veille, réseau coupé).
+- `app/auth/login/page.tsx` : `autoCapitalize="none"`, `autoCorrect="off"`, `spellCheck={false}`, `inputMode="email"` et `autoComplete` sur l'email et le mot de passe — en mode « afficher le mot de passe » le champ devient texte et iOS le corrigeait.
+- `app/dashboard/layout.tsx` : deux commentaires (tirets) modifiés localement par le porteur de projet, inclus à sa demande.
+- Test : `tests/actions/auth.test.ts`. Frontend 5/5, `tsc --noEmit` sans erreur.

@@ -16,9 +16,18 @@ export const login = async (data: AuthPayload): Promise<Auth> => {
     return res.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      const message =
-        error.response?.data?.error || "Erreur lors de la connexion";
-      throw new Error(message);
+      // Le Backend explique toujours son refus dans `message` (identifiants,
+      // compte désactivé, quota dépassé, mot de passe par défaut). Sans
+      // réponse du tout, le problème est réseau : serveur en veille ou
+      // connexion coupée — le dire évite de soupçonner le mot de passe.
+      if (!error.response) {
+        throw new Error(
+          "Serveur injoignable. Vérifiez votre connexion internet puis réessayez."
+        );
+      }
+      throw new Error(
+        error.response.data?.message || "Erreur lors de la connexion"
+      );
     }
     throw new Error("Erreur inconnue lors de la connexion");
   }

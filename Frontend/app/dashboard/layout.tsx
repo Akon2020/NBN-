@@ -56,7 +56,7 @@ export default function DashboardLayout({
   const [userRole, setUserRole] = useState("");
 
   useEffect(() => {
-    // Affichage uniquement (nom/rôle dans la sidebar) — l'accès réel est
+    // Affichage uniquement (nom/rôle dans la sidebar) - l'accès réel est
     // tranché par ProtectedRoute via un appel réseau, pas par ce cache local.
     const user = getAuthUser();
     if (user) {
@@ -98,7 +98,7 @@ export default function DashboardLayout({
     { name: "Paramètres", href: "/dashboard/settings", icon: Settings },
   ];
 
-  // BACK-G02 : le catalogue de rôles ne se limite plus à admin/agent —
+  // BACK-G02 : le catalogue de rôles ne se limite plus à admin/agent -
   // l'autorisation réelle est tranchée par le backend (RBAC par
   // permission), le Frontend ne fait ici que vérifier l'authentification.
   return (
