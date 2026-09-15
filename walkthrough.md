@@ -1099,3 +1099,14 @@ _Phase 1 terminée. Au déploiement : `npm run db:migrate` puis `npm run db:seed
 - Variables ajoutées à `.env.example` ; `.env.development.local` (Gmail, `MAILBOXES=contact` sur le compte de test) et `.env.production.local` (placeholders contact@ / direction@ **à compléter par le porteur de projet**) — fichiers locaux non versionnés.
 - Dépendances : `imapflow`, `mailparser` (relève IMAP, 2.3).
 - Tests : `tests/mailboxes.test.js` (5), `tests/emailOutbox.test.js` (4). Auth/users/notifications inchangés : 29/29 sur ces fichiers.
+
+### 2.2 Formulaires : avis de réception et équipe prévenue (site + e-mail)
+
+- `utils/formEmail.templates.js` : gabarits à la charte (navy + orange bouton accessible), toute saisie visiteur échappée (`escapeHtml`). **Avis de réception** au client avec le texte de l'agence et ses variables : civilité (Monsieur/Madame selon le sexe renseigné, sinon « Madame, Monsieur »), nom complet, **N° de commande** = numéro de dossier client (`CLI-…`, celui affiché sur la page de confirmation), **date de la demande** à l'heure de Bukavu (`Africa/Lubumbashi`). Le nom complet est utilisé plutôt qu'un « prénom » deviné : l'ordre nom/prénom n'est pas fiable.
+- `services/formNotifications.service.js` :
+  - demande de location → avis de réception (depuis contact@ si configurée) + Notification et e-mail à chaque utilisateur actif des rôles `NOTIFY_RENTAL_REQUEST_ROLES` (défaut admin, communication, marketing, operations), lien vers la fiche client ;
+  - collecte → Notification et e-mail aux rôles `NOTIFY_PROPERTY_COLLECTION_ROLES` (défaut admin, operations), lien vers la fiche location ou vente ; confirmation au responsable s'il a enregistré son bien lui-même.
+  - Appelé après commit, tous les e-mails passent par l'outbox ; une erreur de notification est journalisée sans jamais faire échouer la soumission.
+- Seeder `20260915300000-seed-direction-role.cjs` : rôle **direction** (destinataire exclusif de direction@). Frontend : libellé + rôle assignable.
+- `dashboard/notifications` : liens vers la fiche client et la bonne fiche bien (catégorie portée par le type `property_collection:new:rent|sale`).
+- Tests : `tests/formNotifications.test.js` (texte et variables de l'avis, échappement, destinataires par rôle — trésorerie non prévenue, lien de collecte vers la fiche vente). 40/40 sur les fichiers formulaires, `tsc` OK.

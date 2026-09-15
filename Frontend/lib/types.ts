@@ -1063,9 +1063,11 @@ export const ROLE_LABELS: Record<string, string> = {
   tresorerie: "Trésorerie",
   commissionnaire: "Commissionnaire",
   consultant: "Consultant",
+  direction: "Direction",
 }
 
 export const ASSIGNABLE_ROLES = [
+  "direction",
   "admin",
   "communication",
   "marketing",

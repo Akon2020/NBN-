@@ -22,6 +22,7 @@ import {
   normalizePhone,
 } from "../utils/contactValidation.js";
 import { deleteIdentityDocument, storeIdentityDocument } from "../utils/identityDocuments.js";
+import { notifyPropertyCollection } from "../services/formNotifications.service.js";
 
 const MISSION_TYPES = ["COLLECTE_BIEN", "APPORT_CLIENT", "SUIVI", "MISE_A_JOUR"];
 const PROPERTY_TYPES = [
@@ -423,6 +424,23 @@ export const createPropertyCollection = async (req, res, next) => {
       relatedEntityId: property.idProperty,
       createdBy: req.user?.idUser ?? null,
     });
+
+    // Équipe prévenue sur le site et par e-mail ; confirmation au
+    // responsable qui a enregistré son bien lui-même. Jamais bloquant.
+    try {
+      await notifyPropertyCollection({
+        property,
+        responsable: {
+          fullName: values.responsableNom,
+          phone: values.responsablePhone,
+          email: values.responsableEmail,
+        },
+        source,
+        parResponsable: values.parResponsable,
+      });
+    } catch (notifyError) {
+      console.error("Notification de la collecte de bien :", notifyError.message);
+    }
 
     return res.status(201).json({
       message: "Bien enregistré avec succès. Merci pour votre collecte.",

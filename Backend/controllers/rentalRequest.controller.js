@@ -5,6 +5,7 @@ import { recordTimelineEvent } from "../shared/timeline.js";
 import { createAlert } from "../services/notification.service.js";
 import { resolveQuartier } from "../shared/bukavuLocations.js";
 import { MODALITES_PAIEMENT } from "../shared/paymentTerms.js";
+import { notifyRentalRequest } from "../services/formNotifications.service.js";
 import {
   checkEmail,
   normalizeCommissionnaireCode,
@@ -305,6 +306,15 @@ export const createRentalRequest = async (req, res, next) => {
       relatedEntityType: "Client",
       relatedEntityId: client.idClient,
     });
+
+    // Avis de réception au client + équipe prévenue sur le site et par
+    // e-mail. Les e-mails sont mis en file : un souci à cette étape ne doit
+    // jamais transformer une demande enregistrée en erreur pour le client.
+    try {
+      await notifyRentalRequest({ rentalRequest, client });
+    } catch (notifyError) {
+      console.error("Notification de la demande de location :", notifyError.message);
+    }
 
     // Réponse volontairement minimale : une route publique ne renvoie
     // jamais la fiche client complète ni le contenu de la base.
