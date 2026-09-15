@@ -1238,3 +1238,17 @@ _Phase 4 terminée. Au déploiement : `npm run db:migrate`._
 - Tests : `tests/lib/whatsappProposal.test.ts` (forme du message, lien photo seulement sans pièce jointe, terrain, repli groupé, lien vers le numéro), `tests/components/whatsapp-proposal-dialog.test.tsx` (un message par bien, salutation, enregistrement des seuls biens envoyés, rien sans client). Frontend 40/40, `tsc` OK.
 
 _Phase 5 terminée._
+
+---
+
+## Écart avec le plan validé — audience des boîtes dans Paramètres
+
+Le plan (phase 2) prévoyait que la correspondance « boîte → rôles / utilisateurs » se règle dans Paramètres ; elle n'était réglable que par variables d'environnement (`MAILBOX_<CLÉ>_ROLES` / `_USERS`).
+
+- Migration `20260918000000-seed-mailbox-audiences-setting.cjs` : paramètre `mailboxes.audiences` (`{ <boîte>: { roles, users } }`), réversible (vérifié). Une boîte absente garde le réglage du serveur ; les identifiants restent exclusivement dans l'environnement.
+- `services/mailboxAudience.service.js` : audience effective (Paramètres, sinon serveur), cache mémoire de 30 s vidé à chaque modification ; validation (rôles du catalogue, adresses, 50 comptes max, audience jamais vide). Utilisée pour la lecture des messages, les notifications de relève (relue à chaque import) et l'historique des bailleurs.
+- `GET /api/inbound-emails/mailboxes/audiences`, `PUT` / `DELETE /api/inbound-emails/mailboxes/:key/audience` (Swagger). **Seuls les membres actuels d'une boîte en règlent l'audience** (règle contextuelle, pas `settings:manage`) : l'admin ne peut pas s'ajouter à direction@ (404). Retrait de soi-même refusé, retour au réglage du serveur refusé s'il excluait l'auteur.
+- `PATCH /api/settings/mailboxes.audiences` refusé (400) et clé retirée de la liste générique : `settings:manage` ne suffit jamais.
+- Frontend : panneau « Boîtes mail professionnelles » dans Paramètres (rôles à cocher, comptes en plus, « Rétablir le réglage du serveur »), affiché aux seuls membres d'une boîte. CLAUDE.md §7 mis à jour.
+- Tests : `inboundMail.test.js` (+4 : visibilité par membre et 404 admin sur direction@, refus rôle inconnu / adresse / vide / retrait de soi, notifications et lecture suivant l'audience réglée puis rétablie, route générique refusée), `Frontend/tests/components/mailbox-audience-panel.test.tsx`. Backend 317/317 (52 fichiers), Frontend 42/42, `tsc` OK.
+- Autre point du plan, le maintien en éveil de l'API : déjà couvert par le README (réglages Passenger ou moniteur externe sur `GET /`), une tâche interne ne pouvant pas réveiller une application arrêtée.

@@ -1236,6 +1236,17 @@ export const ASSIGNABLE_ROLES = [
 
 // --- Boîtes professionnelles et messages reçus (GET /api/inbound-emails) ---
 
+// Audience d'une boîte : `source` = "settings" quand elle a été réglée dans
+// Paramètres, "env" quand c'est le réglage déclaré sur le serveur.
+export interface MailboxAudience {
+  key: string
+  label: string
+  address: string
+  roles: string[]
+  users: string[]
+  source: "env" | "settings"
+}
+
 export interface Mailbox {
   key: string
   label: string

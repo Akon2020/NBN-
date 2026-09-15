@@ -133,7 +133,7 @@ export const getBailleurMessages = async (req, res, next) => {
 
     let received = [];
     const email = bailleur.person?.email?.toLowerCase();
-    const mailboxKeys = accessibleMailboxes(req.user).map((mailbox) => mailbox.key);
+    const mailboxKeys = (await accessibleMailboxes(req.user)).map((mailbox) => mailbox.key);
     if (email && mailboxKeys.length) {
       received = await InboundEmail.findAll({
         where: { fromAddress: email, mailboxKey: { [Op.in]: mailboxKeys } },
