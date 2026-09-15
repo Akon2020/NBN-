@@ -1,5 +1,6 @@
 import fs from "fs";
 import { NODE_ENV } from "../config/env.js";
+import { MAX_IMAGE_MB, MAX_VIDEO_MB } from "./upload.middleware.js";
 import winston from "winston";
 
 const logger = winston.createLogger({
@@ -63,8 +64,12 @@ const errorMiddleware = (err, req, res, next) => {
 
   if (err.name === "MulterError") {
     const messages = {
-      LIMIT_FILE_SIZE: "Le fichier dépasse la taille maximale autorisée (5 Mo).",
-      LIMIT_UNEXPECTED_FILE: err.message || "Type de fichier non autorisé.",
+      LIMIT_FILE_SIZE: `Le fichier dépasse la taille maximale autorisée (images : ${MAX_IMAGE_MB} Mo, vidéos : ${MAX_VIDEO_MB} Mo).`,
+      // Multer lève ce code quand un envoi dépasse le nombre de fichiers prévu
+      // par la route (10 images, 5 vidéos) ou utilise un autre nom de champ.
+      LIMIT_UNEXPECTED_FILE: "Trop de fichiers dans un même envoi (10 images ou 5 vidéos au maximum).",
+      LIMIT_FILE_COUNT: "Trop de fichiers dans un même envoi.",
+      INVALID_FILE_TYPE: err.message,
     };
     return res.status(400).json({
       message: messages[err.code] || "Erreur lors de l'upload du fichier.",

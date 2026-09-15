@@ -1217,3 +1217,12 @@ _Phase 4 terminée. Au déploiement : `npm run db:migrate`._
 
 - Constat : `notification.test.js` purgeait **toutes** les lignes `outboxEvents` en attente de la base pour tester le worker, pendant que d'autres fichiers (demandes, assignation, e-mails et relances des bailleurs) vérifiaient les leurs en parallèle — cause probable de l'échec intermittent observé en 3.2 ; son premier test attendait aussi une notification asynchrone avec un délai fixe de 50 ms, insuffisant sous charge (échec vu une fois sur la suite complète, jamais seul).
 - `processOutboxEvents({ ids })` : passage restreint à des événements précis (le cron, sans argument, est inchangé). Le test ne purge plus la table partagée et interroge la base jusqu'à l'arrivée de la notification (5 s max). Backend complet vert.
+
+## Phase 5 — Médias et propositions WhatsApp
+
+### 5.1 Vidéos : envoi fiable et sélecteur Photos / Vidéos sur la fiche
+
+- Cause de « Unexpected field » : `upload.middleware.js` passait le message d'erreur comme **nom de champ** à `MulterError`, si bien que tout refus (format, nombre) affichait ce libellé. Erreur désormais construite avec son vrai message (`INVALID_FILE_TYPE`) ; plus de 5 vidéos (ou 10 images) dans un envoi → « Trop de fichiers dans un même envoi » ; limite de taille lue dans `MAX_IMAGE_SIZE_MB` / `MAX_VIDEO_SIZE_MB`.
+- Formats vidéo de téléphone acceptés : .mp4, .mov, .webm, .m4v, .3gp ; un fichier annoncé sans type précis (`application/octet-stream`, fréquent sous Windows pour un .mov) est jugé sur son extension.
+- Frontend : `lib/mediaFiles.ts` (même règle côté navigateur) ; `property-media-manager` envoie par lots (10 images / 5 vidéos). Nouveau `property-media-viewer` sur les fiches location et vente : onglets **Photos (n)** / **Vidéos (n)**, lecteur avec `preload="metadata"` (connexion faible), miniatures.
+- Tests : `propertyMedia.test.js` (message clair au refus, .mov sans type accepté, 6 vidéos refusées avec message), `Frontend/tests/lib/mediaFiles.test.ts`. 7/7 sur le fichier, Frontend 33/33, `tsc` OK.

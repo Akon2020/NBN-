@@ -175,5 +175,33 @@ describe("GOAL 2 - Upload de médias (images/vidéos)", () => {
       .set("Authorization", `Bearer ${login.body.data.token}`)
       .attach("video", testImagePath);
     expect(res.status).toBe(400);
+    // Avant correction, tout refus affichait « Unexpected field ».
+    expect(res.body.message).toMatch(/Format de vidéo non accepté/);
+  });
+
+  it("accepte une vidéo .mov envoyée sans type précis (navigateur Windows)", async () => {
+    const login = await loginAs(operationsEmail);
+    const idProperty = createdPropertyIds[0];
+
+    const res = await request(app)
+      .post(`/api/properties/${idProperty}/videos`)
+      .set("Authorization", `Bearer ${login.body.data.token}`)
+      .attach("video", Buffer.from("fake mov"), { filename: "visite.mov", contentType: "application/octet-stream" });
+    expect(res.status).toBe(201);
+  });
+
+  it("explique le refus quand l'envoi dépasse 5 vidéos", async () => {
+    const login = await loginAs(operationsEmail);
+    const idProperty = createdPropertyIds[0];
+
+    let req = request(app)
+      .post(`/api/properties/${idProperty}/videos`)
+      .set("Authorization", `Bearer ${login.body.data.token}`);
+    for (let i = 0; i < 6; i += 1) {
+      req = req.attach("video", testVideoPath);
+    }
+    const res = await req;
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/Trop de fichiers/);
   });
 });
