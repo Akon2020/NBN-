@@ -986,3 +986,16 @@ _Vingt et un objectifs traites sur vingt et un. Fin de la sequence de goals de c
 ## Ignorer les archives .zip
 
 Des archives de déploiement (`Backend/Backend.zip`, `Frontend/Frontend.zip`) apparaissaient en fichiers non suivis. Ajout de `*.zip` au `.gitignore` racine, qui s'applique aux trois applications. Aucune archive n'était déjà suivie par git, rien à retirer de l'index.
+
+---
+
+## Phase 0 — Stabilité de la connexion
+
+### 0.1 Quota de connexion partagé par toute l'agence
+
+Constat en production (`api.nbnexpress.org`, en-têtes `Server: openresty` + `X-Powered-By: Phusion Passenger`) : l'API est derrière un reverse proxy, mais `trust proxy` n'était jamais réglé. `req.ip` valait donc l'adresse du proxy pour tout le monde, et `express-rate-limit` comptait toutes les tentatives de connexion de l'agence dans **un seul** compteur (10 / 15 min), de même pour les formulaires publics (20 / heure). Symptômes : « Erreur de connexion » répétée (surtout visible sur iPhone, 80 % du parc) et « Erreur lors de l'enregistrement du bien ».
+
+- `config/trustProxy.js` : `resolveTrustProxy(TRUST_PROXY, NODE_ENV)` — 1 saut par défaut en production, aucun en développement (où `X-Forwarded-For` serait forgeable).
+- `app.js` : `app.set("trust proxy", ...)` avant le rate limiter.
+- `auth.controller.js::login` : email normalisé (`trim` + minuscules) — les claviers iOS ajoutent majuscule initiale et espace après suggestion ; corps vide → 401 au lieu d'une exception.
+- Tests : `tests/trustProxy.test.js` (deux appareils derrière le même proxy gardent des IP distinctes), deux cas ajoutés dans `tests/auth.test.js`.

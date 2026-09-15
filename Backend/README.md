@@ -44,6 +44,14 @@ En développement, tout `localhost`/`127.0.0.1` et toute IP LAN privée
 Expo Metro change de port à chaque redémarrage et un appareil physique se
 présente avec l'IP LAN de la machine de dev, jamais avec `localhost`.
 
+### Derrière un reverse proxy
+
+En production (cPanel), l'API est servie derrière un proxy. `TRUST_PROXY`
+indique combien de proxies précèdent l'application — `1` par défaut en
+production. Sans ce réglage, `req.ip` vaut l'adresse du proxy pour **tous**
+les utilisateurs : ils partagent alors le même quota de connexion (10
+tentatives / 15 min) et se bloquent mutuellement.
+
 ## Scripts
 
 | Commande | Effet |

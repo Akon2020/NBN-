@@ -25,6 +25,8 @@ export const {
   // Origines CORS autorisées en production, séparées par des virgules.
   // Vide = la liste par défaut de `app.js` (domaines nbnexpress.org).
   CORS_ORIGINS,
+  // Nombre de reverse proxies devant l'API (voir config/trustProxy.js).
+  TRUST_PROXY,
   // Délais SMTP (ms). Un serveur mail injoignable ne doit jamais retenir
   // une requête HTTP : sans ces bornes, nodemailer attend son propre
   // défaut (plusieurs minutes) et fait expirer la requête appelante.

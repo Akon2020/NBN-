@@ -151,9 +151,13 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    const { password } = req.body;
+    // Les claviers mobiles (iOS en tête) ajoutent volontiers une majuscule
+    // initiale ou une espace après une suggestion : la même adresse doit
+    // ouvrir le même compte, quelle que soit la façon dont elle a été tapée.
+    const email = String(req.body.email ?? "").trim().toLowerCase();
+    const user = email ? await User.findOne({ where: { email } }) : null;
+    if (!user || !password || !(await bcrypt.compare(password, user.password))) {
       return res
         .status(401)
         .json({ message: "Email ou mot de passe incorrect" });

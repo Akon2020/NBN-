@@ -7,7 +7,8 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import errorMiddleware, { errorLogs } from "./middlewares/error.middleware.js";
 import { setupSwagger } from "./swagger.js";
-import { NODE_ENV, CORS_ORIGINS } from "./config/env.js";
+import { NODE_ENV, CORS_ORIGINS, TRUST_PROXY } from "./config/env.js";
+import { resolveTrustProxy } from "./config/trustProxy.js";
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import accessGrantRouter from "./routes/accessGrant.route.js";
@@ -53,6 +54,10 @@ registerEventListeners();
 registerRealtimeListeners();
 
 const app = express();
+
+// Doit précéder le rate limiter : c'est ce réglage qui fait de `req.ip`
+// l'adresse réelle de l'appareil plutôt que celle du reverse proxy.
+app.set("trust proxy", resolveTrustProxy(TRUST_PROXY, NODE_ENV));
 
 app.use(helmet());
 app.use(logger("dev"));
