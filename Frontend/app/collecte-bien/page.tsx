@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Manrope, Inter } from "next/font/google"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { CheckCircle2, EyeOff, Lock } from "lucide-react"
+import { CheckCircle2, EyeOff, FileCheck2, Lock, Paperclip } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { FormWizard, useFormDraft, type WizardStep } from "@/components/forms/form-wizard"
 import {
@@ -97,6 +97,9 @@ const EMPTY_FORM = {
 // v2 : « propriétaire » devenu « responsable », localisation structurée.
 const DRAFT_KEY = "nbn-collecte-bien-v2"
 
+// Aligné sur MAX_ID_DOCUMENT_SIZE_MB (8 Mo par défaut) côté Backend.
+const MAX_ID_DOCUMENT_BYTES = 8 * 1024 * 1024
+
 type CountKey = "bedrooms" | "livingRooms" | "toilets" | "kitchens" | "depots"
 
 const COUNTS: { key: CountKey; label: string; max: number }[] = [
@@ -116,6 +119,9 @@ export default function CollecteBienPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [prefilled, setPrefilled] = useState(false)
+  // Hors brouillon : un fichier ne se sauvegarde pas dans le navigateur. Un
+  // brouillon restauré redemande donc la pièce à l'étape du responsable.
+  const [pieceIdentite, setPieceIdentite] = useState<File | null>(null)
 
   const set = <K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -197,8 +203,9 @@ export default function CollecteBienPage() {
           : {}),
       }
 
-      await submitPropertyCollection(payload)
+      await submitPropertyCollection(payload, pieceIdentite)
       clear()
+      setPieceIdentite(null)
       setSubmitted(true)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur inconnue")
@@ -432,6 +439,10 @@ export default function CollecteBienPage() {
         if (form.responsableEmail.trim() && !isEmailFormatValid(form.responsableEmail)) {
           return "L'adresse e-mail n'est pas valide."
         }
+        if (parResponsable && !pieceIdentite) return "Annexez votre carte d'identité."
+        if (pieceIdentite && pieceIdentite.size > MAX_ID_DOCUMENT_BYTES) {
+          return "La pièce d'identité dépasse 8 Mo : prenez une photo moins lourde."
+        }
         if (!form.responsableDisponibiliteVisite) return "Indiquez la disponibilité pour les visites."
         if (!form.responsableAccepteCommission) return "Indiquez la position sur la commission de l'agence."
         return null
@@ -478,6 +489,38 @@ export default function CollecteBienPage() {
               onChange={(v) => set("responsableIdNumber", v)}
               autoCapitalize="characters"
             />
+          </Field>
+          <Field
+            label={parResponsable ? "Annexer votre carte d'identité" : "Pièce d'identité du responsable"}
+            required={parResponsable}
+            hint={
+              parResponsable
+                ? "Une photo lisible ou un PDF. Elle reste confidentielle et n'est visible que par l'administration."
+                : "Si vous avez pu la photographier. Confidentielle, visible uniquement par l'administration."
+            }
+          >
+            {pieceIdentite ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+                <span className="flex min-w-0 items-center gap-2 text-sm">
+                  <FileCheck2 className="h-4 w-4 shrink-0 text-secondary-600" />
+                  <span className="truncate">{pieceIdentite.name}</span>
+                </span>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setPieceIdentite(null)}>
+                  Retirer
+                </Button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border px-3 py-4 text-sm text-muted-foreground hover:border-primary-900/40 hover:text-foreground">
+                <Paperclip className="h-4 w-4" />
+                Choisir une photo ou un PDF
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  className="sr-only"
+                  onChange={(event) => setPieceIdentite(event.target.files?.[0] ?? null)}
+                />
+              </label>
+            )}
           </Field>
           <Field label="Disponible pour les visites ?" required>
             <ChoiceChips

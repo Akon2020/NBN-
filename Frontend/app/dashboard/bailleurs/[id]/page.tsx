@@ -13,6 +13,7 @@ import {
   Trash2,
   Calendar,
   DollarSign,
+  IdCard,
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
@@ -20,7 +21,7 @@ import { useRouter } from "next/navigation";
 import { EditBailleurModal } from "@/components/bailleur-modals/edit-bailleur-modal";
 import { DeleteBailleurModal } from "@/components/bailleur-modals/delete-bailleur-modal";
 import { EntityTimeline } from "@/components/entity-timeline";
-import { getSingleBailleur } from "@/actions/bailleurs";
+import { getBailleurIdentityDocument, getSingleBailleur } from "@/actions/bailleurs";
 import {
   BAILLEUR_STATUT_LABELS,
   BAILLEUR_TYPE_LABELS,
@@ -40,6 +41,26 @@ export default function BailleurDetailPage({
   const [isLoading, setIsLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isOpeningDocument, setIsOpeningDocument] = useState(false);
+
+  // L'onglet est ouvert AVANT l'appel réseau : Safari iOS bloque tout
+  // window.open déclenché après un `await` (il ne le relie plus au tap).
+  const openIdentityDocument = async () => {
+    const tab = window.open("", "_blank");
+    setIsOpeningDocument(true);
+    try {
+      const blob = await getBailleurIdentityDocument(Number(id));
+      const url = URL.createObjectURL(blob);
+      if (tab) tab.location.href = url;
+      else window.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      tab?.close();
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue");
+    } finally {
+      setIsOpeningDocument(false);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -154,6 +175,22 @@ export default function BailleurDetailPage({
                   </div>
                 )}
               </div>
+
+              {bailleur.person?.hasIdDocument && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openIdentityDocument}
+                  disabled={isOpeningDocument}
+                >
+                  {isOpeningDocument ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <IdCard className="h-4 w-4 mr-2" />
+                  )}
+                  Voir la pièce d&apos;identité
+                </Button>
+              )}
 
               <Separator />
 

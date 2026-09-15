@@ -124,6 +124,13 @@ Toute modification de schéma passe par une migration versionnée — jamais par
   requête appelante — l'échec est signalé via `emailStatus` dans la réponse.
 - **Écritures financières** : append-only. Une correction se fait par
   contre-écriture, jamais par modification silencieuse.
+- **Pièces d'identité** : stockées dans `IDENTITY_DOCUMENTS_DIR`
+  (`private/identity-documents` par défaut), **hors** de `uploads/` qui est
+  servi publiquement. Les images sont réencodées en JPEG (EXIF et position GPS
+  retirés). Consultation uniquement via `GET /api/bailleurs/:id/piece-identite`
+  (`bailleurs:identity:read`, admin par défaut) ; la fiche n'expose que
+  `person.hasIdDocument`. Ce dossier n'est pas versionné : **l'inclure dans les
+  sauvegardes du serveur**.
 
 ## Déploiement cPanel — démarrage lent
 

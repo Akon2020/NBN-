@@ -21,6 +21,7 @@ import {
   normalizeCommissionnaireCode,
   normalizePhone,
 } from "../utils/contactValidation.js";
+import { deleteIdentityDocument, storeIdentityDocument } from "../utils/identityDocuments.js";
 
 const MISSION_TYPES = ["COLLECTE_BIEN", "APPORT_CLIENT", "SUIVI", "MISE_A_JOUR"];
 const PROPERTY_TYPES = [
@@ -88,7 +89,7 @@ const parseCount = (raw) => {
 // Renvoie `{ error }` (premier manque, dans l'ordre du formulaire) ou
 // `{ values }` normalisées. Même règles que les étapes du formulaire web,
 // qui n'est qu'un client parmi d'autres de cette route.
-const validateCollection = async (body) => {
+const validateCollection = async (body, file) => {
   const fail = (error) => ({ error });
 
   if (!REMPLISSEURS.includes(body.remplisseur)) {
@@ -168,6 +169,11 @@ const validateCollection = async (body) => {
     return fail("Votre adresse e-mail est requise.");
   }
 
+  // Obligatoire quand le responsable remplit lui-même : c'est la seule
+  // preuve d'identité d'une personne que l'agence n'a jamais rencontrée.
+  // Facultative quand un collecteur la relève (« s'il y a possibilité »).
+  if (parResponsable && !file) return fail("Annexez votre carte d'identité.");
+
   if (!DISPONIBILITES_VISITE.includes(body.responsableDisponibiliteVisite)) {
     return fail("Indiquez si le responsable est disponible pour les visites.");
   }
@@ -220,10 +226,24 @@ const validateCollection = async (body) => {
 export const createPropertyCollection = async (req, res, next) => {
   // Validation (DNS de l'e-mail compris) hors transaction : aucune
   // connexion MySQL retenue pendant la vérification.
-  const { error: validationError, values } = await validateCollection(req.body);
+  const { error: validationError, values } = await validateCollection(req.body, req.file);
   if (validationError) {
     return res.status(400).json({ message: validationError });
   }
+
+  // Écrit avant la transaction (lent, hors connexion MySQL), supprimé si
+  // elle échoue ou si la pièce n'est finalement pas retenue.
+  let storedDocument = null;
+  if (req.file) {
+    try {
+      storedDocument = await storeIdentityDocument(req.file);
+    } catch {
+      return res.status(400).json({
+        message: "La pièce d'identité n'a pas pu être lue. Envoyez une photo (JPEG, PNG) ou un PDF.",
+      });
+    }
+  }
+  let documentAttached = false;
 
   const { typeMission, typeOperation, propertyType, commune } = req.body;
   const collecteur =
@@ -243,16 +263,24 @@ export const createPropertyCollection = async (req, res, next) => {
           phone: values.responsablePhone,
           email: values.responsableEmail,
           idNumber: values.responsableIdNumber,
+          ...(storedDocument ?? {}),
         },
         { transaction }
       );
+      documentAttached = Boolean(storedDocument);
     } else {
       // Complète une fiche existante sans jamais écraser ce que l'agence
-      // a déjà renseigné ou corrigé.
+      // a déjà renseigné ou corrigé. Vaut aussi pour la pièce d'identité :
+      // cette route est publique, connaître le téléphone d'un bailleur ne
+      // doit pas suffire à remplacer son document.
       const missing = {};
       if (!ownerPerson.email && values.responsableEmail) missing.email = values.responsableEmail;
       if (!ownerPerson.idNumber && values.responsableIdNumber) {
         missing.idNumber = values.responsableIdNumber;
+      }
+      if (!ownerPerson.idDocumentPath && storedDocument) {
+        Object.assign(missing, storedDocument);
+        documentAttached = true;
       }
       if (Object.keys(missing).length) await ownerPerson.update(missing, { transaction });
     }
@@ -362,6 +390,10 @@ export const createPropertyCollection = async (req, res, next) => {
 
     await transaction.commit();
 
+    if (storedDocument && !documentAttached) {
+      await deleteIdentityDocument(storedDocument.idDocumentPath);
+    }
+
     const source = values.parResponsable
       ? `Soumis par le responsable (${values.responsableNom})`
       : `Collecté par ${collecteur || "un membre de l'équipe"}${
@@ -402,6 +434,7 @@ export const createPropertyCollection = async (req, res, next) => {
     });
   } catch (error) {
     await transaction.rollback();
+    if (storedDocument) await deleteIdentityDocument(storedDocument.idDocumentPath);
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }

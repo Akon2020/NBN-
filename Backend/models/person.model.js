@@ -27,6 +27,21 @@ const Person = db.define(
       type: DataTypes.STRING(50),
       allowNull: true,
     },
+    // Pièce d'identité annexée : chemin interne dans le dossier privé
+    // (utils/identityDocuments.js), jamais renvoyé tel quel par l'API — les
+    // sérialiseurs le remplacent par `hasIdDocument`.
+    idDocumentPath: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    idDocumentMimeType: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    idDocumentUploadedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     idUser: {
       type: DataTypes.BIGINT,
       allowNull: true,

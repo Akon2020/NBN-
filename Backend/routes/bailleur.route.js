@@ -3,6 +3,7 @@ import {
   createBailleur,
   deleteBailleur,
   getAllBailleurs,
+  getBailleurIdentityDocument,
   getSingleBailleur,
   updateBailleur,
 } from "../controllers/bailleur.controller.js";
@@ -135,6 +136,37 @@ bailleurRouter.delete(
   authMiddlware,
   requirePermission("bailleurs:manage"),
   deleteBailleur
+);
+
+/**
+ * @swagger
+ * /api/bailleurs/{id}/piece-identite:
+ *   get:
+ *     summary: Pièce d'identité annexée au bailleur (image JPEG ou PDF)
+ *     description: >
+ *       Fichier stocké hors du dossier public. Réservé à
+ *       `bailleurs:identity:read` (admin par défaut). La fiche du bailleur
+ *       n'expose que `person.hasIdDocument`, jamais le chemin du fichier.
+ *     tags: [Bailleurs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Le fichier (Cache-Control private, no-store)
+ *       403:
+ *         description: Permission bailleurs:identity:read manquante
+ *       404:
+ *         description: Aucune pièce d'identité pour ce bailleur
+ */
+bailleurRouter.get(
+  "/:id/piece-identite",
+  authMiddlware,
+  requirePermission("bailleurs:identity:read"),
+  getBailleurIdentityDocument
 );
 
 export default bailleurRouter;

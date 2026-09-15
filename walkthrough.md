@@ -1072,3 +1072,17 @@ Source : PDF « Quartiers par commune » fourni par l'agence (442 lignes commune
 - Swagger de `POST /api/property-collections` réécrit.
 - Tests `propertyCollection.test.js` réécrits : 8 refus explicites, création complète, prix minimum masqué pour `operations` / visible pour `admin`, réutilisation du bailleur, membre d'équipe sans identité, responsable qui remplit lui-même. Backend complet 249/249 (40 fichiers), Frontend 20/20, `tsc` OK.
 - Constat sur « Erreur lors de l'enregistrement du bien » : la route fonctionne en local (201) et répond correctement en production à une requête vide (400 JSON). La cause la plus probable en production était le quota partagé (corrigé en 0.1) ou des migrations non appliquées sur le serveur — **`npm run db:migrate` à lancer au déploiement**.
+
+### 1.4 Pièce d'identité du responsable en annexe
+
+- Obligatoire quand le **responsable remplit lui-même** la collecte (« Annexer votre carte d'identité ») ; facultative quand un collecteur la relève (« s'il y a possibilité »).
+- Transport : la collecte reste un JSON ; avec un fichier, multipart `data` (le JSON sérialisé, types préservés) + `pieceIdentite` — `middlewares/collectionUpload.middleware.js` (multer en mémoire, JPEG/PNG/WebP/PDF, `MAX_ID_DOCUMENT_SIZE_MB` = 8, erreurs en 400 explicites).
+- Stockage : `utils/identityDocuments.js`, dossier **privé** `IDENTITY_DOCUMENTS_DIR` (`private/identity-documents`, ignoré par git), jamais sous `uploads/` (servi publiquement par `app.js`). Images réencodées en JPEG 2000 px max — plus légères et **débarrassées des EXIF, position GPS comprise** ; PDF contrôlé par signature `%PDF-`. Garde contre la sortie du dossier à la lecture.
+- Écriture du fichier avant la transaction, suppression si elle échoue. Route publique : un document existant **n'est jamais remplacé** (connaître le téléphone d'un bailleur ne suffit pas à substituer sa pièce) — le fichier écarté est supprimé.
+- Migration `20260915200000-person-identity-document.cjs` (`idDocumentPath`, `idDocumentMimeType`, `idDocumentUploadedAt` sur `persons`), réversible (vérifié).
+- Consultation : `GET /api/bailleurs/:id/piece-identite`, permission `bailleurs:identity:read` (seeder, catalogue seul — admin par construction), `Cache-Control: private, no-store`. `bailleur.serializer.js` remplace le chemin par `person.hasIdDocument`.
+- Frontend : champ fichier à l'étape du responsable (hors brouillon, redemandé si un brouillon est restauré), bouton « Voir la pièce d'identité » sur la fiche bailleur — onglet ouvert avant l'appel réseau, sinon Safari iOS bloque la fenêtre.
+- `.env.example` : `IDENTITY_DOCUMENTS_DIR`, `MAX_ID_DOCUMENT_SIZE_MB`, et `EMAIL_MX_CHECK_TIMEOUT_MS` (oublié en 1.2). README : section pièces d'identité, **dossier à inclure dans les sauvegardes**.
+- Tests : `tests/identityDocument.test.js` (6 : obligatoire, format refusé, stockage privé + 404 en accès direct, chemin jamais exposé, 403 sans permission / 200 admin, non-remplacement sans orphelin) ; `propertyCollection.test.js` adapté. Backend 255/255 (41 fichiers), aucun fichier résiduel ; Frontend 20/20, `tsc` OK.
+
+_Phase 1 terminée. Au déploiement : `npm run db:migrate` puis `npm run db:seed`, créer le dossier privé inscriptible et l'ajouter aux sauvegardes._

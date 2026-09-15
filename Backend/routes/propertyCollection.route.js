@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createPropertyCollection } from "../controllers/propertyCollection.controller.js";
 import { optionalAuth } from "../middlewares/auth.middleware.js";
 import { publicFormLimiter } from "../middlewares/rateLimit.middleware.js";
+import { parseCollectionUpload } from "../middlewares/collectionUpload.middleware.js";
 
 const propertyCollectionRouter = Router();
 
@@ -17,10 +18,26 @@ const propertyCollectionRouter = Router();
  *       rempli soit par le responsable du bien lui-même (e-mail requis), soit
  *       par un collecteur — commissionnaire (nom, téléphone et code CCM
  *       requis) ou membre de l'équipe (aucune identité supplémentaire).
+ *       Pour joindre la pièce d'identité du responsable (obligatoire quand il
+ *       remplit lui-même), envoyer un multipart/form-data avec `data` (ce même
+ *       JSON, sérialisé) et `pieceIdentite` (JPEG, PNG, WebP ou PDF,
+ *       MAX_ID_DOCUMENT_SIZE_MB, 8 Mo par défaut). Le fichier est stocké hors du
+ *       dossier public et n'est jamais renvoyé par cette route.
  *     tags: [Properties]
  *     requestBody:
  *       required: true
  *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [data]
+ *             properties:
+ *               data:
+ *                 type: string
+ *                 description: Le corps JSON décrit ci-dessous, sérialisé.
+ *               pieceIdentite:
+ *                 type: string
+ *                 format: binary
  *         application/json:
  *           schema:
  *             type: object
@@ -96,6 +113,12 @@ const propertyCollectionRouter = Router();
  *       429:
  *         description: Trop de soumissions depuis cet appareil
  */
-propertyCollectionRouter.post("/", publicFormLimiter, optionalAuth, createPropertyCollection);
+propertyCollectionRouter.post(
+  "/",
+  publicFormLimiter,
+  parseCollectionUpload,
+  optionalAuth,
+  createPropertyCollection
+);
 
 export default propertyCollectionRouter;

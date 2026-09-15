@@ -222,6 +222,9 @@ export interface Person {
   email?: string | null
   idNumber?: string | null
   idUser?: number | null
+  // Une pièce d'identité est annexée — le fichier se consulte via
+  // GET /api/bailleurs/:id/piece-identite (le chemin n'est jamais exposé).
+  hasIdDocument?: boolean
 }
 
 export type ClientType = "LOCATAIRE" | "ACHETEUR"

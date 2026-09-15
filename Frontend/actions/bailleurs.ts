@@ -17,6 +17,25 @@ export const getAllBailleurs = async (): Promise<Bailleur[]> => {
   }
 };
 
+// Pièce d'identité annexée (image ou PDF). Récupérée en Blob via l'API
+// authentifiée : le fichier n'a aucune URL publique à ouvrir directement.
+export const getBailleurIdentityDocument = async (id: number): Promise<Blob> => {
+  try {
+    const res = await api.get<Blob>(`/api/bailleurs/${id}/piece-identite`, {
+      responseType: "blob",
+    });
+    return res.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      throw new Error("Vous n'avez pas la permission de consulter cette pièce d'identité.");
+    }
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      throw new Error("Aucune pièce d'identité pour ce bailleur.");
+    }
+    throw new Error("Impossible d'ouvrir la pièce d'identité.");
+  }
+};
+
 export const getSingleBailleur = async (id: number): Promise<Bailleur> => {
   try {
     const res = await api.get<Bailleur>(`/api/bailleurs/${id}`);

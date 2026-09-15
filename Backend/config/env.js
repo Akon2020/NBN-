@@ -39,4 +39,8 @@ export const {
   // Délai maximal de la vérification DNS (MX) d'une adresse e-mail saisie
   // dans un formulaire public. Au-delà, l'adresse est acceptée.
   EMAIL_MX_CHECK_TIMEOUT_MS,
+  // Pièces d'identité annexées : dossier privé (hors `uploads/`, jamais
+  // servi statiquement) et taille maximale acceptée.
+  IDENTITY_DOCUMENTS_DIR,
+  MAX_ID_DOCUMENT_SIZE_MB,
 } = process.env;

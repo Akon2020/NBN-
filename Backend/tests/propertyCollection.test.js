@@ -1,5 +1,8 @@
 import { describe, it, expect, afterAll } from "vitest";
+import fs from "fs";
+import path from "path";
 import request from "supertest";
+import sharp from "sharp";
 import app from "../app.js";
 import {
   Property,
@@ -86,6 +89,10 @@ afterAll(async () => {
     await Bailleur.destroy({ where: { idBailleur: createdBailleurIds } });
   }
   if (createdPersonIds.length) {
+    const persons = await Person.findAll({ where: { idPerson: createdPersonIds } });
+    persons
+      .filter((person) => person.idDocumentPath)
+      .forEach((person) => fs.rmSync(path.resolve(person.idDocumentPath), { force: true }));
     await Person.destroy({ where: { idPerson: createdPersonIds } });
   }
 });
@@ -232,16 +239,27 @@ describe("Formulaire de collecte de bien", () => {
   });
 
   it("le responsable qui remplit lui-même est enregistré comme source", async () => {
+    // Sa carte d'identité est alors obligatoire (voir identityDocument.test.js).
+    const carteIdentite = await sharp({
+      create: { width: 40, height: 25, channels: 3, background: "#245640" },
+    })
+      .png()
+      .toBuffer();
+
     const res = await request(app)
       .post("/api/property-collections")
-      .send({
-        ...basePayload,
-        remplisseur: "RESPONSABLE",
-        parCommissionnaire: undefined,
-        responsableStatut: "PROPRIETAIRE",
-        responsablePhone: selfOwnerPhone,
-        responsableEmail: `proprietaire.${suffix}@gmail.com`,
-      });
+      .field(
+        "data",
+        JSON.stringify({
+          ...basePayload,
+          remplisseur: "RESPONSABLE",
+          parCommissionnaire: undefined,
+          responsableStatut: "PROPRIETAIRE",
+          responsablePhone: selfOwnerPhone,
+          responsableEmail: `proprietaire.${suffix}@gmail.com`,
+        })
+      )
+      .attach("pieceIdentite", carteIdentite, { filename: "cni.png", contentType: "image/png" });
 
     expect(res.status).toBe(201);
     const property = await trackProperty(res.body.data.idProperty);

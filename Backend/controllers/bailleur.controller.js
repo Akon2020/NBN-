@@ -5,6 +5,35 @@ import {
   serializeBailleurs,
 } from "../utils/serializers/bailleur.serializer.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
+import { resolveIdentityDocument } from "../utils/identityDocuments.js";
+
+// Pièce d'identité annexée au bailleur. Servie en flux depuis le dossier
+// privé, jamais mise en cache (donnée personnelle, souvent consultée sur un
+// téléphone partagé).
+export const getBailleurIdentityDocument = async (req, res, next) => {
+  try {
+    const bailleur = await Bailleur.findByPk(req.params.id, {
+      include: [{ model: Person, as: "person" }],
+    });
+    const storedPath = bailleur?.person?.idDocumentPath;
+    const absolute = storedPath ? resolveIdentityDocument(storedPath) : null;
+    if (!absolute) {
+      return res.status(404).json({ message: "Aucune pièce d'identité pour ce bailleur." });
+    }
+
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Content-Disposition", "inline");
+    res.type(bailleur.person.idDocumentMimeType || "application/octet-stream");
+    return res.sendFile(absolute, (error) => {
+      if (error && !res.headersSent) {
+        res.status(404).json({ message: "Le fichier de la pièce d'identité est introuvable." });
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
 
 export const getAllBailleurs = async (req, res, next) => {
   try {
