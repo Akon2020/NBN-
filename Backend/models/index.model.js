@@ -181,6 +181,7 @@ Client.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 // Demande de location publique → Client CRM créé à partir d'elle.
 RentalRequest.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 Client.hasMany(RentalRequest, { foreignKey: "idClient", as: "rentalRequests" });
+RentalRequest.belongsTo(User, { foreignKey: "deletedBy", as: "deleter" });
 
 // GOAL 4 — le code commissionnaire est la référence métier (jamais un
 // idCommissionnaire interne saisi/affiché) ; association basée sur cette

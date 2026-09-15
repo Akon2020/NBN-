@@ -1141,3 +1141,11 @@ _Phase 2 terminée. Au déploiement : `npm run db:migrate`, `npm run db:seed`, c
 - Migration `20260916000000-outbox-payload-mediumtext.cjs` : `outboxEvents.payload` en MEDIUMTEXT (une pièce jointe base64 dépasse le plafond de 64 Ko de TEXT). `queueEmail` accepte `attachments`.
 - Frontend : boutons « Assigner une tâche » et « Fiche PDF » au bas de la fiche d'une demande ; dialogue `rental-request-assign-dialog.tsx` (recherche, utilisateurs, commissionnaires si le rôle y a accès, adresses libres en pastilles, échéance, consigne, compte-rendu des envois).
 - Tests : `tests/rentalRequestAssign.test.js` (PDF avec emoji, refus sans destinataire / e-mail invalide / 403, tâche urgente liée au client, notification, PDF joint et dédoublonné, lien réservé aux comptes). Backend 281/281, Frontend 20/20, `tsc` OK.
+
+### 3.2 « Supprimer la fiche » avec commentaire obligatoire, reprise dans les rapports
+
+- Migration `20260916100000-rental-request-deletion.cjs` : `deletedAt`, `deletedBy`, `deletionReason` sur `rentalRequests` ; modèle passé en `paranoid` (suppression logique, CLAUDE.md §4). Réversible (vérifié).
+- `DELETE /api/rental-requests/:id` (clients:manage) : commentaire de 10 à 1 000 caractères obligatoire, auteur et motif enregistrés, événement sur la timeline du client. La fiche disparaît de la liste et du détail (404) ; **le client reste sur le pipeline** (on supprime une fiche de demande, pas une relation commerciale).
+- `GET /api/reports/rental-requests` (reports:read, CSV/Excel, période, `deleted=only`) : toutes les demandes, fiches supprimées comprises, avec statut, date, auteur et motif de suppression.
+- Frontend : bouton « Supprimer la fiche » au bas de la fiche (dialogue avec compteur de caractères, bouton désactivé tant que le commentaire est trop court) ; carte « Demandes de location » dans Rapports.
+- Tests : `tests/rentalRequestDeletion.test.js` (commentaire exigé, 403, masquage + traçabilité, fiche et motif présents dans le rapport). `rentalRequest.test.js` et `formNotifications.test.js` nettoient désormais en `force` (sinon les fiches supprimées logiquement bloquent la suppression du client). `rentalRequestAssign.test.js` cible explicitement l'e-mail portant la fiche : un échec intermittent observé une fois en exécution parallèle, non reproduit ensuite. Backend 285/285 (47 fichiers), Frontend 20/20, `tsc` OK.

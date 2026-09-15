@@ -3,6 +3,7 @@ import {
   exportCaisseLedger,
   exportCommissions,
   exportProperties,
+  exportRentalRequests,
   getCaisseStatementPdf,
 } from "../controllers/report.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
@@ -118,6 +119,40 @@ reportRouter.get(
   authMiddlware,
   requirePermission("reports:read"),
   exportCommissions
+);
+
+/**
+ * @swagger
+ * /api/reports/rental-requests:
+ *   get:
+ *     summary: Export des demandes de location, fiches supprimées comprises (date, auteur, motif)
+ *     tags: [Reports]
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema: { type: string, enum: [csv, xlsx] }
+ *       - in: query
+ *         name: from
+ *         schema: { type: string, format: date }
+ *         description: Défaut — 30 jours avant `to`
+ *       - in: query
+ *         name: to
+ *         schema: { type: string, format: date }
+ *       - in: query
+ *         name: deleted
+ *         schema: { type: string, enum: [only] }
+ *         description: "`only` pour n'exporter que les fiches supprimées"
+ *     responses:
+ *       200:
+ *         description: Fichier CSV ou Excel
+ *       403:
+ *         description: Permission reports:read manquante
+ */
+reportRouter.get(
+  "/rental-requests",
+  authMiddlware,
+  requirePermission("reports:read"),
+  exportRentalRequests
 );
 
 export default reportRouter;

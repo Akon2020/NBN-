@@ -12,7 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ClipboardList, FileDown, ListChecks, Loader2, Phone, Search, ShieldAlert, User } from "lucide-react"
+import { ClipboardList, FileDown, ListChecks, Loader2, Phone, Search, ShieldAlert, Trash2, User } from "lucide-react"
+import { RentalRequestDeleteDialog } from "@/components/rental-request-delete-dialog"
 import { getAllRentalRequests, openRentalRequestPdf } from "@/actions/rentalRequests"
 import { RentalRequestAssignDialog } from "@/components/rental-request-assign-dialog"
 import {
@@ -52,6 +53,7 @@ export default function DemandesPage() {
   const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<RentalRequest | null>(null)
   const [assigning, setAssigning] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -299,9 +301,27 @@ export default function DemandesPage() {
                   <FileDown className="mr-2 h-4 w-4" />
                   Fiche PDF
                 </Button>
+                <Button
+                  variant="outline"
+                  className="text-destructive sm:ml-auto"
+                  onClick={() => setDeleting(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer la fiche
+                </Button>
               </div>
 
               <RentalRequestAssignDialog request={selected} open={assigning} onOpenChange={setAssigning} />
+              <RentalRequestDeleteDialog
+                request={selected}
+                open={deleting}
+                onOpenChange={setDeleting}
+                onDeleted={(id) => {
+                  setRequests((prev) => prev.filter((item) => item.idRentalRequest !== id))
+                  setDeleting(false)
+                  setSelected(null)
+                }}
+              />
             </>
           )}
         </DialogContent>

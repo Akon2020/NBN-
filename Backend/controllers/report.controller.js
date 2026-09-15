@@ -11,6 +11,8 @@ import {
   Commissionnaire,
   Person,
   Currency,
+  RentalRequest,
+  User,
 } from "../models/index.model.js";
 import { serializeProperties } from "../utils/serializers/property.serializer.js";
 import { generateCaisseStatementPdf } from "../utils/reports/caisseStatementPdf.js";
@@ -98,6 +100,81 @@ export const exportProperties = async (req, res, next) => {
     const csv = toCsv(serialized, columns);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", 'attachment; filename="biens.csv"');
+    return res.status(200).send(csv);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+const RENTAL_REQUEST_COLUMNS = [
+  { header: "N° de dossier", key: "dossier" },
+  { header: "Reçue le", key: "receivedAt" },
+  { header: "Client", key: "fullName" },
+  { header: "Téléphone", key: "phone" },
+  { header: "E-mail", key: "email" },
+  { header: "Commune", key: "commune" },
+  { header: "Quartier", key: "quartier" },
+  { header: "Budget minimum", key: "budgetMin" },
+  { header: "Budget maximum", key: "loyerMax" },
+  { header: "Devise", key: "devise" },
+  { header: "Urgence", key: "urgence" },
+  { header: "Statut", key: "statut" },
+  { header: "Supprimée le", key: "deletedAtLabel" },
+  { header: "Supprimée par", key: "deletedByName" },
+  { header: "Motif de suppression", key: "deletionReason" },
+];
+
+const formatDateTime = (value) =>
+  value ? new Date(value).toLocaleString("fr-FR", { timeZone: "Africa/Lubumbashi" }) : "";
+
+// Rapport des demandes de location, fiches supprimées comprises : c'est ici
+// que le commentaire obligatoire d'une suppression reste consultable.
+export const exportRentalRequests = async (req, res, next) => {
+  try {
+    const format = req.query.format === "xlsx" ? "xlsx" : "csv";
+    const { from, to } = parseRange(req.query);
+    const where = { createdAt: { [Op.between]: [from, to] } };
+    if (req.query.deleted === "only") where.deletedAt = { [Op.ne]: null };
+
+    const requests = await RentalRequest.findAll({
+      where,
+      paranoid: false,
+      include: [
+        { model: Client, as: "client", attributes: ["dossierNumber"], paranoid: false },
+        { model: User, as: "deleter", attributes: ["fullName"] },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    const rows = requests.map((request) => ({
+      dossier: request.client?.dossierNumber || `DL-${request.idRentalRequest}`,
+      receivedAt: formatDateTime(request.createdAt),
+      fullName: request.fullName,
+      phone: request.phone,
+      email: request.email || "",
+      commune: request.commune || "",
+      quartier: request.quartier || "",
+      budgetMin: request.budgetMin ?? "",
+      loyerMax: request.loyerMax ?? "",
+      devise: request.devise,
+      urgence: request.urgence === "AUTRE" ? request.urgenceAutre : request.urgence || "",
+      statut: request.deletedAt ? "Supprimée" : "Active",
+      deletedAtLabel: formatDateTime(request.deletedAt),
+      deletedByName: request.deleter?.fullName || "",
+      deletionReason: request.deletionReason || "",
+    }));
+
+    if (format === "xlsx") {
+      const buffer = await toExcelBuffer(rows, RENTAL_REQUEST_COLUMNS, "Demandes");
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", 'attachment; filename="demandes-location.xlsx"');
+      return res.status(200).send(buffer);
+    }
+
+    const csv = toCsv(rows, RENTAL_REQUEST_COLUMNS);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="demandes-location.csv"');
     return res.status(200).send(csv);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createRentalRequest,
+  deleteRentalRequest,
   getAllRentalRequests,
   getSingleRentalRequest,
 } from "../controllers/rentalRequest.controller.js";
@@ -123,6 +124,45 @@ rentalRequestRouter.get(
   authMiddlware,
   requirePermission("clients:read"),
   getSingleRentalRequest
+);
+
+/**
+ * @swagger
+ * /api/rental-requests/{id}:
+ *   delete:
+ *     summary: Supprime la fiche d'une demande (suppression logique, commentaire obligatoire)
+ *     description: >
+ *       La demande disparaît des listes et du détail, mais reste dans
+ *       GET /api/reports/rental-requests avec la date, l'auteur et le motif.
+ *       Le client lié reste sur le pipeline commercial.
+ *     tags: [RentalRequests]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 minLength: 10
+ *                 maxLength: 1000
+ *     responses:
+ *       200:
+ *         description: Fiche supprimée
+ *       400:
+ *         description: Commentaire manquant, trop court ou trop long
+ *       403:
+ *         description: Permission clients:manage manquante
+ *       404:
+ *         description: Demande non trouvée (ou déjà supprimée)
+ */
+rentalRequestRouter.delete(
+  "/:id",
+  authMiddlware,
+  requirePermission("clients:manage"),
+  deleteRentalRequest
 );
 
 /**

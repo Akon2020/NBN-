@@ -20,7 +20,9 @@ import {
   downloadCaisseStatement,
   downloadCommissionsExport,
   downloadPropertiesExport,
+  downloadRentalRequestsExport,
 } from "@/actions/reports"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function RapportsPage() {
   const [caisses, setCaisses] = useState<Caisse[]>([])
@@ -34,6 +36,28 @@ export default function RapportsPage() {
 
   const [propertiesFormat, setPropertiesFormat] = useState<"csv" | "xlsx">("csv")
   const [generatingProperties, setGeneratingProperties] = useState(false)
+
+  const [requestsFormat, setRequestsFormat] = useState<"csv" | "xlsx">("xlsx")
+  const [requestsFrom, setRequestsFrom] = useState("")
+  const [requestsTo, setRequestsTo] = useState("")
+  const [requestsDeletedOnly, setRequestsDeletedOnly] = useState(false)
+  const [generatingRequests, setGeneratingRequests] = useState(false)
+
+  const handleRequestsExport = async () => {
+    setGeneratingRequests(true)
+    try {
+      await downloadRentalRequestsExport(
+        requestsFormat,
+        requestsFrom || undefined,
+        requestsTo || undefined,
+        requestsDeletedOnly
+      )
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur inconnue")
+    } finally {
+      setGeneratingRequests(false)
+    }
+  }
 
   const [commissionsFormat, setCommissionsFormat] = useState<"csv" | "xlsx">("csv")
   const [commissionsFrom, setCommissionsFrom] = useState("")
@@ -206,6 +230,54 @@ export default function RapportsPage() {
               >
                 <FileSpreadsheet className="h-4 w-4" />
                 {generatingProperties ? "Génération..." : "Télécharger l'export"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
+                <CardTitle>Demandes de location</CardTitle>
+              </div>
+              <CardDescription>
+                Toutes les demandes reçues, y compris les fiches supprimées avec leur date, leur auteur et le motif.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="requests-from">Du</Label>
+                  <Input id="requests-from" type="date" value={requestsFrom} onChange={(e) => setRequestsFrom(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="requests-to">Au</Label>
+                  <Input id="requests-to" type="date" value={requestsTo} onChange={(e) => setRequestsTo(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Format</Label>
+                <Select value={requestsFormat} onValueChange={(v) => setRequestsFormat(v as "csv" | "xlsx")}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="xlsx">Excel (xlsx)</SelectItem>
+                    <SelectItem value="csv">CSV</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <Checkbox
+                  checked={requestsDeletedOnly}
+                  onCheckedChange={(checked) => setRequestsDeletedOnly(checked === true)}
+                />
+                Uniquement les fiches supprimées
+              </label>
+              <p className="text-xs text-muted-foreground">Sans dates, les 30 derniers jours sont exportés.</p>
+              <Button onClick={handleRequestsExport} disabled={generatingRequests} className="gap-2 w-full sm:w-auto">
+                <FileSpreadsheet className="h-4 w-4" />
+                {generatingRequests ? "Génération..." : "Télécharger l'export"}
               </Button>
             </CardContent>
           </Card>

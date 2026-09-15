@@ -382,3 +382,49 @@ export const getSingleRentalRequest = async (req, res, next) => {
     next(error);
   }
 };
+
+const MIN_DELETION_REASON = 10;
+const MAX_DELETION_REASON = 1000;
+
+// « Supprimer la fiche » : suppression logique, commentaire obligatoire.
+// La demande disparaît de « Demandes reçues » mais reste dans le rapport
+// des demandes avec son motif — et le client, lui, reste sur le pipeline :
+// on supprime une fiche de demande, pas une relation commerciale.
+export const deleteRentalRequest = async (req, res, next) => {
+  try {
+    const reason = String(req.body?.reason ?? "").trim();
+    if (reason.length < MIN_DELETION_REASON) {
+      return res.status(400).json({
+        message: `Un commentaire expliquant la suppression est obligatoire (${MIN_DELETION_REASON} caractères minimum).`,
+      });
+    }
+    if (reason.length > MAX_DELETION_REASON) {
+      return res.status(400).json({ message: "Le commentaire est trop long." });
+    }
+
+    const request = await RentalRequest.findByPk(req.params.id);
+    if (!request) {
+      return res.status(404).json({ message: "Demande non trouvée" });
+    }
+
+    await request.update({ deletedBy: req.user.idUser, deletionReason: reason });
+    await request.destroy();
+
+    if (request.idClient) {
+      await recordTimelineEvent({
+        entityType: "CLIENT",
+        entityId: request.idClient,
+        eventType: "RENTAL_REQUEST_DELETED",
+        title: "Fiche de demande de location supprimée",
+        description: reason,
+        actorUserId: req.user.idUser,
+        metadata: { idRentalRequest: request.idRentalRequest },
+      });
+    }
+
+    return res.status(200).json({ message: "Fiche supprimée. Elle reste consultable dans le rapport des demandes." });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
