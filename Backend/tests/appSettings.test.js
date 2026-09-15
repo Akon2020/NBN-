@@ -74,6 +74,10 @@ afterAll(async () => {
     await Person.destroy({ where: { idPerson: createdPersonIds } });
   }
   if (createdUserIds.length) {
+    // Tout paramètre modifié ici (cart.maxItems compris) garde son auteur :
+    // détaché avant la suppression, sinon la clé étrangère updatedBy bloque
+    // (vu sur une base neuve, celle du CI).
+    await AppSetting.update({ updatedBy: null }, { where: { updatedBy: createdUserIds } });
     await User.destroy({ where: { idUser: createdUserIds } });
   }
 });
