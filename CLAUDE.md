@@ -193,7 +193,7 @@ Trois concepts distincts, jamais confondus :
 
 ### Access Token / Refresh Token
 
-- Access Token : JWT, durée **15 minutes** (valeur en variable d'environnement, jamais en dur).
+- Access Token : JWT, durée **24 heures** (valeur en variable d'environnement `ACCESS_TOKEN_EXPIRES_IN`, jamais en dur). Décision du porteur de projet (2026-09-15), remplace les 15 minutes initiales : les agents terrain étaient déconnectés en pleine journée. La révocation reste immédiate grâce à `securityVersion` (voir plus bas), la durée ne l'affaiblit pas. Le dashboard web renouvelle le jeton silencieusement via `/api/auth/refresh` sur une réponse 401.
 - Refresh Token Web : **7 jours**, stocké en cookie `httpOnly`, `secure`, `sameSite`.
 - Refresh Token Mobile : **30 jours**, stocké via `expo-secure-store` (jamais AsyncStorage en clair).
 - Rotation systématique à chaque refresh — l'ancien token est révoqué, un nouveau émis avec `replacedByTokenId` pointant vers le nouveau, formant une `tokenFamilyId`.

@@ -27,6 +27,7 @@ import {
   revokeTokenFamily,
   revokeAllUserSessions,
   hashToken,
+  accessTokenMaxAge,
 } from "../utils/session.utils.js";
 import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
 import { Session } from "../models/index.model.js";
@@ -58,7 +59,10 @@ const issueTokens = async (res, user, req) => {
     userAgent: req.headers["user-agent"],
   });
 
-  res.cookie("token", accessToken, ACCESS_COOKIE_OPTIONS);
+  res.cookie("token", accessToken, {
+    ...ACCESS_COOKIE_OPTIONS,
+    maxAge: accessTokenMaxAge(accessToken),
+  });
   res.cookie("refreshToken", refreshToken, {
     ...REFRESH_COOKIE_OPTIONS,
     maxAge: session.expiresAt.getTime() - Date.now(),
@@ -248,7 +252,10 @@ export const refresh = async (req, res, next) => {
 
     const accessToken = generateAccessToken(user);
 
-    res.cookie("token", accessToken, ACCESS_COOKIE_OPTIONS);
+    res.cookie("token", accessToken, {
+      ...ACCESS_COOKIE_OPTIONS,
+      maxAge: accessTokenMaxAge(accessToken),
+    });
     res.cookie("refreshToken", newRefreshToken, {
       ...REFRESH_COOKIE_OPTIONS,
       maxAge: newSession.expiresAt.getTime() - Date.now(),

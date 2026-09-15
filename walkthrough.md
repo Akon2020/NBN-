@@ -1006,3 +1006,12 @@ Constat en production (`api.nbnexpress.org`, en-têtes `Server: openresty` + `X-
 - `app/auth/login/page.tsx` : `autoCapitalize="none"`, `autoCorrect="off"`, `spellCheck={false}`, `inputMode="email"` et `autoComplete` sur l'email et le mot de passe — en mode « afficher le mot de passe » le champ devient texte et iOS le corrigeait.
 - `app/dashboard/layout.tsx` : deux commentaires (tirets) modifiés localement par le porteur de projet, inclus à sa demande.
 - Test : `tests/actions/auth.test.ts`. Frontend 5/5, `tsc --noEmit` sans erreur.
+
+### 0.3 Session de 24 h et renouvellement silencieux
+
+Cause de « le jeton expire trop vite » : access token de 15 min, et l'intercepteur de renouvellement du dashboard web était entièrement commenté dans `lib/axios.ts` (vestige d'un ancien flux Bearer/localStorage). Passé 15 min, chaque appel répondait 401 — c'est aussi la « ligne d'erreur » de l'onglet Bailleurs.
+
+- `utils/session.utils.js` : défaut `ACCESS_TOKEN_EXPIRES_IN` = `24h` (décision du porteur de projet, CLAUDE.md §5 mis à jour). La révocation reste immédiate via `securityVersion`. Nouveau `accessTokenMaxAge` : le cookie `token` porte désormais un `Max-Age` égal à la durée du jeton (avant : cookie de session, effaçable par Safari iOS à la fermeture).
+- `.env.example`, et les fichiers locaux non versionnés `.env.production.local` / `.env.development.local` passés de `15m` à `24h` — **à reporter sur le serveur**.
+- `Frontend/lib/axios.ts` : intercepteur 401 → `POST /api/auth/refresh/` → rejeu unique. Renouvellement mutualisé entre requêtes simultanées (deux rotations concurrentes seraient vues comme une réutilisation frauduleuse et déconnecteraient l'utilisateur). Jamais de renouvellement sur login/refresh/logout.
+- Tests : `Frontend/tests/lib/axios.test.ts` (4 cas), cas `Max-Age` dans `Backend/tests/auth.test.js`. Frontend 9/9, Backend auth+session 11/11.
