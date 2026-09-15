@@ -1,5 +1,6 @@
 import api from "@/lib/axios";
 import axios from "axios";
+import { apiErrorMessage } from "@/lib/apiError";
 import { Auth, AuthPayload, Data, User } from "@/types/type";
 
 // Le jeton vit uniquement dans le cookie httpOnly posé par le backend
@@ -15,21 +16,9 @@ export const login = async (data: AuthPayload): Promise<Auth> => {
     localStorage.setItem("user", JSON.stringify(res.data.data.userInfo));
     return res.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      // Le Backend explique toujours son refus dans `message` (identifiants,
-      // compte désactivé, quota dépassé, mot de passe par défaut). Sans
-      // réponse du tout, le problème est réseau : serveur en veille ou
-      // connexion coupée — le dire évite de soupçonner le mot de passe.
-      if (!error.response) {
-        throw new Error(
-          "Serveur injoignable. Vérifiez votre connexion internet puis réessayez."
-        );
-      }
-      throw new Error(
-        error.response.data?.message || "Erreur lors de la connexion"
-      );
-    }
-    throw new Error("Erreur inconnue lors de la connexion");
+    // Identifiants refusés, compte désactivé, quota dépassé ou serveur
+    // injoignable : chaque cas a son propre message (voir lib/apiError).
+    throw new Error(apiErrorMessage(error, "Erreur lors de la connexion"));
   }
 };
 

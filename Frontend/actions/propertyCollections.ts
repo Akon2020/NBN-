@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import axios from "axios";
+import { apiErrorMessage } from "@/lib/apiError";
 import { PropertyCollectionPayload } from "@/lib/types";
 
 // Route interne non indexée côté client, atteignable sans compte : le
@@ -15,10 +15,7 @@ export const submitPropertyCollection = async (
     }>("/api/property-collections", payload);
     return res.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || "Erreur lors de l'enregistrement du bien");
-    }
-    throw new Error("Erreur inconnue");
+    throw new Error(apiErrorMessage(error, "Erreur lors de l'enregistrement du bien"));
   }
 };
 

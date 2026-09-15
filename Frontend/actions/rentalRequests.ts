@@ -1,12 +1,9 @@
 import api from "@/lib/axios";
-import axios from "axios";
+import { apiErrorMessage } from "@/lib/apiError";
 import { RentalRequest, RentalRequestPayload } from "@/lib/types";
 
 const handleError = (error: unknown, fallback: string): never => {
-  if (axios.isAxiosError(error)) {
-    throw new Error(error.response?.data?.message || fallback);
-  }
-  throw new Error("Erreur inconnue");
+  throw new Error(apiErrorMessage(error, fallback));
 };
 
 // Route publique (aucune authentification) — appelée depuis la page

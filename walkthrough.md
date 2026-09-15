@@ -1023,3 +1023,11 @@ Cause réelle de la « ligne d'erreur » (et du fait que l'onglet ne s'affichait
 - `!= null` + `Number(...)` (MySQL renvoie les DECIMAL en chaîne) sur la liste, la fiche `bailleurs/[id]` et le même motif dans `sales/page.tsx` (`property.margin`).
 - Test : `tests/app/bailleurs-page.test.tsx` rend l'onglet avec un bailleur sans marge et un avec marge en chaîne. Frontend 10/10.
 - Vérification navigateur non faite : le dashboard exige une connexion, et la saisie d'un mot de passe par l'agent est exclue.
+
+### 0.5 Formulaires : distinguer « serveur injoignable » d'un refus, et démarrage lent
+
+- `Frontend/lib/apiError.ts` : `apiErrorMessage(error, fallback)` centralise le message affiché — `message` du Backend s'il existe, « Serveur injoignable » sans réponse, repli sinon. Utilisé par la connexion, la demande de location et la collecte de bien : « Erreur lors de l'enregistrement du bien » ne masque plus un quota dépassé (message JSON du rate limiter) ni une API en veille.
+- Démarrage lent : Passenger arrête l'application après 5 min sans requête ; la suivante relance Node + Sequelize + MySQL (5 s mesurées). Réglage d'hébergement, pas de code : section « Déploiement cPanel » ajoutée au `Backend/README.md` (`PassengerMinInstances 1`, `PassengerPoolIdleTime 0`, ou moniteur externe toutes les 5 min).
+- Tests : `tests/lib/apiError.test.ts`. Frontend 13/13, Backend 216/216 (38 fichiers).
+
+_Phase 0 terminée. À faire côté serveur : redéployer Backend et Frontend, `ACCESS_TOKEN_EXPIRES_IN="24h"` dans `.env.production.local`, réglage Passenger._

@@ -124,3 +124,29 @@ Toute modification de schéma passe par une migration versionnée — jamais par
   requête appelante — l'échec est signalé via `emailStatus` dans la réponse.
 - **Écritures financières** : append-only. Une correction se fait par
   contre-écriture, jamais par modification silencieuse.
+
+## Déploiement cPanel — démarrage lent
+
+Sur cPanel, Phusion Passenger **arrête l'application après une période sans
+requête** (5 minutes par défaut) pour libérer la mémoire. La requête suivante
+doit relancer Node, charger Sequelize et ouvrir la connexion MySQL : plusieurs
+secondes (5 s mesurées sur `api.nbnexpress.org`), parfois assez pour qu'un
+téléphone sur réseau faible abandonne et affiche « Serveur injoignable ». Le
+dashboard Next.js, servi lui aussi par Passenger, subit le même réveil.
+
+Ce n'est pas corrigeable dans le code — c'est un réglage d'hébergement. Par
+ordre de préférence :
+
+1. **Garder un processus vivant.** Dans `.htaccess` de l'API et du dashboard
+   (ou via le support de l'hébergeur si les directives sont verrouillées) :
+
+   ```apache
+   PassengerMinInstances 1
+   PassengerPoolIdleTime 0
+   ```
+
+2. **À défaut, un moniteur externe** qui appelle `GET https://api.nbnexpress.org/`
+   et `GET https://nbnexpress.org/` toutes les 5 minutes (UptimeRobot, Better
+   Stack… offres gratuites suffisantes). Il empêche la mise en veille et
+   prévient en cas de panne réelle. Une tâche cron *interne* à l'application ne
+   fonctionne pas : elle s'arrête avec le processus qu'elle devait réveiller.
