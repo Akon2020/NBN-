@@ -980,3 +980,9 @@ Constat en ouvrant le chantier, confirme par un sous-agent : contrairement a l'h
 Mobile : `npx tsc --noEmit` -> 0 erreur, `npx jest` -> 6/6 (suite existante inchangee, aucune regression), `npm run lint` -> 0 erreur. Verification navigateur non applicable (application Mobile Expo, hors perimetre du Browser pane).
 
 _Vingt et un objectifs traites sur vingt et un. Fin de la sequence de goals de cette session._
+
+---
+
+## Ignorer les archives .zip
+
+Des archives de déploiement (`Backend/Backend.zip`, `Frontend/Frontend.zip`) apparaissaient en fichiers non suivis. Ajout de `*.zip` au `.gitignore` racine, qui s'applique aux trois applications. Aucune archive n'était déjà suivie par git, rien à retirer de l'index.

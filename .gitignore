@@ -220,3 +220,6 @@ dist
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Archives (paquets de déploiement, sauvegardes locales)
+*.zip
