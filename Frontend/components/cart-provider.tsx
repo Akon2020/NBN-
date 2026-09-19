@@ -1,15 +1,17 @@
 "use client"
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-import type { Property } from "@/lib/types"
+import type { Property, ProposalTarget } from "@/lib/types"
 import { getAppSettings } from "@/actions/appSettings"
 
 // GOAL 5 — panier immobilier transversal (biens à louer, à vendre,
-// favoris, recherche...). Volontairement Frontend-only et persistant en
-// localStorage : c'est une sélection de travail éphémère pour préparer un
-// partage WhatsApp, jamais une entité métier — rien à tracer côté
-// Backend, pas de permission à vérifier.
+// favoris, recherche...). Persistant en localStorage : c'est une sélection
+// de travail éphémère pour préparer un partage WhatsApp. Ce qui est tracé
+// côté Backend, c'est l'envoi à un client (Proposal), pas le panier.
 const STORAGE_KEY = "nbn-property-cart"
+// Client pour lequel la sélection est préparée (« Proposer des biens »
+// depuis sa fiche) — conservé si l'agent navigue entre les listes.
+const TARGET_STORAGE_KEY = "nbn-proposal-target"
 // GOAL 13 — valeur de repli si /api/settings est inaccessible (rôle sans
 // settings:read, ou hors-ligne) ; la vraie limite vient de
 // cart.maxItems, configurable depuis Paramètres.
@@ -23,22 +25,40 @@ interface CartContextValue {
   isInCart: (idProperty: number) => boolean
   clear: () => void
   maxItems: number
+  proposalTarget: ProposalTarget | null
+  setProposalTarget: (target: ProposalTarget | null) => void
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
 
+const readStorage = <T,>(key: string): T | null => {
+  try {
+    const raw = window.localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    // Stockage corrompu/inaccessible : valeur vide par défaut.
+    return null
+  }
+}
+
+const writeStorage = (key: string, value: unknown) => {
+  try {
+    if (value === null) window.localStorage.removeItem(key)
+    else window.localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // Navigation privée / quota : la sélection reste utilisable en mémoire.
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Property[]>([])
+  const [proposalTarget, setProposalTarget] = useState<ProposalTarget | null>(null)
   const [hydrated, setHydrated] = useState(false)
   const [maxItems, setMaxItems] = useState(DEFAULT_MAX_ITEMS)
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY)
-      if (raw) setItems(JSON.parse(raw))
-    } catch {
-      // Panier vide par défaut si le stockage local est corrompu/inaccessible.
-    }
+    setItems(readStorage<Property[]>(STORAGE_KEY) ?? [])
+    setProposalTarget(readStorage<ProposalTarget>(TARGET_STORAGE_KEY))
     setHydrated(true)
   }, [])
 
@@ -57,8 +77,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+    writeStorage(STORAGE_KEY, items)
   }, [items, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    writeStorage(TARGET_STORAGE_KEY, proposalTarget)
+  }, [proposalTarget, hydrated])
 
   const value = useMemo<CartContextValue>(
     () => ({
@@ -85,8 +110,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       isInCart: (idProperty) => items.some((p) => p.idProperty === idProperty),
       clear: () => setItems([]),
       maxItems,
+      proposalTarget,
+      setProposalTarget,
     }),
-    [items, maxItems]
+    [items, maxItems, proposalTarget]
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

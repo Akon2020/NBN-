@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import { apiErrorMessage } from "@/lib/apiError";
-import type { InboundEmail, InboundEmailDetail, Mailbox } from "@/lib/types";
+import type { InboundEmail, InboundEmailDetail, Mailbox, MailboxAudience } from "@/lib/types";
 
 // Messages reçus sur les boîtes professionnelles (contact@, direction@…).
 // Le Backend ne renvoie que les boîtes dont l'utilisateur fait partie de
@@ -30,6 +30,37 @@ export const getInboundEmail = async (id: number): Promise<InboundEmailDetail> =
     return res.data.data;
   } catch (error) {
     throw new Error(apiErrorMessage(error, "Erreur lors de la récupération du message"));
+  }
+};
+
+// Audience des boîtes dont l'utilisateur est membre (seuls ses membres la règlent).
+export const getMailboxAudiences = async (): Promise<MailboxAudience[]> => {
+  try {
+    const res = await api.get<{ data: MailboxAudience[] }>("/api/inbound-emails/mailboxes/audiences");
+    return res.data.data;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Erreur lors de la récupération des boîtes"));
+  }
+};
+
+export const updateMailboxAudience = async (
+  key: string,
+  audience: { roles: string[]; users: string[] }
+): Promise<MailboxAudience> => {
+  try {
+    const res = await api.put<{ data: MailboxAudience }>(`/api/inbound-emails/mailboxes/${key}/audience`, audience);
+    return res.data.data;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "L'audience n'a pas pu être enregistrée"));
+  }
+};
+
+export const resetMailboxAudience = async (key: string): Promise<MailboxAudience> => {
+  try {
+    const res = await api.delete<{ data: MailboxAudience }>(`/api/inbound-emails/mailboxes/${key}/audience`);
+    return res.data.data;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Le réglage du serveur n'a pas pu être rétabli"));
   }
 };
 

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import fs from "fs";
+import path from "path";
 import request from "supertest";
 import bcrypt from "bcryptjs";
+import sharp from "sharp";
 import app from "../app.js";
 import {
   User,
@@ -73,6 +76,10 @@ afterAll(async () => {
     await Property.destroy({ where: { idProperty: createdPropertyIds }, force: true });
   }
   if (createdPersonIds.length) {
+    const persons = await Person.findAll({ where: { idPerson: createdPersonIds } });
+    persons
+      .filter((person) => person.idDocumentPath)
+      .forEach((person) => fs.rmSync(path.resolve(person.idDocumentPath), { force: true }));
     await Person.destroy({ where: { idPerson: createdPersonIds } });
   }
   if (createdUserIds.length) {
@@ -136,16 +143,26 @@ describe("BACK-G06 - Client (segmentation, pipeline)", () => {
 describe("BACK-G06/BACK-G03 - Bailleur (fiche VIP, marge sensible)", () => {
   it("operations peut créer un bailleur", async () => {
     const cookies = await loginAs(operationsEmail);
+    // Pièce d'identité obligatoire à la création d'un bailleur (phase 4).
+    const idCard = await sharp({ create: { width: 40, height: 25, channels: 3, background: "#14294A" } })
+      .png()
+      .toBuffer();
     const res = await request(app)
       .post("/api/bailleurs")
       .set("Cookie", cookies)
-      .send({
-        fullName: "Bailleur Test QA",
-        phone: "+243900000020",
-        type: "PROPRIETAIRE",
-        typeCollaboration: "REGULIERE",
-        margeAgence: 200,
-      });
+      .field(
+        "data",
+        JSON.stringify({
+          fullName: "Bailleur Test QA",
+          // Préfixe propre à ce fichier : les fichiers de tests tournent en
+          // parallèle et un même téléphone serait (à raison) refusé en doublon.
+          phone: `+24382${String(suffix).slice(-7)}`,
+          type: "PROPRIETAIRE",
+          typeCollaboration: "REGULIERE",
+          margeAgence: 200,
+        })
+      )
+      .attach("pieceIdentite", idCard, { filename: "cni.png", contentType: "image/png" });
 
     expect(res.status).toBe(201);
     createdBailleurIds.push(res.body.data.idBailleur);

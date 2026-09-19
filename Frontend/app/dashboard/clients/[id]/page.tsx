@@ -15,7 +15,14 @@ import {
   Target,
   MapPin,
   Loader2,
+  MessageCircle,
+  Images,
+  Send,
 } from "lucide-react"
+import { ClientContactDialog } from "@/components/client-contact-dialog"
+import { ClientProposalsDialog } from "@/components/client-proposals-dialog"
+import { useCart } from "@/components/cart-provider"
+import { getClientProposals } from "@/actions/proposals"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditClientModal } from "@/components/client-modals/edit-client-modal"
@@ -27,6 +34,7 @@ import {
   CLIENT_PIPELINE_LABELS,
   CLIENT_TYPE_LABELS,
   type Client,
+  type SentProposal,
 } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -37,6 +45,18 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [isLoading, setIsLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showContactDialog, setShowContactDialog] = useState(false)
+  const [proposals, setProposals] = useState<SentProposal[]>([])
+  const [proposalsLoading, setProposalsLoading] = useState(true)
+  const [showProposals, setShowProposals] = useState(false)
+  const { setProposalTarget } = useCart()
+
+  useEffect(() => {
+    getClientProposals(Number(id))
+      .then(setProposals)
+      .catch(() => setProposals([]))
+      .finally(() => setProposalsLoading(false))
+  }, [id])
 
   useEffect(() => {
     const load = async () => {
@@ -83,6 +103,37 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </Button>
         </Link>
         <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            onClick={() => setShowContactDialog(true)}
+            className="bg-accent-600 text-white hover:bg-accent-600/90"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Contacter
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              // Le panier se prépare désormais pour ce client : la galerie
+              // et le panier affichent la cible, l'envoi part sur son WhatsApp.
+              setProposalTarget({
+                idClient: client.idClient,
+                fullName: client.person?.fullName || client.dossierNumber || "Client",
+                phone: client.person?.phone,
+                email: client.person?.email,
+                dossierNumber: client.dossierNumber,
+              })
+              router.push("/dashboard/gallery")
+            }}
+          >
+            <Images className="h-4 w-4 mr-2" />
+            Proposer des biens
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowProposals(true)}>
+            <Send className="h-4 w-4 mr-2" />
+            Propositions envoyées ({proposalsLoading ? "…" : proposals.length})
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Modifier
@@ -246,6 +297,19 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         onOpenChange={setShowEditModal}
         client={client}
         onEdit={setClient}
+      />
+      <ClientProposalsDialog
+        clientName={client.person?.fullName}
+        proposals={proposals}
+        isLoading={proposalsLoading}
+        open={showProposals}
+        onOpenChange={setShowProposals}
+      />
+      <ClientContactDialog
+        client={client}
+        open={showContactDialog}
+        onOpenChange={setShowContactDialog}
+        onContacted={setClient}
       />
       <DeleteClientModal
         open={showDeleteModal}

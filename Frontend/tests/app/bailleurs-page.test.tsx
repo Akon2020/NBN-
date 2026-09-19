@@ -7,13 +7,23 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+
+// La fenêtre « Ajouter un bailleur » navigue vers la collecte après création.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
+vi.mock("next/image", () => ({
+  // eslint-disable-next-line @next/next/no-img-element
+  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+}));
 
 vi.mock("@/actions/bailleurs", () => ({
   getAllBailleurs: vi.fn().mockResolvedValue([
     {
       idBailleur: 1,
       type: "PROPRIETAIRE",
+      priorite: "STANDARD",
+      propertiesCount: 2,
       statutRelation: "ACTIF",
       dossierNumber: "BAI-2026-000001",
       // Bailleur arrivé par le formulaire de collecte : marge pas encore fixée.
@@ -23,6 +33,7 @@ vi.mock("@/actions/bailleurs", () => ({
     {
       idBailleur: 2,
       type: "MANDATAIRE",
+      priorite: "VIP",
       statutRelation: "ACTIF",
       // MySQL renvoie les DECIMAL sous forme de chaîne.
       margeAgence: "150.00",
@@ -40,5 +51,15 @@ describe("Onglet Bailleurs", () => {
     expect(await screen.findByText("Bailleur Collecté")).toBeInTheDocument();
     expect(screen.getByText("Bailleur Avec Marge")).toBeInTheDocument();
     expect(screen.getByText(/Marge : \$150/)).toBeInTheDocument();
+  });
+
+  it("affiche le VIP en premier, avec le nombre de biens et les boutons Aperçu / Profil", async () => {
+    render(<BailleursPage />);
+
+    const names = (await screen.findAllByRole("heading", { level: 3 })).map((heading) => heading.textContent);
+    expect(names).toEqual(["Bailleur Avec Marge", "Bailleur Collecté"]);
+    expect(screen.getByText("2 bien(s)")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Aperçu/ })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: /Profil/ })[0]).toHaveAttribute("href", "/dashboard/bailleurs/2");
   });
 });

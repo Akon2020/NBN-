@@ -2,6 +2,12 @@ import { Op } from "sequelize";
 import { InboundEmail, InboundEmailReply, User } from "../models/index.model.js";
 import { getMailbox } from "../config/mailboxes.js";
 import { accessibleMailboxes, canAccessMailbox } from "../services/inboundMail.service.js";
+import {
+  getEffectiveMailbox,
+  removeMailboxAudience,
+  saveMailboxAudience,
+  validateAudience,
+} from "../services/mailboxAudience.service.js";
 import { sendFromMailbox } from "../services/email.service.js";
 
 const MAX_REPLY_LENGTH = 20000;
@@ -12,13 +18,84 @@ const MAX_REPLY_LENGTH = 20000;
 const findAccessibleEmail = async (user, id, options = {}) => {
   const email = await InboundEmail.findByPk(id, options);
   if (!email) return null;
-  const mailbox = getMailbox(email.mailboxKey);
+  const mailbox = await getEffectiveMailbox(email.mailboxKey);
   return mailbox && canAccessMailbox(user, mailbox) ? { email, mailbox } : null;
+};
+
+const audienceView = ({ key, label, address, roles, users, audienceSource }) => ({
+  key,
+  label,
+  address,
+  roles,
+  users,
+  source: audienceSource,
+});
+
+// Seuls les membres actuels d'une boîte en règlent l'audience (règle
+// contextuelle, pas une permission) : l'admin ne peut pas s'ajouter à
+// direction@. Hors audience → 404, comme pour ses messages.
+const findManageableMailbox = async (user, key) => {
+  const mailbox = await getEffectiveMailbox(key);
+  return mailbox && canAccessMailbox(user, mailbox) ? mailbox : null;
+};
+
+export const getMailboxAudiences = async (req, res, next) => {
+  try {
+    const data = (await accessibleMailboxes(req.user)).map(audienceView);
+    return res.status(200).json({ data });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const updateMailboxAudience = async (req, res, next) => {
+  try {
+    const mailbox = await findManageableMailbox(req.user, req.params.key);
+    if (!mailbox) return res.status(404).json({ message: "Boîte introuvable." });
+
+    const audience = await validateAudience(req.body);
+    if (audience.error) return res.status(400).json({ message: audience.error });
+    if (!canAccessMailbox(req.user, { ...mailbox, ...audience })) {
+      return res.status(400).json({
+        message: "Vous ne pouvez pas vous retirer vous-même de cette boîte : demandez-le à un autre de ses membres.",
+      });
+    }
+
+    await saveMailboxAudience(mailbox.key, audience, req.user.idUser);
+    return res
+      .status(200)
+      .json({ message: "Audience enregistrée.", data: audienceView(await getEffectiveMailbox(mailbox.key)) });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+export const resetMailboxAudience = async (req, res, next) => {
+  try {
+    const mailbox = await findManageableMailbox(req.user, req.params.key);
+    if (!mailbox) return res.status(404).json({ message: "Boîte introuvable." });
+
+    if (!canAccessMailbox(req.user, getMailbox(mailbox.key))) {
+      return res.status(400).json({
+        message: "Le réglage du serveur ne vous inclut pas : demandez à un autre membre de la boîte de le rétablir.",
+      });
+    }
+
+    await removeMailboxAudience(mailbox.key, req.user.idUser);
+    return res
+      .status(200)
+      .json({ message: "Réglage du serveur rétabli.", data: audienceView(await getEffectiveMailbox(mailbox.key)) });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
 };
 
 export const getMyMailboxes = async (req, res, next) => {
   try {
-    const data = accessibleMailboxes(req.user).map(({ key, label, address, canSend, canReceive }) => ({
+    const data = (await accessibleMailboxes(req.user)).map(({ key, label, address, canSend, canReceive }) => ({
       key,
       label,
       address,
@@ -34,7 +111,7 @@ export const getMyMailboxes = async (req, res, next) => {
 
 export const getInboundEmails = async (req, res, next) => {
   try {
-    const keys = accessibleMailboxes(req.user).map((mailbox) => mailbox.key);
+    const keys = (await accessibleMailboxes(req.user)).map((mailbox) => mailbox.key);
     const wanted = req.query.mailbox ? keys.filter((key) => key === req.query.mailbox) : keys;
     if (!wanted.length) return res.status(200).json({ nombre: 0, data: [] });
 

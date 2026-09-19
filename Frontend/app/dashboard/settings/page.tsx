@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Save, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { MarginSettingsPanel } from "@/components/margin-settings-panel"
+import { MailboxAudiencePanel } from "@/components/mailbox-audience-panel"
 import { getAppSettings, updateAppSetting, type CompanyInfo } from "@/actions/appSettings"
 
 // GOAL 13 — centre de configuration réel : chaque champ ci-dessous est
@@ -192,6 +193,9 @@ export default function SettingsPage() {
               </Button>
             </div>
           )}
+
+          {/* Indépendant de settings:read : visible par les membres d'une boîte. */}
+          <MailboxAudiencePanel />
         </>
       )}
     </div>

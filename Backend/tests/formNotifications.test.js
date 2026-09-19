@@ -67,7 +67,9 @@ afterAll(async () => {
     await Bailleur.destroy({ where: { idPerson: owner.idPerson } });
     await owner.destroy();
   }
-  if (created.requests.length) await RentalRequest.destroy({ where: { idRentalRequest: created.requests } });
+  if (created.requests.length) {
+    await RentalRequest.destroy({ where: { idRentalRequest: created.requests }, force: true });
+  }
   if (created.clients.length) {
     await TimelineEvent.destroy({ where: { entityType: "CLIENT", entityId: created.clients } });
     await Alert.destroy({ where: { relatedEntityType: "Client", relatedEntityId: created.clients } });

@@ -12,7 +12,9 @@
 //
 // Une future boîte professionnelle (ex. `MAILBOXES=contact,direction,jean`)
 // n'exige aucun code : son audience est la liste ROLES/USERS, plus le compte
-// utilisateur dont l'e-mail est l'adresse de la boîte elle-même.
+// utilisateur dont l'e-mail est l'adresse de la boîte elle-même. ROLES/USERS
+// sont le réglage par défaut : les membres d'une boîte peuvent le remplacer
+// dans Paramètres (services/mailboxAudience.service.js).
 //
 // Développement : `MAILBOX_<KEY>_USE_DEFAULT_ACCOUNT=true` relève le compte
 // Gmail EMAIL / EMAIL_PASSWORD (imap.gmail.com / smtp.gmail.com, mot de

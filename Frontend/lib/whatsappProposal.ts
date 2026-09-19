@@ -1,7 +1,14 @@
-import { PROPERTY_TYPE_LABELS, RENTAL_UNIT_PRICE_SUFFIX, type Property } from "@/lib/types"
+import {
+  LAND_PROPERTY_TYPES,
+  PROPERTY_TYPE_LABELS,
+  RENTAL_UNIT_PRICE_SUFFIX,
+  type Property,
+  type RentalUnit,
+} from "@/lib/types"
 import { getAppSettings, type CompanyInfo } from "@/actions/appSettings"
+import { getImageUrl } from "@/lib/imageUrl"
 
-const DEFAULT_COMPANY: CompanyInfo = {
+export const DEFAULT_COMPANY: CompanyInfo = {
   name: "Nyumbani Express",
   phone: "",
   address: "Bukavu, Sud-Kivu",
@@ -10,7 +17,7 @@ const DEFAULT_COMPANY: CompanyInfo = {
 
 // GOAL 13 — coordonnées de l'agence configurables depuis Paramètres
 // (company.info), plutôt qu'un nom/ville codés en dur ici.
-const getCompanyInfo = async (): Promise<CompanyInfo> => {
+export const getCompanyInfo = async (): Promise<CompanyInfo> => {
   try {
     const settings = await getAppSettings()
     const setting = settings.find((s) => s.key === "company.info")
@@ -20,66 +27,145 @@ const getCompanyInfo = async (): Promise<CompanyInfo> => {
   }
 }
 
-// GOAL 5 — un seul générateur de message, réutilisé partout où un
-// partage WhatsApp est proposé (jamais reconstruit à la main par écran).
-export const buildWhatsAppProposalMessage = (
-  properties: Property[],
-  company: CompanyInfo = DEFAULT_COMPANY
+const count = (n: number, singular: string, plural = `${singular}s`) => `${n} ${n > 1 ? plural : singular}`
+
+// Espace ordinaire comme séparateur de milliers : l'espace fine insécable
+// de toLocaleString("fr-FR") s'affiche mal dans certaines versions de WhatsApp.
+const formatAmount = (value: number) => String(Math.round(Number(value))).replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+
+export const formatPropertyPrice = (property: Property) => {
+  const suffix =
+    property.category === "RENT" && property.rentalDetails ? RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit] : ""
+  return `${formatAmount(property.price)} $${suffix}`
+}
+
+const GUARANTEE_UNITS: Record<RentalUnit, [string, string]> = {
+  DAY: ["jour", "jours"],
+  MONTH: ["mois", "mois"],
+  YEAR: ["an", "ans"],
+}
+
+const capitalize = (value: string) => value.charAt(0) + value.slice(1).toLowerCase()
+
+export interface PropertyCaptionOptions {
+  position?: number
+  total?: number
+  // Salutation en tête du premier message envoyé à un client.
+  greetingName?: string | null
+  // Sans photo jointe (ordinateur), le lien de la photo remplace la pièce jointe.
+  includePhotoLink?: boolean
+}
+
+// Modèle d'un message WhatsApp pour UN bien — seul endroit où sa forme est
+// définie (panier, fiches, galerie). Remplaçable par le modèle de l'agence
+// sans toucher aux écrans. Émojis limités à ceux que tous les téléphones
+// affichent (les chiffres encadrés 1️⃣ s'affichaient en carrés).
+export const buildPropertyCaption = (
+  property: Property,
+  company: CompanyInfo = DEFAULT_COMPANY,
+  options: PropertyCaptionOptions = {}
 ): string => {
   const lines: string[] = []
-  lines.push(`🏡 *Sélection ${company.name}*`)
-  lines.push("")
-  lines.push(
-    properties.length > 1
-      ? `Voici une sélection de ${properties.length} biens qui pourraient vous intéresser :`
-      : "Voici un bien qui pourrait vous intéresser :"
-  )
-  lines.push("")
-
-  const numberEmojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
-
-  properties.forEach((property, index) => {
-    const label = property.category === "RENT" ? "À louer" : "À vendre"
-    lines.push(`${numberEmojis[index] || `${index + 1}.`} *${PROPERTY_TYPE_LABELS[property.propertyType]} ${label}*`)
-    const location = [property.avenue, property.quartier].filter(Boolean).join(", ")
-    if (location) lines.push(`📍 ${location}`)
-    if (property.category === "RENT" && (property.bedrooms || property.toilets)) {
-      const parts: string[] = []
-      if (property.bedrooms) parts.push(`🛏️ ${property.bedrooms} ch.`)
-      if (property.toilets) parts.push(`🚿 ${property.toilets} douches`)
-      lines.push(parts.join(" · "))
-    }
-    const priceSuffix =
-      property.category === "RENT" && property.rentalDetails
-        ? RENTAL_UNIT_PRICE_SUFFIX[property.rentalDetails.unit]
-        : ""
-    lines.push(`💰 $${Number(property.price).toLocaleString("fr-FR")}${priceSuffix}`)
+  if (options.greetingName) {
+    lines.push(`Bonjour ${options.greetingName},`)
     lines.push("")
-  })
+  }
 
+  const label = property.category === "RENT" ? "à louer" : "à vendre"
+  const numbering = options.total && options.total > 1 ? ` · Bien ${options.position}/${options.total}` : ""
+  lines.push(`🏠 *${PROPERTY_TYPE_LABELS[property.propertyType]} ${label}*${numbering}`)
+
+  const location = [
+    property.avenue ? `Av. ${property.avenue.replace(/^av(enue)?\.?\s+/i, "")}` : null,
+    property.quartier ? `Q. ${property.quartier}` : null,
+    property.commune ? capitalize(property.commune) : null,
+  ].filter(Boolean)
+  if (location.length) lines.push(`📍 ${location.join(", ")}`)
+
+  if (!LAND_PROPERTY_TYPES.includes(property.propertyType)) {
+    const rooms = [
+      property.bedrooms ? count(property.bedrooms, "chambre") : null,
+      property.livingRooms ? count(property.livingRooms, "salon") : null,
+      property.toilets ? count(property.toilets, "douche") : null,
+      property.kitchens ? count(property.kitchens, "cuisine") : null,
+    ].filter(Boolean)
+    if (rooms.length) lines.push(`🛏️ ${rooms.join(" · ")}`)
+  }
+
+  let price = `💰 *${formatPropertyPrice(property)}*`
+  const guarantee = property.rentalDetails?.guarantee
+  if (property.category === "RENT" && property.rentalDetails && guarantee) {
+    const [one, many] = GUARANTEE_UNITS[property.rentalDetails.unit]
+    price += ` · garantie ${guarantee} ${guarantee > 1 ? many : one}`
+  }
+  lines.push(price)
+
+  const description = property.description?.trim()
+  if (description) {
+    lines.push("")
+    lines.push(description.length > 200 ? `${description.slice(0, 197).trimEnd()}…` : description)
+  }
+
+  const photo = property.images?.[0]?.image
+  if (options.includePhotoLink && photo) {
+    lines.push("")
+    lines.push(`📷 Photo : ${getImageUrl(photo)}`)
+  }
+
+  lines.push("")
+  lines.push(`Réf. NBN-${property.idProperty}`)
   lines.push(
     company.phone
-      ? `📞 Contactez-nous au ${company.phone} pour organiser une visite`
-      : "📞 Contactez-nous pour organiser une visite"
+      ? `*${company.name}* · ${company.phone}`
+      : `*${company.name}* · ${company.address}`
   )
-  lines.push(`*${company.name}* — ${company.address}`)
-
   return lines.join("\n")
 }
 
-// L'onglet est ouvert de façon synchrone (dans le même tick que le clic
-// utilisateur) puis redirigé une fois les coordonnées de l'agence
-// récupérées — un `window.open` après un `await` perdrait le contexte de
-// geste utilisateur et serait bloqué par le navigateur comme pop-up.
-export const openWhatsAppShare = async (properties: Property[], phoneNumber?: string) => {
-  const tab = window.open("about:blank", "_blank")
-  const company = await getCompanyInfo()
-  const message = buildWhatsAppProposalMessage(properties, company)
-  const encoded = encodeURIComponent(message)
-  const target = phoneNumber ? `https://wa.me/${phoneNumber}?text=${encoded}` : `https://wa.me/?text=${encoded}`
-  if (tab) {
-    tab.location.href = target
-  } else {
-    window.open(target, "_blank")
+// Tous les biens dans un seul texte (repli sans partage de fichiers).
+export const buildWhatsAppProposalMessage = (properties: Property[], company: CompanyInfo = DEFAULT_COMPANY) =>
+  properties
+    .map((property, index) =>
+      buildPropertyCaption(property, company, {
+        position: index + 1,
+        total: properties.length,
+        includePhotoLink: true,
+      })
+    )
+    .join("\n\n———\n\n")
+
+export const whatsAppShareUrl = (text: string, phoneNumber?: string | null) => {
+  const encoded = encodeURIComponent(text)
+  return phoneNumber ? `https://wa.me/${phoneNumber}?text=${encoded}` : `https://wa.me/?text=${encoded}`
+}
+
+// Première photo du bien en fichier, pour la joindre au message (le lien
+// wa.me ne transporte que du texte).
+export const loadPropertyPhoto = async (property: Property): Promise<File | null> => {
+  const path = property.images?.[0]?.image
+  if (!path) return null
+  try {
+    const response = await fetch(getImageUrl(path))
+    if (!response.ok) return null
+    const blob = await response.blob()
+    const type = blob.type || "image/jpeg"
+    const extension = (type.split("/")[1] || "jpg").replace("jpeg", "jpg")
+    return new File([blob], `bien-NBN-${property.idProperty}.${extension}`, { type })
+  } catch {
+    return null
+  }
+}
+
+// Partage natif (téléphone) : seul moyen, sans API WhatsApp Business, de
+// faire partir la photo avec le message depuis le navigateur.
+export const canShareFiles = (files: File[]) =>
+  typeof navigator !== "undefined" && typeof navigator.canShare === "function" && navigator.canShare({ files })
+
+export const shareWithPhoto = async (file: File, text: string): Promise<"shared" | "cancelled" | "failed"> => {
+  try {
+    await navigator.share({ files: [file], text })
+    return "shared"
+  } catch (error) {
+    return error instanceof DOMException && error.name === "AbortError" ? "cancelled" : "failed"
   }
 }

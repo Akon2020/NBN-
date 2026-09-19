@@ -1,6 +1,7 @@
 import api from "@/lib/axios";
 import axios from "axios";
-import { Bailleur, BailleurCreatePayload, BailleurUpdatePayload } from "@/lib/types";
+import { Bailleur, BailleurCreatePayload, BailleurUpdatePayload, Property } from "@/lib/types";
+import { apiErrorMessage } from "@/lib/apiError";
 
 export const getAllBailleurs = async (): Promise<Bailleur[]> => {
   try {
@@ -50,22 +51,43 @@ export const getSingleBailleur = async (id: number): Promise<Bailleur> => {
   }
 };
 
+// Création avec pièce d'identité : multipart `data` (JSON) + `pieceIdentite`.
 export const createBailleur = async (
-  payload: BailleurCreatePayload
+  payload: BailleurCreatePayload,
+  pieceIdentite: File
 ): Promise<Bailleur> => {
   try {
-    const res = await api.post<{ message: string; data: Bailleur }>(
-      "/api/bailleurs",
-      payload
-    );
+    const formData = new FormData();
+    formData.append("data", JSON.stringify(payload));
+    formData.append("pieceIdentite", pieceIdentite);
+    const res = await api.post<{ message: string; data: Bailleur }>("/api/bailleurs", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return res.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(
-        error.response?.data?.message || "Erreur lors de la création du bailleur"
-      );
-    }
-    throw new Error("Erreur inconnue");
+    throw new Error(apiErrorMessage(error, "Erreur lors de la création du bailleur"));
+  }
+};
+
+// « Joindre un bien existant » : seuls les biens sans bailleur sont acceptés.
+export const linkBailleurProperties = async (id: number, idProperties: number[]): Promise<number> => {
+  try {
+    const res = await api.post<{ data: { linked: number } }>(`/api/bailleurs/${id}/properties`, { idProperties });
+    return res.data.data.linked;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Les biens n'ont pas pu être rattachés"));
+  }
+};
+
+export const uploadBailleurIdentityDocument = async (id: number, file: File): Promise<void> => {
+  try {
+    const formData = new FormData();
+    formData.append("pieceIdentite", file);
+    await api.post(`/api/bailleurs/${id}/piece-identite`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "La pièce d'identité n'a pas pu être envoyée"));
   }
 };
 
@@ -86,6 +108,29 @@ export const updateBailleur = async (
       );
     }
     throw new Error("Erreur inconnue");
+  }
+};
+
+// « Aperçu » : les biens à l'actif du bailleur.
+export const getBailleurProperties = async (id: number): Promise<Property[]> => {
+  try {
+    const res = await api.get<{ nombre: number; data: Property[] }>(`/api/bailleurs/${id}/properties`);
+    return res.data.data;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Erreur lors de la récupération des biens du bailleur"));
+  }
+};
+
+export const uploadBailleurPhoto = async (id: number, file: File): Promise<string> => {
+  try {
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await api.post<{ data: { photo: string } }>(`/api/bailleurs/${id}/photo`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.data.photo;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "La photo n'a pas pu être envoyée"));
   }
 };
 

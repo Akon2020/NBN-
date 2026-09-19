@@ -64,7 +64,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (createdRequestIds.length) {
-    await RentalRequest.destroy({ where: { idRentalRequest: createdRequestIds } });
+    // `force` : les fiches sont en suppression logique depuis la phase 3.
+    await RentalRequest.destroy({ where: { idRentalRequest: createdRequestIds }, force: true });
   }
   if (createdClientIds.length) {
     await TimelineEvent.destroy({ where: { entityType: "CLIENT", entityId: createdClientIds } });

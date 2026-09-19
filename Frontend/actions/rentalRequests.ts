@@ -58,6 +58,16 @@ export const openRentalRequestPdf = async (id: number): Promise<void> => {
   }
 };
 
+// Suppression logique : le commentaire est obligatoire et reste dans le
+// rapport des demandes.
+export const deleteRentalRequest = async (id: number, reason: string): Promise<void> => {
+  try {
+    await api.delete(`/api/rental-requests/${id}`, { data: { reason } });
+  } catch (error) {
+    return handleError(error, "La suppression de la fiche a échoué");
+  }
+};
+
 export interface AssignRentalRequestPayload {
   assigneeUserIds: number[];
   idCommissionnaires: number[];

@@ -401,6 +401,52 @@ export interface ClientDossierProposal {
   sentAt: string
 }
 
+// Propositions envoyées depuis le panier (GET /api/proposals/client/:id).
+// Le bien n'y porte que ce que le client a reçu — jamais le bailleur, le prix
+// minimum, la marge ni l'informateur.
+export type ProposalChannel = "WHATSAPP" | "EMAIL" | "AUTRE"
+
+export const PROPOSAL_CHANNEL_LABELS: Record<ProposalChannel, string> = {
+  WHATSAPP: "WhatsApp",
+  EMAIL: "E-mail",
+  AUTRE: "Autre",
+}
+
+export interface SentProposal {
+  idProposal: number
+  idProperty: number
+  idClient?: number | null
+  message?: string | null
+  channel?: ProposalChannel | null
+  sentAt: string
+  sender?: { idUser: number; fullName: string } | null
+  property?: Pick<
+    Property,
+    | "idProperty"
+    | "category"
+    | "propertyType"
+    | "commune"
+    | "quartier"
+    | "avenue"
+    | "bedrooms"
+    | "livingRooms"
+    | "toilets"
+    | "kitchens"
+    | "price"
+    | "statut"
+    | "images"
+  > | null
+}
+
+// Client pour lequel le panier est en train d'être constitué.
+export interface ProposalTarget {
+  idClient: number
+  fullName: string
+  phone?: string | null
+  email?: string | null
+  dossierNumber?: string | null
+}
+
 export interface ClientDossier {
   matchings: ClientDossierMatching[]
   occupiedProperties: ClientDossierMatching[]
@@ -439,12 +485,35 @@ export const BAILLEUR_VALEUR_LABELS: Record<BailleurValeur, string> = {
 // `margeAgence` est absent de la réponse si l'utilisateur n'a pas
 // `bailleur:marge:read` (field-level authorization, même principe que
 // Property.margin) — jamais présumer sa présence.
+// Profil défini par l'agence — ordonne la liste des bailleurs.
+export type BailleurPriorite = "VIP" | "PREMIUM" | "STANDARD" | "INACTIF"
+
+export const BAILLEUR_PRIORITES: BailleurPriorite[] = ["VIP", "PREMIUM", "STANDARD", "INACTIF"]
+
+export const BAILLEUR_PRIORITE_LABELS: Record<BailleurPriorite, string> = {
+  VIP: "VIP",
+  PREMIUM: "Premium",
+  STANDARD: "Standard",
+  INACTIF: "Inactif",
+}
+
+export const BAILLEUR_PRIORITE_BADGE_CLASS: Record<BailleurPriorite, string> = {
+  VIP: "bg-accent-600 text-white",
+  PREMIUM: "bg-primary-900 text-white",
+  STANDARD: "bg-muted text-foreground",
+  INACTIF: "bg-transparent border border-border text-muted-foreground",
+}
+
 export interface Bailleur {
   idBailleur: number
   // GOAL 6 — voir Client.dossierNumber.
   dossierNumber?: string | null
   idPerson: number
   type: BailleurType
+  priorite: BailleurPriorite
+  photo?: string | null
+  // Biens à l'actif du bailleur (calculé par le Backend).
+  propertiesCount?: number
   typeCollaboration?: BailleurTypeCollaboration | null
   dureeCollaboration?: string | null
   margeAgence?: number
@@ -463,17 +532,103 @@ export interface Bailleur {
   updatedAt: string
 }
 
+// --- Échanges avec les bailleurs (Contacts, Emails, Relances) ---
+
+export type BailleurContactChannel = "APPEL" | "WHATSAPP" | "SMS" | "EMAIL"
+export type BailleurMessageStatut = "PLANIFIE" | "A_ENVOYER" | "ENVOYE" | "ECHEC" | "ANNULE"
+
+export const BAILLEUR_CONTACT_CHANNEL_LABELS: Record<BailleurContactChannel, string> = {
+  APPEL: "Appel",
+  WHATSAPP: "WhatsApp",
+  SMS: "SMS",
+  EMAIL: "E-mail",
+}
+
+export const BAILLEUR_MESSAGE_STATUT_LABELS: Record<BailleurMessageStatut, string> = {
+  PLANIFIE: "Planifié",
+  A_ENVOYER: "À envoyer",
+  ENVOYE: "Envoyé",
+  ECHEC: "Échec",
+  ANNULE: "Annulé",
+}
+
+export interface BailleurMessage {
+  idBailleurMessage: number
+  idBailleur: number
+  channel: BailleurContactChannel
+  subject?: string | null
+  body?: string | null
+  statut: BailleurMessageStatut
+  sentAt?: string | null
+  createdAt: string
+  sender?: { idUser: number; fullName: string } | null
+}
+
+export interface BailleurMessageHistory {
+  sent: BailleurMessage[]
+  received: Pick<InboundEmail, "idInboundEmail" | "mailboxAddress" | "subject" | "receivedAt" | "repliedAt">[]
+}
+
+// --- Relances programmées (GET /api/bailleur-relances) ---
+
+export type BailleurRelanceChannel = "EMAIL" | "WHATSAPP"
+export type BailleurRelanceStatut = "PLANIFIEE" | "EN_COURS" | "TERMINEE" | "ANNULEE"
+
+export const BAILLEUR_RELANCE_STATUT_LABELS: Record<BailleurRelanceStatut, string> = {
+  PLANIFIEE: "Planifiée",
+  EN_COURS: "En cours",
+  TERMINEE: "Terminée",
+  ANNULEE: "Annulée",
+}
+
+export interface BailleurRelance {
+  idRelance: number
+  channel: BailleurRelanceChannel
+  subject?: string | null
+  message: string
+  scheduledAt: string
+  statut: BailleurRelanceStatut
+  processedAt?: string | null
+  createdAt: string
+  creator?: { idUser: number; fullName: string } | null
+  recipients: number
+  counts: Partial<Record<BailleurMessageStatut, number>>
+}
+
+export interface BailleurRelanceRecipient extends BailleurMessage {
+  bailleur?: {
+    idBailleur: number
+    dossierNumber?: string | null
+    priorite: BailleurPriorite
+    person?: { fullName: string; email?: string | null; phone?: string | null }
+  }
+}
+
+export interface BailleurRelanceDetail extends Omit<BailleurRelance, "recipients" | "counts"> {
+  messages: BailleurRelanceRecipient[]
+}
+
+// Corps `data` de POST /api/bailleurs (multipart avec `pieceIdentite`).
 export interface BailleurCreatePayload {
   idPerson?: number
   fullName?: string
   phone?: string
   email?: string
+  idNumber?: string
   type: BailleurType
+  priorite?: BailleurPriorite
+  idProperties?: number[]
   typeCollaboration?: BailleurTypeCollaboration
   margeAgence?: number
 }
 
 export interface BailleurUpdatePayload {
+  priorite?: BailleurPriorite
+  type?: BailleurType
+  fullName?: string
+  phone?: string
+  email?: string
+  idNumber?: string
   typeCollaboration?: BailleurTypeCollaboration
   dureeCollaboration?: string
   margeAgence?: number
@@ -1080,6 +1235,17 @@ export const ASSIGNABLE_ROLES = [
 ] as const
 
 // --- Boîtes professionnelles et messages reçus (GET /api/inbound-emails) ---
+
+// Audience d'une boîte : `source` = "settings" quand elle a été réglée dans
+// Paramètres, "env" quand c'est le réglage déclaré sur le serveur.
+export interface MailboxAudience {
+  key: string
+  label: string
+  address: string
+  roles: string[]
+  users: string[]
+  source: "env" | "settings"
+}
 
 export interface Mailbox {
   key: string

@@ -89,8 +89,14 @@ const RentalRequest = db.define(
     conditionsAcceptedAt: { type: DataTypes.DATE, allowNull: false },
 
     idClient: { type: DataTypes.BIGINT, allowNull: true },
+
+    // Suppression logique avec motif obligatoire : invisible dans les
+    // écrans, toujours présente dans les rapports.
+    deletedAt: { type: DataTypes.DATE, allowNull: true },
+    deletedBy: { type: DataTypes.BIGINT, allowNull: true },
+    deletionReason: { type: DataTypes.TEXT, allowNull: true },
   },
-  { timestamps: true }
+  { timestamps: true, paranoid: true }
 );
 
 export default RentalRequest;

@@ -17,11 +17,19 @@ import {
   reorderPropertyImages,
   reorderPropertyVideos,
 } from "@/actions/properties"
+import {
+  chunk,
+  IMAGE_EXTENSIONS,
+  IMAGE_TYPES,
+  IMAGES_PER_UPLOAD,
+  isAcceptedMedia,
+  VIDEO_EXTENSIONS,
+  VIDEO_TYPES,
+  VIDEOS_PER_UPLOAD,
+} from "@/lib/mediaFiles"
 
 const MAX_IMAGE_MB = 5
 const MAX_VIDEO_MB = 50
-const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
-const VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm"]
 
 interface PendingFile {
   file: File
@@ -48,10 +56,10 @@ export function PropertyMediaManager({ property, onChanged }: PropertyMediaManag
   const images = property.images || []
   const videos = property.videos || []
 
-  const validateFiles = (files: FileList, allowedTypes: string[], maxMb: number) => {
+  const validateFiles = (files: FileList, allowedTypes: string[], extensions: string[], maxMb: number) => {
     const valid: File[] = []
     Array.from(files).forEach((file) => {
-      if (!allowedTypes.includes(file.type)) {
+      if (!isAcceptedMedia(file, allowedTypes, extensions)) {
         toast.error(`Format non autorisé : ${file.name}`)
         return
       }
@@ -66,7 +74,7 @@ export function PropertyMediaManager({ property, onChanged }: PropertyMediaManag
 
   const handleSelectImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
-    const valid = validateFiles(e.target.files, IMAGE_TYPES, MAX_IMAGE_MB)
+    const valid = validateFiles(e.target.files, IMAGE_TYPES, IMAGE_EXTENSIONS, MAX_IMAGE_MB)
     setPendingImages((prev) => [
       ...prev,
       ...valid.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
@@ -76,7 +84,7 @@ export function PropertyMediaManager({ property, onChanged }: PropertyMediaManag
 
   const handleSelectVideos = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
-    const valid = validateFiles(e.target.files, VIDEO_TYPES, MAX_VIDEO_MB)
+    const valid = validateFiles(e.target.files, VIDEO_TYPES, VIDEO_EXTENSIONS, MAX_VIDEO_MB)
     setPendingVideos((prev) => [
       ...prev,
       ...valid.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
@@ -96,7 +104,10 @@ export function PropertyMediaManager({ property, onChanged }: PropertyMediaManag
     if (!pendingImages.length) return
     setUploadingImages(true)
     try {
-      await addPropertyImages(property.idProperty, pendingImages.map((p) => p.file))
+      // Lots de 10 : la route n'accepte pas plus de fichiers par envoi.
+      for (const batch of chunk(pendingImages, IMAGES_PER_UPLOAD)) {
+        await addPropertyImages(property.idProperty, batch.map((p) => p.file))
+      }
       pendingImages.forEach((p) => URL.revokeObjectURL(p.previewUrl))
       setPendingImages([])
       onChanged(await getSingleProperty(property.idProperty))
@@ -112,7 +123,10 @@ export function PropertyMediaManager({ property, onChanged }: PropertyMediaManag
     if (!pendingVideos.length) return
     setUploadingVideos(true)
     try {
-      await addPropertyVideos(property.idProperty, pendingVideos.map((p) => p.file))
+      // Lots de 5 : au-delà, la route refusait tout l'envoi (« Unexpected field »).
+      for (const batch of chunk(pendingVideos, VIDEOS_PER_UPLOAD)) {
+        await addPropertyVideos(property.idProperty, batch.map((p) => p.file))
+      }
       pendingVideos.forEach((p) => URL.revokeObjectURL(p.previewUrl))
       setPendingVideos([])
       onChanged(await getSingleProperty(property.idProperty))
@@ -261,7 +275,7 @@ export function PropertyMediaManager({ property, onChanged }: PropertyMediaManag
             <input
               ref={videoInputRef}
               type="file"
-              accept={VIDEO_TYPES.join(",")}
+              accept={[...VIDEO_TYPES, ...VIDEO_EXTENSIONS].join(",")}
               multiple
               className="hidden"
               onChange={handleSelectVideos}

@@ -165,9 +165,15 @@ describe("Assigner une tâche depuis une demande", () => {
     });
     expect(notification).not.toBeNull();
 
-    const [operationsEmail] = await emailsTo(users.operations.email);
-    const [externalCopy, duplicate] = await emailsTo(externalEmail);
-    expect(duplicate).toBeUndefined();
+    // On cible l'e-mail qui porte la fiche : les autres fichiers de tests
+    // tournent en parallèle sur la même table outbox.
+    const operationsEmails = await emailsTo(users.operations.email);
+    const operationsEmail = operationsEmails.find(({ payload }) => payload.attachments?.length);
+    expect(operationsEmail, "e-mail avec la fiche PDF pour l'assigné").toBeDefined();
+
+    const externalCopies = (await emailsTo(externalEmail)).filter(({ payload }) => payload.attachments?.length);
+    expect(externalCopies).toHaveLength(1);
+    const [externalCopy] = externalCopies;
 
     const attachment = operationsEmail.payload.attachments[0];
     expect(attachment.filename).toBe(`fiche-demande-${client.dossierNumber}.pdf`);

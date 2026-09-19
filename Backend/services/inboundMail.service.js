@@ -3,7 +3,7 @@ import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { Op } from "sequelize";
 import { InboundEmail, MailboxState, User } from "../models/index.model.js";
-import { getMailboxes } from "../config/mailboxes.js";
+import { getEffectiveMailbox, getEffectiveMailboxes } from "./mailboxAudience.service.js";
 import { INBOUND_MAIL_POLL_CRON } from "../config/env.js";
 import { createNotification } from "./notification.service.js";
 
@@ -32,7 +32,9 @@ export const setImapClientFactory = (factory) => {
 // --- Audience d'une boîte ---------------------------------------------------
 // Règle contextuelle (CLAUDE.md §2.3), pas une permission : la boîte
 // contact@ est visible par ses rôles, direction@ par la seule direction —
-// l'admin n'y a pas accès par défaut, à la demande de l'agence.
+// l'admin n'y a pas accès par défaut, à la demande de l'agence. `mailbox`
+// porte l'audience effective (Paramètres, sinon serveur) : voir
+// mailboxAudience.service.js.
 const mailboxEmails = (mailbox) => [...mailbox.users, mailbox.address].filter(Boolean);
 
 export const canAccessMailbox = (user, mailbox) =>
@@ -40,7 +42,8 @@ export const canAccessMailbox = (user, mailbox) =>
   (mailbox.roles.includes(user.role) ||
     mailboxEmails(mailbox).includes(String(user.email ?? "").toLowerCase()));
 
-export const accessibleMailboxes = (user) => getMailboxes().filter((mailbox) => canAccessMailbox(user, mailbox));
+export const accessibleMailboxes = async (user) =>
+  (await getEffectiveMailboxes()).filter((mailbox) => canAccessMailbox(user, mailbox));
 
 export const resolveMailboxAudience = async (mailbox) => {
   const conditions = [];
@@ -92,7 +95,9 @@ const importMessage = async (mailbox, uid, uidValidity, parsed) => {
   });
   if (!created) return null;
 
-  const audience = await resolveMailboxAudience(mailbox);
+  // Audience relue au moment de l'import : un réglage fait dans Paramètres
+  // s'applique dès le message suivant.
+  const audience = await resolveMailboxAudience((await getEffectiveMailbox(mailbox.key)) || mailbox);
   for (const user of audience) {
     await createNotification({
       idUser: user.idUser,
@@ -163,7 +168,7 @@ export const pollMailbox = async (mailbox) => {
 
 export const pollAllMailboxes = async () => {
   const results = {};
-  for (const mailbox of getMailboxes().filter((m) => m.canReceive)) {
+  for (const mailbox of (await getEffectiveMailboxes()).filter((m) => m.canReceive)) {
     try {
       results[mailbox.key] = await pollMailbox(mailbox);
     } catch (error) {

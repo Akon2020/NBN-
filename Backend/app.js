@@ -42,6 +42,8 @@ import searchRouter from "./routes/search.route.js";
 import rentalRequestRouter from "./routes/rentalRequest.route.js";
 import propertyCollectionRouter from "./routes/propertyCollection.route.js";
 import inboundEmailRouter from "./routes/inboundEmail.route.js";
+import bailleurMessageRouter from "./routes/bailleurMessage.route.js";
+import bailleurRelanceRouter from "./routes/bailleurRelance.route.js";
 import { registerEventListeners } from "./shared/eventListeners.js";
 import { registerRealtimeListeners } from "./shared/socketGateway.js";
 
@@ -174,6 +176,8 @@ app.use("/api/search", searchRouter);
 app.use("/api/rental-requests", rentalRequestRouter);
 app.use("/api/property-collections", propertyCollectionRouter);
 app.use("/api/inbound-emails", inboundEmailRouter);
+app.use("/api/bailleur-messages", bailleurMessageRouter);
+app.use("/api/bailleur-relances", bailleurRelanceRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

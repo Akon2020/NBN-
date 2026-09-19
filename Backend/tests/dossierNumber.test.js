@@ -1,14 +1,18 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import fs from "fs";
+import path from "path";
 import request from "supertest";
 import bcrypt from "bcryptjs";
+import sharp from "sharp";
 import app from "../app.js";
-import { User, Client, Bailleur } from "../models/index.model.js";
+import { User, Client, Bailleur, Person } from "../models/index.model.js";
 
 const suffix = Date.now();
 const testPassword = "TestPass@123";
 const createdUserIds = [];
 const createdClientIds = [];
 const createdBailleurIds = [];
+const createdPersonIds = [];
 
 let operationsEmail;
 
@@ -45,6 +49,13 @@ afterAll(async () => {
   if (createdBailleurIds.length) {
     await Bailleur.destroy({ where: { idBailleur: createdBailleurIds } });
   }
+  if (createdPersonIds.length) {
+    const persons = await Person.findAll({ where: { idPerson: createdPersonIds } });
+    persons
+      .filter((person) => person.idDocumentPath)
+      .forEach((person) => fs.rmSync(path.resolve(person.idDocumentPath), { force: true }));
+    await Person.destroy({ where: { idPerson: createdPersonIds } });
+  }
   if (createdUserIds.length) {
     await User.destroy({ where: { idUser: createdUserIds } });
   }
@@ -78,12 +89,25 @@ describe("GOAL 6 - Numéro de dossier unique", () => {
 
   it("génère un numéro de dossier unique et lisible à la création d'un bailleur", async () => {
     const login = await loginAs(operationsEmail);
+    // Téléphone et pièce d'identité obligatoires à la création (phase 4).
+    const idCard = await sharp({ create: { width: 40, height: 25, channels: 3, background: "#14294A" } })
+      .png()
+      .toBuffer();
     const res = await request(app)
       .post("/api/bailleurs")
       .set("Authorization", `Bearer ${login.body.data.token}`)
-      .send({ fullName: `Bailleur Dossier ${suffix}`, type: "PROPRIETAIRE" });
+      .field(
+        "data",
+        JSON.stringify({
+          fullName: `Bailleur Dossier ${suffix}`,
+          phone: `+24381${String(suffix).slice(-7)}`,
+          type: "PROPRIETAIRE",
+        })
+      )
+      .attach("pieceIdentite", idCard, { filename: "cni.png", contentType: "image/png" });
     expect(res.status).toBe(201);
     createdBailleurIds.push(res.body.data.idBailleur);
+    createdPersonIds.push(res.body.data.idPerson);
 
     const currentYear = new Date().getFullYear();
     expect(res.body.data.dossierNumber).toMatch(new RegExp(`^BAI-${currentYear}-\\d{6}$`));

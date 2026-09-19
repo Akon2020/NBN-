@@ -13,19 +13,34 @@ import {
   Trash2,
   Calendar,
   DollarSign,
+  Home,
   IdCard,
+  Link2,
   Loader2,
+  MapPin,
+  Paperclip,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EditBailleurModal } from "@/components/bailleur-modals/edit-bailleur-modal";
 import { DeleteBailleurModal } from "@/components/bailleur-modals/delete-bailleur-modal";
 import { EntityTimeline } from "@/components/entity-timeline";
-import { getBailleurIdentityDocument, getSingleBailleur } from "@/actions/bailleurs";
+import {
+  getBailleurIdentityDocument,
+  getSingleBailleur,
+  uploadBailleurIdentityDocument,
+} from "@/actions/bailleurs";
+import { BailleurPhotoUploader } from "@/components/bailleur-photo-uploader";
+import { BailleurLinkPropertiesDialog } from "@/components/bailleur-link-properties-dialog";
+import { prefillCollecteForBailleur } from "@/lib/collectePrefill";
+import { BailleurMessagesHistory } from "@/components/bailleur-messages-history";
+import { BailleurPropertiesDialog } from "@/components/bailleur-properties-dialog";
 import {
   BAILLEUR_STATUT_LABELS,
   BAILLEUR_TYPE_LABELS,
   BAILLEUR_VALEUR_LABELS,
+  BAILLEUR_PRIORITE_BADGE_CLASS,
+  BAILLEUR_PRIORITE_LABELS,
   type Bailleur,
 } from "@/lib/types";
 import { toast } from "sonner";
@@ -42,6 +57,9 @@ export default function BailleurDetailPage({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isOpeningDocument, setIsOpeningDocument] = useState(false);
+  const [showProperties, setShowProperties] = useState(false);
+  const [showLinkProperties, setShowLinkProperties] = useState(false);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
   // L'onglet est ouvert AVANT l'appel réseau : Safari iOS bloque tout
   // window.open déclenché après un `await` (il ne le relie plus au tap).
@@ -113,10 +131,37 @@ export default function BailleurDetailPage({
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setShowProperties(true)}
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Aperçu des biens ({bailleur.propertiesCount ?? 0})
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowLinkProperties(true)}
+          >
+            <Link2 className="h-4 w-4 mr-2" />
+            Joindre un bien existant
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              prefillCollecteForBailleur(bailleur);
+              router.push("/collecte-bien");
+            }}
+          >
+            <MapPin className="h-4 w-4 mr-2" />
+            Collecter un nouveau bien
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowEditModal(true)}
           >
             <Edit className="h-4 w-4 mr-2" />
-            Modifier
+            Modifier le profil
           </Button>
           <Button
             variant="outline"
@@ -134,7 +179,11 @@ export default function BailleurDetailPage({
         <div className="lg:col-span-2 space-y-6">
           <Card className="border-border">
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex items-start gap-4">
+                <BailleurPhotoUploader
+                  bailleur={bailleur}
+                  onUploaded={(photo) => setBailleur({ ...bailleur, photo })}
+                />
                 <div>
                   <CardTitle className="text-2xl">
                     {bailleur.person?.fullName}
@@ -147,6 +196,9 @@ export default function BailleurDetailPage({
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge className="bg-primary text-primary-foreground">
                       {BAILLEUR_TYPE_LABELS[bailleur.type]}
+                    </Badge>
+                    <Badge className={BAILLEUR_PRIORITE_BADGE_CLASS[bailleur.priorite]}>
+                      {BAILLEUR_PRIORITE_LABELS[bailleur.priorite]}
                     </Badge>
                     <Badge variant="secondary">
                       {BAILLEUR_STATUT_LABELS[bailleur.statutRelation]}
@@ -175,6 +227,40 @@ export default function BailleurDetailPage({
                   </div>
                 )}
               </div>
+
+              {!bailleur.person?.hasIdDocument && (
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground">
+                  {isUploadingDocument ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                  Ajouter la pièce d&apos;identité
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    className="sr-only"
+                    disabled={isUploadingDocument}
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingDocument(true);
+                      try {
+                        await uploadBailleurIdentityDocument(bailleur.idBailleur, file);
+                        setBailleur({
+                          ...bailleur,
+                          person: bailleur.person ? { ...bailleur.person, hasIdDocument: true } : bailleur.person,
+                        });
+                        toast.success("Pièce d'identité ajoutée");
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "Erreur inconnue");
+                      } finally {
+                        setIsUploadingDocument(false);
+                      }
+                    }}
+                  />
+                </label>
+              )}
 
               {bailleur.person?.hasIdDocument && (
                 <Button
@@ -290,12 +376,27 @@ export default function BailleurDetailPage({
         </div>
       </div>
 
+      <BailleurMessagesHistory idBailleur={bailleur.idBailleur} refreshKey={bailleur.updatedAt} />
+
       <EntityTimeline
         key={bailleur.updatedAt}
         entityType="BAILLEUR"
         entityId={bailleur.idBailleur}
       />
 
+      <BailleurLinkPropertiesDialog
+        bailleur={bailleur}
+        open={showLinkProperties}
+        onOpenChange={setShowLinkProperties}
+        onLinked={() => {
+          getSingleBailleur(Number(id)).then(setBailleur).catch(() => {});
+        }}
+      />
+      <BailleurPropertiesDialog
+        bailleur={bailleur}
+        open={showProperties}
+        onOpenChange={setShowProperties}
+      />
       <EditBailleurModal
         open={showEditModal}
         onOpenChange={setShowEditModal}

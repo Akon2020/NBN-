@@ -12,6 +12,7 @@ import {
 import { pollMailbox, setImapClientFactory } from "../services/inboundMail.service.js";
 import { setMailboxTransportFactory } from "../services/email.service.js";
 import { getMailbox } from "../config/mailboxes.js";
+import { removeMailboxAudience } from "../services/mailboxAudience.service.js";
 
 const suffix = Date.now();
 // Clés propres au test : jamais les boîtes « contact »/« direction » réelles
@@ -229,5 +230,96 @@ describe("Consultation et réponse depuis le site", () => {
       .set("Cookie", cookies.direction)
       .send({ message: "Merci" });
     expect(noSmtp.status).toBe(409);
+  });
+});
+
+describe("Audience des boîtes réglable dans Paramètres", () => {
+  const audienceUrl = (key) => `/api/inbound-emails/mailboxes/${key}/audience`;
+
+  afterAll(async () => {
+    await removeMailboxAudience(CONTACT);
+    await removeMailboxAudience(DIRECTION);
+  });
+
+  it("chacun ne voit et ne règle que les boîtes dont il est membre", async () => {
+    const asAdmin = await request(app).get("/api/inbound-emails/mailboxes/audiences").set("Cookie", cookies.admin);
+    expect(asAdmin.status).toBe(200);
+    const keys = asAdmin.body.data.map((mailbox) => mailbox.key);
+    expect(keys).toContain(CONTACT);
+    expect(keys).not.toContain(DIRECTION);
+    expect(asAdmin.body.data.find((mailbox) => mailbox.key === CONTACT)).toMatchObject({
+      roles: ["admin", "communication", "marketing"],
+      source: "env",
+    });
+
+    // L'admin ne peut pas s'ajouter à la boîte de la direction.
+    const forced = await request(app)
+      .put(audienceUrl(DIRECTION))
+      .set("Cookie", cookies.admin)
+      .send({ roles: ["direction", "admin"], users: [] });
+    expect(forced.status).toBe(404);
+  });
+
+  it("refuse un rôle inconnu, une adresse invalide, une audience vide, ou de s'en retirer soi-même", async () => {
+    const put = (body) => request(app).put(audienceUrl(CONTACT)).set("Cookie", cookies.communication).send(body);
+
+    expect((await put({ roles: ["communication", "inexistant"], users: [] })).status).toBe(400);
+    expect((await put({ roles: ["communication"], users: ["pas-une-adresse"] })).status).toBe(400);
+    expect((await put({ roles: [], users: [] })).status).toBe(400);
+    const selfRemoval = await put({ roles: ["admin"], users: [] });
+    expect(selfRemoval.status).toBe(400);
+    expect(selfRemoval.body.message).toMatch(/retirer/);
+  });
+
+  it("l'audience réglée décide des notifications et de la lecture, jusqu'au retour au réglage du serveur", async () => {
+    const saved = await request(app)
+      .put(audienceUrl(CONTACT))
+      .set("Cookie", cookies.communication)
+      .send({ roles: ["communication", "operations"], users: [` ${users.direction.email.toUpperCase()} `] });
+    expect(saved.status).toBe(200);
+    expect(saved.body.data).toMatchObject({
+      roles: ["communication", "operations"],
+      users: [users.direction.email.toLowerCase()],
+      source: "settings",
+    });
+
+    const before = {
+      admin: (await notificationsOf("admin")).length,
+      operations: (await notificationsOf("operations")).length,
+      direction: (await notificationsOf("direction")).length,
+    };
+    addMessage(CONTACT, { from: "Paul <paul@gmail.com>", subject: "Visite samedi", body: "Disponible samedi ?" });
+    await pollMailbox(getMailbox(CONTACT));
+
+    expect(await notificationsOf("operations")).toHaveLength(before.operations + 1);
+    expect(await notificationsOf("direction")).toHaveLength(before.direction + 1);
+    expect(await notificationsOf("admin")).toHaveLength(before.admin);
+
+    const asOperations = await request(app).get("/api/inbound-emails").set("Cookie", cookies.operations);
+    expect(asOperations.body.data.some((email) => email.mailboxKey === CONTACT)).toBe(true);
+    const asAdmin = await request(app).get("/api/inbound-emails").set("Cookie", cookies.admin);
+    expect(asAdmin.body.data.some((email) => email.mailboxKey === CONTACT)).toBe(false);
+
+    // Le réglage du serveur n'inclut pas les opérations : elles ne peuvent pas le rétablir.
+    const resetByOperations = await request(app).delete(audienceUrl(CONTACT)).set("Cookie", cookies.operations);
+    expect(resetByOperations.status).toBe(400);
+
+    const reset = await request(app).delete(audienceUrl(CONTACT)).set("Cookie", cookies.communication);
+    expect(reset.status).toBe(200);
+    expect(reset.body.data.source).toBe("env");
+    const adminAgain = await request(app).get("/api/inbound-emails").set("Cookie", cookies.admin);
+    expect(adminAgain.body.data.some((email) => email.mailboxKey === CONTACT)).toBe(true);
+  });
+
+  it("ce réglage ne passe jamais par la route générique des paramètres", async () => {
+    const patched = await request(app)
+      .patch("/api/settings/mailboxes.audiences")
+      .set("Cookie", cookies.admin)
+      .send({ value: { [DIRECTION]: { roles: ["admin"], users: [] } } });
+    expect(patched.status).toBe(400);
+
+    const list = await request(app).get("/api/settings").set("Cookie", cookies.admin);
+    expect(list.status).toBe(200);
+    expect(list.body.data.some((setting) => setting.key === "mailboxes.audiences")).toBe(false);
   });
 });

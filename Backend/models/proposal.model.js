@@ -26,6 +26,14 @@ const Proposal = db.define("proposals", {
     },
   },
   message: DataTypes.TEXT,
+  channel: {
+    type: DataTypes.ENUM("WHATSAPP", "EMAIL", "AUTRE"),
+    allowNull: true,
+  },
+  sentBy: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+  },
   sentAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

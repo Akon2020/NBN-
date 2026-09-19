@@ -135,14 +135,17 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
     expect(approve.status).toBe(200);
 
     // L'émission de l'event est synchrone mais son listener est async
-    // (await createNotification à l'intérieur) — laisser une microtask
-    // s'écouler avant de vérifier la persistance en base.
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const notifications = await Notification.findAll({
-      where: { idUser: demandeurUserId, type: "requisition:approved" },
-      order: [["createdAt", "DESC"]],
-    });
+    // (await createNotification à l'intérieur). Un délai fixe (50 ms) ne
+    // suffisait plus quand toute la suite charge la base en parallèle : on
+    // interroge jusqu'à ce que la notification apparaisse (5 s au plus).
+    let notifications = [];
+    for (let attempt = 0; attempt < 50 && notifications.length === 0; attempt += 1) {
+      notifications = await Notification.findAll({
+        where: { idUser: demandeurUserId, type: "requisition:approved" },
+        order: [["createdAt", "DESC"]],
+      });
+      if (!notifications.length) await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     expect(notifications.length).toBeGreaterThan(0);
     const notification = notifications[0];
     createdNotificationIds.push(notification.idNotification);
@@ -163,15 +166,11 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
   });
 
   it("le worker outbox traite une notification sans token push : SKIPPED, jamais perdu", async () => {
-    // GOAL 20 — `processOutboxEvents` traite un lot borné (BATCH_SIZE=20,
-    // le plus ancien d'abord) : sur une suite complète où d'autres fichiers
-    // de test créent des OutboxEvent jamais traités (aucun cron ne tourne
-    // pendant les tests, seul `server.js` le démarre), un arriéré peut
-    // dépasser 20 lignes et empêcher cette ligne fraîchement créée d'entrer
-    // dans le lot — purge défensive pour tester ce worker en isolation
-    // réelle, jamais un contournement du comportement du worker lui-même.
-    await OutboxEvent.destroy({ where: { statut: ["PENDING", "FAILED"] } });
-
+    // `processOutboxEvents` traite un lot borné (le plus ancien d'abord) et la
+    // table est partagée avec les autres fichiers de tests, qui tournent en
+    // parallèle. Plutôt que de purger leurs événements (ce qui cassait leurs
+    // propres vérifications), le passage est restreint à l'événement de ce
+    // test via `ids`.
     const login = await loginAs(operationsEmail);
     const notification = await createNotification({
       idUser: demandeurUserId,
@@ -190,7 +189,7 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
     });
     createdOutboxIds.push(outboxBefore.idOutboxEvent);
 
-    await processOutboxEvents();
+    await processOutboxEvents({ ids: [outboxBefore.idOutboxEvent] });
 
     const refreshedNotification = await Notification.findByPk(notification.idNotification);
     expect(refreshedNotification.pushStatus).toBe("SKIPPED");
@@ -200,11 +199,7 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
   });
 
   it("le worker outbox marque FAILED et conserve la Notification si l'envoi échoue", async () => {
-    // Voir le commentaire équivalent du test précédent — même purge
-    // défensive contre l'arriéré d'OutboxEvent non traités par d'autres
-    // fichiers de test.
-    await OutboxEvent.destroy({ where: { statut: ["PENDING", "FAILED"] } });
-
+    // Passage restreint à l'événement de ce test (voir le test précédent).
     // `pushProvider.js` appelle le `fetch` global directement (pas de SDK
     // serveur) — `vi.stubGlobal` est l'API Vitest dédiée à ce cas (une
     // simple réaffectation de `global.fetch` ne traverse pas de façon
@@ -236,7 +231,7 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
     });
     createdOutboxIds.push(outbox.idOutboxEvent);
 
-    await processOutboxEvents();
+    await processOutboxEvents({ ids: [outbox.idOutboxEvent] });
 
     const refreshedNotification = await Notification.findByPk(notification.idNotification);
     expect(refreshedNotification.pushStatus).toBe("FAILED");

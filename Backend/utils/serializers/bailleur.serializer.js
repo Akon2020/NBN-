@@ -8,6 +8,9 @@ export const serializeBailleur = async (bailleur, user) => {
       ? bailleur.toJSON()
       : { ...bailleur };
 
+  // COUNT(*) revient parfois en chaîne selon le pilote MySQL.
+  if (plain.propertiesCount !== undefined) plain.propertiesCount = Number(plain.propertiesCount);
+
   const canReadMarge = await hasPermission(user, "bailleur:marge:read");
   if (!canReadMarge) {
     delete plain.margeAgence;

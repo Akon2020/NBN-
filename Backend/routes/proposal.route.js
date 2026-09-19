@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createProposal,
+  createProposalBatch,
   getAllProposals,
   getProposalsByClient,
 } from "../controllers/proposal.controller.js";
@@ -25,7 +26,11 @@ proposalRouter.get("/", authMiddlware, requirePermission("clients:read"), getAll
  * @swagger
  * /api/proposals/client/{idClient}:
  *   get:
- *     summary: Liste les propositions envoyées à un client
+ *     summary: Liste les propositions envoyées à un client (plus récentes d'abord)
+ *     description: >
+ *       Chaque proposition inclut le bien tel que proposé (type, localisation,
+ *       composition, prix, première image) et l'expéditeur. Jamais le
+ *       bailleur, le prix minimum, la marge ni l'informateur.
  *     tags: [Proposals]
  *     parameters:
  *       - in: path
@@ -77,6 +82,47 @@ proposalRouter.post(
   authMiddlware,
   requirePermission("clients:manage"),
   createProposal
+);
+
+/**
+ * @swagger
+ * /api/proposals/batch:
+ *   post:
+ *     summary: Enregistre l'envoi d'une sélection de biens (panier) à un client
+ *     description: >
+ *       Une proposition par bien, dans une transaction. Un client au statut
+ *       NOUVEAU passe à PROPOSE ; un dossier plus avancé ne change pas.
+ *     tags: [Proposals]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idClient, idProperties]
+ *             properties:
+ *               idClient: { type: integer }
+ *               idProperties:
+ *                 type: array
+ *                 items: { type: integer }
+ *                 maxItems: 20
+ *               channel:
+ *                 type: string
+ *                 enum: [WHATSAPP, EMAIL, AUTRE]
+ *               message: { type: string }
+ *     responses:
+ *       201:
+ *         description: "{ created, total, pipelineAdvanced }"
+ *       400:
+ *         description: Client ou biens manquants, trop de biens, canal invalide
+ *       404:
+ *         description: Client ou bien introuvable
+ */
+proposalRouter.post(
+  "/batch",
+  authMiddlware,
+  requirePermission("clients:manage"),
+  createProposalBatch
 );
 
 export default proposalRouter;

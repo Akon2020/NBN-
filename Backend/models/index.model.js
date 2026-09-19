@@ -64,6 +64,8 @@ import AppSetting from "./appSetting.model.js";
 import MailboxState from "./mailboxState.model.js";
 import InboundEmail from "./inboundEmail.model.js";
 import InboundEmailReply from "./inboundEmailReply.model.js";
+import BailleurMessage from "./bailleurMessage.model.js";
+import BailleurRelance from "./bailleurRelance.model.js";
 import MarginHistory from "./marginHistory.model.js";
 
 // User - Property
@@ -181,6 +183,7 @@ Client.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 // Demande de location publique → Client CRM créé à partir d'elle.
 RentalRequest.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 Client.hasMany(RentalRequest, { foreignKey: "idClient", as: "rentalRequests" });
+RentalRequest.belongsTo(User, { foreignKey: "deletedBy", as: "deleter" });
 
 // GOAL 4 — le code commissionnaire est la référence métier (jamais un
 // idCommissionnaire interne saisi/affiché) ; association basée sur cette
@@ -204,6 +207,7 @@ Property.belongsTo(Bailleur, { foreignKey: "idBailleur" });
 // champs clientName/clientPhone jamais activés).
 Client.hasMany(Proposal, { foreignKey: "idClient" });
 Proposal.belongsTo(Client, { foreignKey: "idClient", as: "client" });
+Proposal.belongsTo(User, { foreignKey: "sentBy", as: "sender" });
 
 // BACK-G08 — Matching : 1 client ↔ plusieurs biens.
 Client.belongsToMany(Property, {
@@ -405,6 +409,14 @@ InboundEmail.hasMany(InboundEmailReply, { foreignKey: "idInboundEmail", as: "rep
 InboundEmailReply.belongsTo(InboundEmail, { foreignKey: "idInboundEmail", as: "inboundEmail" });
 InboundEmailReply.belongsTo(User, { foreignKey: "idUser", as: "author" });
 InboundEmail.belongsTo(User, { foreignKey: "repliedBy", as: "replier" });
+
+// Échanges avec les bailleurs (Contacts, Emails, Relances).
+Bailleur.hasMany(BailleurMessage, { foreignKey: "idBailleur", as: "messages" });
+BailleurMessage.belongsTo(Bailleur, { foreignKey: "idBailleur", as: "bailleur" });
+BailleurMessage.belongsTo(User, { foreignKey: "sentBy", as: "sender" });
+BailleurRelance.hasMany(BailleurMessage, { foreignKey: "idRelance", as: "messages" });
+BailleurMessage.belongsTo(BailleurRelance, { foreignKey: "idRelance", as: "relance" });
+BailleurRelance.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 MarginHistory.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
 MarginHistory.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
 
@@ -484,5 +496,7 @@ export {
   MailboxState,
   InboundEmail,
   InboundEmailReply,
+  BailleurMessage,
+  BailleurRelance,
   syncModels,
 };

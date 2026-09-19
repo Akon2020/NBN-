@@ -52,6 +52,24 @@ export const downloadCaisseStatement = async (
   }
 };
 
+// Demandes de location, fiches supprimées comprises (date, auteur, motif).
+export const downloadRentalRequestsExport = async (
+  format: "csv" | "xlsx",
+  from?: string,
+  to?: string,
+  deletedOnly = false
+): Promise<void> => {
+  try {
+    const res = await api.get("/api/reports/rental-requests", {
+      params: { format, from, to, deleted: deletedOnly ? "only" : undefined },
+      responseType: "blob",
+    });
+    triggerDownload(res.data, `demandes-location.${format}`);
+  } catch (error) {
+    await handleError(error, "Erreur lors de l'export des demandes");
+  }
+};
+
 // GOAL 10 — export tabulaire du ledger, en complément du PDF déjà existant.
 export const downloadCaisseLedgerExport = async (
   caisseId: number,

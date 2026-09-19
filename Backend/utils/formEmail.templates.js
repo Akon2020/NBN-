@@ -149,6 +149,15 @@ export const taskAssignmentEmail = ({ recipientName, clientName, assignedBy, not
     <p style="color:${MUTED};font-size:13px">Cette fiche contient des données personnelles : ne la transmettez pas en dehors de l'agence.</p>`),
 });
 
+// Message libre de l'agence à un bailleur (bouton « Emails », relances).
+// Le texte saisi est échappé puis ses retours à la ligne conservés.
+export const bailleurMessageEmail = ({ body }) => ({
+  html: layout(`<div style="white-space:pre-wrap">${escapeHtml(body)}</div>`),
+});
+
+// « {nom} » dans un message groupé devient le nom de chaque destinataire.
+export const personalizeMessage = (text, fullName) => String(text ?? "").replaceAll("{nom}", fullName || "");
+
 // Confirmation au responsable qui a lui-même enregistré son bien.
 export const propertyCollectionConfirmation = ({ fullName, localisation, requestedAt }) => ({
   subject: "Votre bien a bien été enregistré",

@@ -2,8 +2,11 @@ import { Router } from "express";
 import {
   getInboundEmail,
   getInboundEmails,
+  getMailboxAudiences,
   getMyMailboxes,
   replyToInboundEmail,
+  resetMailboxAudience,
+  updateMailboxAudience,
 } from "../controllers/inboundEmail.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 
@@ -24,6 +27,61 @@ const inboundEmailRouter = Router();
  *         description: "Liste { key, label, address, canSend, canReceive }"
  */
 inboundEmailRouter.get("/mailboxes", authMiddlware, getMyMailboxes);
+
+/**
+ * @swagger
+ * /api/inbound-emails/mailboxes/audiences:
+ *   get:
+ *     summary: Audience (rôles et comptes destinataires) des boîtes dont l'utilisateur est membre
+ *     tags: [InboundEmails]
+ *     responses:
+ *       200:
+ *         description: "Liste { key, label, address, roles, users, source: env|settings }"
+ */
+inboundEmailRouter.get("/mailboxes/audiences", authMiddlware, getMailboxAudiences);
+
+/**
+ * @swagger
+ * /api/inbound-emails/mailboxes/{key}/audience:
+ *   put:
+ *     summary: Règle qui reçoit et lit les messages d'une boîte (membres de la boîte uniquement)
+ *     tags: [InboundEmails]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [roles, users]
+ *             properties:
+ *               roles:
+ *                 type: array
+ *                 items: { type: string }
+ *                 description: Rôles du catalogue
+ *               users:
+ *                 type: array
+ *                 items: { type: string, format: email }
+ *                 description: Comptes en plus (50 max)
+ *     responses:
+ *       200:
+ *         description: Audience enregistrée (prioritaire sur MAILBOX_<CLÉ>_ROLES / _USERS)
+ *       400:
+ *         description: Rôle inconnu, adresse invalide, audience vide, ou l'auteur s'en retirerait
+ *       404:
+ *         description: Boîte inexistante ou dont l'utilisateur n'est pas membre
+ *   delete:
+ *     summary: Rétablit l'audience déclarée sur le serveur
+ *     tags: [InboundEmails]
+ *     responses:
+ *       200:
+ *         description: Réglage du serveur rétabli
+ *       400:
+ *         description: Le réglage du serveur n'inclut pas l'auteur
+ *       404:
+ *         description: Boîte inexistante ou dont l'utilisateur n'est pas membre
+ */
+inboundEmailRouter.put("/mailboxes/:key/audience", authMiddlware, updateMailboxAudience);
+inboundEmailRouter.delete("/mailboxes/:key/audience", authMiddlware, resetMailboxAudience);
 
 /**
  * @swagger

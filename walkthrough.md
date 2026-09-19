@@ -1141,3 +1141,125 @@ _Phase 2 terminée. Au déploiement : `npm run db:migrate`, `npm run db:seed`, c
 - Migration `20260916000000-outbox-payload-mediumtext.cjs` : `outboxEvents.payload` en MEDIUMTEXT (une pièce jointe base64 dépasse le plafond de 64 Ko de TEXT). `queueEmail` accepte `attachments`.
 - Frontend : boutons « Assigner une tâche » et « Fiche PDF » au bas de la fiche d'une demande ; dialogue `rental-request-assign-dialog.tsx` (recherche, utilisateurs, commissionnaires si le rôle y a accès, adresses libres en pastilles, échéance, consigne, compte-rendu des envois).
 - Tests : `tests/rentalRequestAssign.test.js` (PDF avec emoji, refus sans destinataire / e-mail invalide / 403, tâche urgente liée au client, notification, PDF joint et dédoublonné, lien réservé aux comptes). Backend 281/281, Frontend 20/20, `tsc` OK.
+
+### 3.2 « Supprimer la fiche » avec commentaire obligatoire, reprise dans les rapports
+
+- Migration `20260916100000-rental-request-deletion.cjs` : `deletedAt`, `deletedBy`, `deletionReason` sur `rentalRequests` ; modèle passé en `paranoid` (suppression logique, CLAUDE.md §4). Réversible (vérifié).
+- `DELETE /api/rental-requests/:id` (clients:manage) : commentaire de 10 à 1 000 caractères obligatoire, auteur et motif enregistrés, événement sur la timeline du client. La fiche disparaît de la liste et du détail (404) ; **le client reste sur le pipeline** (on supprime une fiche de demande, pas une relation commerciale).
+- `GET /api/reports/rental-requests` (reports:read, CSV/Excel, période, `deleted=only`) : toutes les demandes, fiches supprimées comprises, avec statut, date, auteur et motif de suppression.
+- Frontend : bouton « Supprimer la fiche » au bas de la fiche (dialogue avec compteur de caractères, bouton désactivé tant que le commentaire est trop court) ; carte « Demandes de location » dans Rapports.
+- Tests : `tests/rentalRequestDeletion.test.js` (commentaire exigé, 403, masquage + traçabilité, fiche et motif présents dans le rapport). `rentalRequest.test.js` et `formNotifications.test.js` nettoient désormais en `force` (sinon les fiches supprimées logiquement bloquent la suppression du client). `rentalRequestAssign.test.js` cible explicitement l'e-mail portant la fiche : un échec intermittent observé une fois en exécution parallèle, non reproduit ensuite. Backend 285/285 (47 fichiers), Frontend 20/20, `tsc` OK.
+
+### 3.3 Bouton « Contacter » sur la fiche client
+
+- `lib/clientContact.ts` : numéro au format WhatsApp (`0977 103 143` → `243977103143`, via `normalizePhone`), liens `wa.me` et `mailto:` encodés, objet et message pré-remplis (nom du client, numéro de dossier, nom de l'agent connecté, signature de l'agence).
+- `components/client-contact-dialog.tsx` : choix WhatsApp / E-mail (canal grisé si le numéro ou l'adresse manque), message et objet modifiables, ouverture immédiate dans le geste de l'utilisateur (sinon bloquée comme pop-up sur iPhone). `dernierContact` est mis à jour sur la fiche en arrière-plan (non bloquant pour un rôle sans clients:manage).
+- La vérification des coordonnées demandée (« le formulaire doit vérifier si ces 2 données sont exactes ») est déjà faite à la soumission de la demande (phase 1.2 : format + domaine e-mail, téléphone normalisé).
+- Tests : `tests/lib/clientContact.test.ts` (4). Frontend 24/24, `tsc` OK.
+
+### 3.4 « Proposer des biens » et « Propositions envoyées (n) »
+
+- Migration `20260916200000-proposal-channel-sender.cjs` : `channel` (WHATSAPP/EMAIL/AUTRE) et `sentBy` sur `proposals`. Réversible (vérifié) — un index composite (idClient, sentAt) a été retiré : MySQL le rattachait à la clé étrangère et refusait le rollback.
+- `POST /api/proposals/batch` (clients:manage) : une proposition par bien (20 max), dans une transaction ; un client « Nouveau » passe à « Proposé », un dossier plus avancé ne recule jamais ; événements sur la timeline du client.
+- `GET /api/proposals/client/:id` et `GET /api/proposals` corrigés : l'include `Property` sans alias levait une erreur Sequelize. Le bien n'expose que ce que le client a reçu (type, localisation, composition, prix, statut, première image) — **jamais le bailleur, le prix minimum, la marge ni l'informateur** (confidentialité demandée : ces liens ne se voient que dans Bailleurs et Galerie). Expéditeur inclus.
+- Frontend :
+  - fiche client : « Proposer des biens » fixe le client comme cible du panier et ouvre la galerie ; « Propositions envoyées (n) » ouvre la liste (image, type, localisation, composition, prix, date, canal, agent, lien vers la fiche du bien) ;
+  - galerie : bandeau « Sélection pour X » ;
+  - panier : cible affichée, « Envoyer à X sur WhatsApp » ouvre WhatsApp sur le numéro du client dans le geste de l'utilisateur, enregistre les propositions, puis vide le panier. Cible persistée comme le panier.
+- Le rendu du message WhatsApp et l'envoi des images restent la phase 5 (modèle de message attendu).
+- Tests : `tests/proposalBatch.test.js` (400, 403, création + pipeline, non-régression d'un dossier avancé, historique sans données confidentielles). Backend 290/290 (48 fichiers), Frontend 24/24, `tsc` OK.
+
+_Phase 3 terminée. Au déploiement : `npm run db:migrate`._
+
+---
+
+## Phase 4 — Onglet Bailleurs
+
+### 4.1 Liste par priorité, Aperçu / Profil, photo, confidentialité du lien bien ↔ bailleur
+
+- Migration `20260917000000-bailleur-priority-photo.cjs` : `priorite` (VIP/PREMIUM/STANDARD/INACTIF, défaut STANDARD) et `photo` sur `bailleurs`. Réversible (vérifié).
+- `GET /api/bailleurs` : tri SQL par profil (`FIELD(priorite…)`) puis nom, `propertiesCount` calculé en sous-requête (une requête pour toute la liste), filtre `?priorite`. Même compteur sur le détail et la réponse de mise à jour.
+- `GET /api/bailleurs/:id/properties` (« Aperçu », bailleurs:read) ; `POST /api/bailleurs/:id/photo` (bailleurs:manage, image compressée, ancienne photo supprimée).
+- `PATCH /api/bailleurs/:id` : priorité et statut du responsable (listes fermées, 400 sinon), identité modifiable (nom, téléphone normalisé, e-mail vérifié, n° de pièce — portés par la `Person`), événement timeline au changement de profil.
+- **Confidentialité** (demande de l'agence) : `property.serializer.js` retire `idBailleur` et `phones` (numéros du responsable issus de la collecte) sans `bailleurs:read`. Droits évalués une seule fois par liste au lieu de 3 lectures par bien.
+- Frontend : liste en cartes (photo ou initiales, badge de profil coloré, nombre de biens, recherche, filtres par profil avec compteurs), boutons **Aperçu** (dialogue des biens) et **Profil** ; fiche : photo modifiable au tap, badge de profil, « Aperçu des biens (n) », fenêtre « Modifier le profil » enrichie (identité + profil agence). Galerie : « Bailleur : nom » sur chaque carte, seulement si le rôle peut lister les bailleurs. Tri identique côté client (`lib/bailleurs.ts`, comparaison en français).
+- Tests : `Backend/tests/bailleurPortfolio.test.js` (ordre, compteurs, Aperçu, priorité invalide, identité normalisée, photo, lien bien ↔ bailleur masqué pour marketing / visible pour operations), `Frontend/tests/lib/bailleurs.test.ts`, cas ajouté à `bailleurs-page.test.tsx`. Backend 297/297 (49 fichiers), Frontend 27/27, `tsc` OK.
+
+### 4.2 « Ajouter un Bailleur » : identité, pièce d'identité obligatoire, biens existants ou à collecter
+
+- `POST /api/bailleurs` réécrit : multipart `data` + `pieceIdentite` (même middleware que la collecte). Statut du responsable (4 valeurs), nom, **téléphone normalisé obligatoire**, e-mail vérifié, n° de pièce, priorité ; **pièce d'identité obligatoire** (sauf personne existante qui en a déjà une) — règle portée par le Backend, pas seulement par le formulaire. Contact déjà bailleur (même téléphone) → 409 avec son `idBailleur`. Biens de la galerie à rattacher (`idProperties`) : uniquement des biens sans bailleur (409 sinon, jamais de réattribution implicite). Fichier écrit avant la transaction, supprimé en cas d'échec ou s'il n'est pas retenu.
+- `POST /api/bailleurs/:id/properties` : « Joindre un bien existant » depuis le profil (même règle). `POST /api/bailleurs/:id/piece-identite` : ajout ou remplacement par un gestionnaire authentifié, l'ancien fichier est supprimé (contrairement à la collecte publique qui ne remplace jamais).
+- Frontend : fenêtre en 2 étapes (identité + annexe, puis biens sans bailleur à cocher et option « Collecter ensuite un nouveau bien ») ; profil : « Joindre un bien existant », « Collecter un nouveau bien », « Ajouter la pièce d'identité » si absente. `lib/collectePrefill.ts` pré-remplit le brouillon du formulaire de collecte avec l'identité du bailleur (rattachement par téléphone côté Backend, sans doublon).
+- Tests : `Backend/tests/bailleurCreation.test.js` (pièce exigée, téléphone invalide, création + rattachement, doublon 409, liaison et refus du bien d'un autre bailleur, remplacement de pièce sans fichier résiduel). `crm.test.js` et `dossierNumber.test.js` créent désormais le bailleur avec sa pièce et nettoient le fichier ; préfixes de téléphone propres à chaque fichier (les fichiers tournent en parallèle et un même numéro était, à raison, refusé en doublon). `identityDocument.test.js` vérifie qu'aucun nouveau fichier n'est orphelin au lieu de compter les fichiers du dossier partagé. Backend 303/303 (50 fichiers), Frontend 27/27, `tsc` OK.
+
+### 4.3 « Contacts », « Emails » et historique des échanges
+
+- Migration `20260917100000-create-bailleur-messages.cjs` : table `bailleurMessages` (canal EMAIL/WHATSAPP/SMS/APPEL, objet, corps, statut PLANIFIE/A_ENVOYER/ENVOYE/ECHEC/ANNULE, événement outbox, expéditeur, date). Réversible (vérifié). Servira aussi aux relances (4.4).
+- `POST /api/bailleur-messages/emails` (bailleurs:manage) : un e-mail par bailleur sélectionné (100 max), **depuis contact@** (outbox, retenté), « {nom} » personnalisé dans l'objet et le message, trace dans l'historique, `dernierContact` mis à jour ; bailleurs sans adresse signalés. Envoi serveur plutôt qu'ouverture de Gmail (choix validé en phase 2 : expéditeur garanti, historique).
+- `POST /api/bailleur-messages/contact-log` : trace d'un appel / WhatsApp / SMS / e-mail lancé depuis « Contacts » (l'échange part du téléphone de l'agent).
+- `GET /api/bailleur-messages/bailleur/:id` (bailleurs:read) : messages envoyés + **e-mails reçus de l'adresse du bailleur** sur les boîtes professionnelles dont l'utilisateur fait partie de l'audience (direction@ reste privée).
+- Frontend : boutons **Contacts** (liste recherchable des bailleurs joignables → Appeler / WhatsApp / SMS / e-mail, message modifiable) et **Emails** (sélection avec filtres de profil et « tout sélectionner », puis objet + message) dans l'onglet ; carte « Historique des échanges » sur le profil (envoyés / reçus, lien vers le message).
+- Tests : `tests/bailleurMessages.test.js` (400 / 403, envoi personnalisé depuis contact@ avec trace et dernier contact, bailleur sans e-mail signalé, contact WhatsApp tracé, canal invalide, historique envoyés + reçus), `Frontend/tests/lib/bailleurContact.test.ts`. 25/25 sur les fichiers concernés, Frontend 30/30, `tsc` OK.
+
+### 4.4 « Relances » programmées
+
+- Migration `20260917200000-create-bailleur-relances.cjs` : table `bailleurRelances` (canal EMAIL/WHATSAPP, objet, message, date prévue, statut PLANIFIEE/EN_COURS/TERMINEE/ANNULEE, auteur) et `bailleurMessages.idRelance`. Réversible (vérifié).
+- `POST /api/bailleur-relances` (bailleurs:manage) : date, canal, message modifiable (« {nom} » personnalisé), bailleurs ; bailleurs injoignables par le canal écartés et signalés ; date passée = envoi immédiat. Liste avec décompte par statut, détail, annulation d'une relance planifiée, `POST /messages/:id/sent` pour WhatsApp.
+- `services/bailleurRelance.service.js` : cron chaque minute (`server.js`) ; chaque relance échue est **réservée** (PLANIFIEE → EN_COURS par mise à jour conditionnelle) avant traitement, jamais d'envoi double.
+  - E-mail : envoi **automatique** depuis contact@ à la date prévue (outbox), dernier contact mis à jour.
+  - WhatsApp : sans API WhatsApp Business (reportée, phase 2), messages « À envoyer » + notification à l'auteur, ouverture en un clic puis marquage ; relance terminée quand il n'en reste plus.
+- Frontend : page `dashboard/bailleurs/relances` (liste, détail, « Nouvelle relance » avec date et heure, canal, sélection des seuls bailleurs joignables, objet, message), bouton « Relances » dans l'onglet, lien depuis la notification. Les messages de relance figurent dans l'historique des échanges du bailleur.
+- Tests : `tests/bailleurRelances.test.js` (403/400, e-mail futur non traité puis envoyé et jamais renvoyé, bailleur sans e-mail écarté, WhatsApp à envoyer + notification + marquage, annulation et 409, historique). Frontend 30/30, `tsc` OK.
+
+_Phase 4 terminée. Au déploiement : `npm run db:migrate`._
+
+### Isolation des tests de la file d'envoi (outbox)
+
+- Constat : `notification.test.js` purgeait **toutes** les lignes `outboxEvents` en attente de la base pour tester le worker, pendant que d'autres fichiers (demandes, assignation, e-mails et relances des bailleurs) vérifiaient les leurs en parallèle — cause probable de l'échec intermittent observé en 3.2 ; son premier test attendait aussi une notification asynchrone avec un délai fixe de 50 ms, insuffisant sous charge (échec vu une fois sur la suite complète, jamais seul).
+- `processOutboxEvents({ ids })` : passage restreint à des événements précis (le cron, sans argument, est inchangé). Le test ne purge plus la table partagée et interroge la base jusqu'à l'arrivée de la notification (5 s max). Backend complet vert.
+
+## Phase 5 — Médias et propositions WhatsApp
+
+### 5.1 Vidéos : envoi fiable et sélecteur Photos / Vidéos sur la fiche
+
+- Cause de « Unexpected field » : `upload.middleware.js` passait le message d'erreur comme **nom de champ** à `MulterError`, si bien que tout refus (format, nombre) affichait ce libellé. Erreur désormais construite avec son vrai message (`INVALID_FILE_TYPE`) ; plus de 5 vidéos (ou 10 images) dans un envoi → « Trop de fichiers dans un même envoi » ; limite de taille lue dans `MAX_IMAGE_SIZE_MB` / `MAX_VIDEO_SIZE_MB`.
+- Formats vidéo de téléphone acceptés : .mp4, .mov, .webm, .m4v, .3gp ; un fichier annoncé sans type précis (`application/octet-stream`, fréquent sous Windows pour un .mov) est jugé sur son extension.
+- Frontend : `lib/mediaFiles.ts` (même règle côté navigateur) ; `property-media-manager` envoie par lots (10 images / 5 vidéos). Nouveau `property-media-viewer` sur les fiches location et vente : onglets **Photos (n)** / **Vidéos (n)**, lecteur avec `preload="metadata"` (connexion faible), miniatures.
+- Tests : `propertyMedia.test.js` (message clair au refus, .mov sans type accepté, 6 vidéos refusées avec message), `Frontend/tests/lib/mediaFiles.test.ts`. 7/7 sur le fichier, Frontend 33/33, `tsc` OK.
+
+### 5.2 Panier WhatsApp : un message par bien, avec sa photo
+
+- Constats : un seul long message pour tout le panier, chiffres encadrés (1️⃣…) affichés en carrés sur certains téléphones, et aucune photo — le lien `wa.me` ne transporte que du texte, c'est une limite de WhatsApp et non du tableau de bord.
+- `lib/whatsappProposal.ts` : **modèle unique** d'un message par bien (`buildPropertyCaption`) — salutation du client dans le premier message, type et « à louer / à vendre », numérotation « Bien 1/3 », avenue / quartier / commune, pièces (pas pour un terrain), prix et garantie, extrait de description, référence `NBN-<id>`, signature de l'agence (Paramètres). Modèle remplaçable à ce seul endroit quand l'agence fournira le sien.
+- `components/whatsapp-proposal-dialog.tsx` : fenêtre d'envoi bien par bien. La photo principale est téléchargée à l'ouverture ; sur téléphone, « Envoyer avec la photo » ouvre le partage natif (Web Share API) avec **l'image et sa légende** — choisir WhatsApp puis le contact. « Texte seul » ouvre `wa.me` (directement vers le numéro du client s'il est connu, avec le lien de la photo) ; « Copier » pour coller la légende. Sur ordinateur, le navigateur ne sait pas joindre une image à WhatsApp : message avec lien de photo et explication affichée.
+- Propositions : enregistrées **une seule fois**, à « Terminer », pour les seuls biens réellement envoyés (l'API ne dédoublonne pas) ; les biens envoyés sortent du panier.
+- Même fenêtre depuis le panier, la galerie et les fiches location / vente (« Proposer »), qui construisaient chacune leur propre texte.
+- Envoi automatique des photos sans intervention : nécessite l'API WhatsApp Business (reportée, décision de la phase 2).
+- Tests : `tests/lib/whatsappProposal.test.ts` (forme du message, lien photo seulement sans pièce jointe, terrain, repli groupé, lien vers le numéro), `tests/components/whatsapp-proposal-dialog.test.tsx` (un message par bien, salutation, enregistrement des seuls biens envoyés, rien sans client). Frontend 40/40, `tsc` OK.
+
+_Phase 5 terminée._
+
+---
+
+## Écart avec le plan validé — audience des boîtes dans Paramètres
+
+Le plan (phase 2) prévoyait que la correspondance « boîte → rôles / utilisateurs » se règle dans Paramètres ; elle n'était réglable que par variables d'environnement (`MAILBOX_<CLÉ>_ROLES` / `_USERS`).
+
+- Migration `20260918000000-seed-mailbox-audiences-setting.cjs` : paramètre `mailboxes.audiences` (`{ <boîte>: { roles, users } }`), réversible (vérifié). Une boîte absente garde le réglage du serveur ; les identifiants restent exclusivement dans l'environnement.
+- `services/mailboxAudience.service.js` : audience effective (Paramètres, sinon serveur), cache mémoire de 30 s vidé à chaque modification ; validation (rôles du catalogue, adresses, 50 comptes max, audience jamais vide). Utilisée pour la lecture des messages, les notifications de relève (relue à chaque import) et l'historique des bailleurs.
+- `GET /api/inbound-emails/mailboxes/audiences`, `PUT` / `DELETE /api/inbound-emails/mailboxes/:key/audience` (Swagger). **Seuls les membres actuels d'une boîte en règlent l'audience** (règle contextuelle, pas `settings:manage`) : l'admin ne peut pas s'ajouter à direction@ (404). Retrait de soi-même refusé, retour au réglage du serveur refusé s'il excluait l'auteur.
+- `PATCH /api/settings/mailboxes.audiences` refusé (400) et clé retirée de la liste générique : `settings:manage` ne suffit jamais.
+- Frontend : panneau « Boîtes mail professionnelles » dans Paramètres (rôles à cocher, comptes en plus, « Rétablir le réglage du serveur »), affiché aux seuls membres d'une boîte. CLAUDE.md §7 mis à jour.
+- Tests : `inboundMail.test.js` (+4 : visibilité par membre et 404 admin sur direction@, refus rôle inconnu / adresse / vide / retrait de soi, notifications et lecture suivant l'audience réglée puis rétablie, route générique refusée), `Frontend/tests/components/mailbox-audience-panel.test.tsx`. Backend 317/317 (52 fichiers), Frontend 42/42, `tsc` OK.
+- Autre point du plan, le maintien en éveil de l'API : déjà couvert par le README (réglages Passenger ou moniteur externe sur `GET /`), une tâche interne ne pouvant pas réveiller une application arrêtée.
+
+---
+
+## CI Backend au vert
+
+Le workflow Backend échouait sur tous les commits récents (`dev` et `main`), toujours à l'étape `npm ci` : migrations et tests n'y tournaient plus. Frontend vert, Mobile vert à son dernier déclenchement.
+
+- **Installation** : le lockfile avait été régénéré en local avec npm 12 ; le runner (Node 20 / npm 10) le refusait (« Missing: yaml@2.9.1 from lock file »), reproduit en local avec `npx npm@10 ci --dry-run`. Lockfile régénéré avec npm 10 (`--package-lock-only`), accepté par npm 10 et npm 12 ; seule l'entrée `yaml` manquante est ajoutée, aucun paquet retiré.
+- **Base neuve** : toutes les migrations et seeders rejoués depuis zéro sur une base temporaire (comme le CI) — OK (10 rôles, 38 permissions, admin). La suite y révélait un échec invisible sur la base de développement : `appSettings.test.js` supprimait ses utilisateurs alors que `cart.maxItems` les gardait en `updatedBy` (clé étrangère). Les paramètres touchés sont détachés avant suppression. Backend 317/317 (52 fichiers) sur base neuve ; base temporaire supprimée.
+- Résultat : badge « Backend CI » **passing** sur `dev`.
+- Reste non bloquant : GitHub signale que `actions/checkout@v4` et `actions/setup-node@v4` ciblent Node 20 (dépréciés sur les runners, simple avertissement). Pour éviter de retomber sur le problème de lockfile, régénérer `package-lock.json` avec la version de npm du CI, ou aligner `node-version` du workflow sur la version utilisée en local.

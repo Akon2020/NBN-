@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2 } from "lucide-react"
+import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2, ShoppingBag } from "lucide-react"
+import { useCart } from "@/components/cart-provider"
+import { getAllBailleurs } from "@/actions/bailleurs"
 import { getAllProperties } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import type { Property } from "@/lib/types"
 import { getImageUrl } from "@/lib/imageUrl"
-import { openWhatsAppShare } from "@/lib/whatsappProposal"
+import { WhatsAppProposalDialog } from "@/components/whatsapp-proposal-dialog"
 import { AddToCartButton } from "@/components/add-to-cart-button"
 import Image from "next/image"
 import Link from "next/link"
@@ -21,15 +23,22 @@ export default function GalleryPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
+  const { proposalTarget, setProposalTarget, items } = useCart()
+  const [bailleurNames, setBailleurNames] = useState<Map<number, string>>(new Map())
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [allProperties, myFavorites] = await Promise.all([
+        const [allProperties, myFavorites, bailleurs] = await Promise.all([
           getAllProperties(),
           getMyFavorites().catch(() => []),
+          // Le lien bien ↔ bailleur n'est visible que dans Bailleurs et la
+          // Galerie, et seulement pour les rôles qui gèrent les bailleurs (le
+          // Backend refuse la liste aux autres : on n'affiche alors rien).
+          getAllBailleurs().catch(() => []),
         ])
         setProperties(allProperties)
+        setBailleurNames(new Map(bailleurs.map((b) => [b.idBailleur, b.person?.fullName || b.dossierNumber || ""])))
         setFavorites(new Set(myFavorites.map((f) => f.idProperty)))
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Erreur inconnue")
@@ -58,10 +67,23 @@ export default function GalleryPage() {
     }
   }
 
-  const handlePropose = (property: Property) => openWhatsAppShare([property])
+  const [proposing, setProposing] = useState<Property | null>(null)
+  const handlePropose = (property: Property) => setProposing(property)
 
   return (
     <div className="space-y-6">
+      {proposalTarget && (
+        <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm">
+            Sélection pour <strong>{proposalTarget.fullName}</strong> : ajoutez les biens au panier (icône
+            <ShoppingBag className="mx-1 inline h-3.5 w-3.5" />), puis ouvrez le panier pour les lui envoyer sur WhatsApp.
+            {items.length > 0 && ` ${items.length} bien(s) sélectionné(s).`}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => setProposalTarget(null)}>
+            Annuler la sélection pour ce client
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Galerie d'images</h1>
@@ -148,6 +170,14 @@ export default function GalleryPage() {
                   </div>
                   <div className="font-semibold text-sm">${property.price}</div>
                 </div>
+                {property.idBailleur && bailleurNames.get(property.idBailleur) && (
+                  <Link
+                    href={`/dashboard/bailleurs/${property.idBailleur}`}
+                    className="mt-1 block truncate text-xs text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    Bailleur : {bailleurNames.get(property.idBailleur)}
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -161,6 +191,12 @@ export default function GalleryPage() {
           <p className="text-sm text-muted-foreground mt-1">Ajoutez des biens pour voir leurs images ici</p>
         </div>
       )}
+
+      <WhatsAppProposalDialog
+        open={proposing !== null}
+        onOpenChange={(open) => !open && setProposing(null)}
+        properties={proposing ? [proposing] : []}
+      />
     </div>
   )
 }

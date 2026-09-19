@@ -20,7 +20,6 @@ import {
   Building,
   Loader2,
 } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { EditSaleModal } from "@/components/property-modals/edit-sale-modal"
@@ -28,11 +27,12 @@ import { DeleteSaleModal } from "@/components/property-modals/delete-sale-modal"
 import { PropertyStatutControl } from "@/components/property-statut-control"
 import { PropertyMarginControl } from "@/components/property-margin-control"
 import { PropertyMediaManager } from "@/components/property-media-manager"
+import { PropertyMediaViewer } from "@/components/property-media-viewer"
+import { WhatsAppProposalDialog } from "@/components/whatsapp-proposal-dialog"
 import { EntityTimeline } from "@/components/entity-timeline"
 import { getSingleProperty } from "@/actions/properties"
 import { addFavorite, getMyFavorites, removeFavorite } from "@/actions/favorites"
 import { LAND_PROPERTY_TYPES, PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
-import { getImageUrl } from "@/lib/imageUrl"
 import { toast } from "sonner"
 
 export default function SaleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,7 +43,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [showProposal, setShowProposal] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -110,12 +110,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
 
   const isLand = LAND_PROPERTY_TYPES.includes(property.propertyType)
 
-  const handleWhatsAppProposal = () => {
-    const message = `Bonjour! Je vous propose ce bien à vendre:\n\n${PROPERTY_TYPE_LABELS[property.propertyType]}\nAdresse: ${property.fullAddress}\n${!isLand ? `${property.floors ?? 0} étages, ${property.bedrooms ?? 0} chambres, ${property.livingRooms ?? 0} salons, ${property.toilets ?? 0} douches, ${property.kitchens ?? 0} cuisines\n` : ""}Prix: $${property.price.toLocaleString()}\n\nPour plus d'informations, contactez-nous!`
-
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, "_blank")
-  }
+  const handleWhatsAppProposal = () => setShowProposal(true)
 
   const images = property.images || []
   const phones = property.phones || []
@@ -156,42 +151,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-border overflow-hidden">
-            <div className="relative aspect-video bg-muted">
-              {images.length > 0 ? (
-                <Image
-                  src={getImageUrl(images[currentImageIndex]?.image)}
-                  alt={`Image ${currentImageIndex + 1} du bien`}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">Aucune image disponible</p>
-                </div>
-              )}
-            </div>
-            {images.length > 1 && (
-              <div className="p-4 flex gap-2 overflow-x-auto">
-                {images.map((image, index) => (
-                  <button
-                    key={image.idPropertyImage}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${
-                      currentImageIndex === index ? "border-primary" : "border-border"
-                    }`}
-                  >
-                    <Image
-                      src={getImageUrl(image.image)}
-                      alt={`Miniature ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </Card>
+          <PropertyMediaViewer images={images} videos={property.videos || []} />
 
           <Card className="border-border">
             <CardHeader>
@@ -334,6 +294,7 @@ export default function SaleDetailPage({ params }: { params: Promise<{ id: strin
 
       <EntityTimeline key={property.updatedAt} entityType="PROPERTY" entityId={property.idProperty} />
 
+      <WhatsAppProposalDialog open={showProposal} onOpenChange={setShowProposal} properties={[property]} />
       <EditSaleModal open={showEditModal} onOpenChange={setShowEditModal} property={property} onEdit={handleEdit} />
       <DeleteSaleModal
         open={showDeleteModal}
