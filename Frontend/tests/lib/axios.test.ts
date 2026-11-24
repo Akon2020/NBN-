@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AxiosError, InternalAxiosRequestConfig } from "axios";
-import api from "@/lib/axios";
+import api, { SESSION_EXPIRED_EVENT } from "@/lib/axios";
 
 type Handler = (config: InternalAxiosRequestConfig) => { status: number; data?: unknown };
 
@@ -69,5 +69,43 @@ describe("api — renouvellement silencieux de la session", () => {
 
     await expect(api.post("/api/auth/login/", {})).rejects.toBeInstanceOf(AxiosError);
     expect(calls).toEqual(["/api/auth/login/"]);
+  });
+
+  it("prévient l'application quand la session est terminée", async () => {
+    handler = () => ({ status: 401 });
+    let expired = 0;
+    const onExpired = () => (expired += 1);
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    await expect(api.get("/api/clients")).rejects.toBeInstanceOf(AxiosError);
+    window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    expect(expired).toBe(1);
+  });
+});
+
+describe("api - nouvel essai sans réponse", () => {
+  beforeEach(() => {
+    calls.length = 0;
+  });
+
+  it("rejoue une seule fois une lecture restée sans réponse", async () => {
+    let attempts = 0;
+    api.defaults.adapter = async (config) => {
+      calls.push(config.url ?? "");
+      attempts += 1;
+      if (attempts === 1) throw new AxiosError("Network Error", "ERR_NETWORK", config);
+      return { status: 200, statusText: "", headers: {}, config, data: { ok: true } };
+    };
+    const res = await api.get("/api/properties");
+    expect(res.data).toEqual({ ok: true });
+    expect(calls).toEqual(["/api/properties", "/api/properties"]);
+  });
+
+  it("ne rejoue jamais un envoi de données", async () => {
+    api.defaults.adapter = async (config) => {
+      calls.push(config.url ?? "");
+      throw new AxiosError("Network Error", "ERR_NETWORK", config);
+    };
+    await expect(api.post("/api/property-collections", {})).rejects.toBeInstanceOf(AxiosError);
+    expect(calls).toEqual(["/api/property-collections"]);
   });
 });
