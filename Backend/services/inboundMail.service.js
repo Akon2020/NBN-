@@ -4,8 +4,10 @@ import { simpleParser } from "mailparser";
 import { Op } from "sequelize";
 import { InboundEmail, MailboxState, User } from "../models/index.model.js";
 import { getEffectiveMailbox, getEffectiveMailboxes } from "./mailboxAudience.service.js";
-import { INBOUND_MAIL_POLL_CRON } from "../config/env.js";
+import { FRONT_URL, INBOUND_MAIL_POLL_CRON } from "../config/env.js";
 import { createNotification } from "./notification.service.js";
+import { queueEmail } from "./email.service.js";
+import { inboundEmailNotice } from "../utils/formEmail.templates.js";
 
 // Relève des boîtes professionnelles (contact@, direction@…) : chaque
 // nouveau message devient une copie consultable sur le site et une
@@ -98,15 +100,27 @@ const importMessage = async (mailbox, uid, uidValidity, parsed) => {
   // Audience relue au moment de l'import : un réglage fait dans Paramètres
   // s'applique dès le message suivant.
   const audience = await resolveMailboxAudience((await getEffectiveMailbox(mailbox.key)) || mailbox);
+  const senderLabel = email.fromName || email.fromAddress || "Expéditeur inconnu";
+  const compact = String(email.textBody ?? "").replace(/\s+/g, " ").trim();
+  const snippet = compact.length > 160 ? `${compact.slice(0, 160)}...` : compact;
+  const link = `${(FRONT_URL || "").replace(/\/$/, "")}/dashboard/messages?id=${email.idInboundEmail}`;
   for (const user of audience) {
     await createNotification({
       idUser: user.idUser,
       type: "inbound_email:new",
       title: `Nouveau message sur ${mailbox.address}`,
-      message: `${email.fromName || email.fromAddress || "Expéditeur inconnu"} : ${email.subject}`,
+      message: [`${senderLabel} : ${email.subject}`, snippet].filter(Boolean).join("\n"),
       relatedEntityType: "InboundEmail",
       relatedEntityId: email.idInboundEmail,
     });
+    // Copie par e-mail (P1.6) : expéditeur, objet et extrait seulement, le
+    // message complet se lit sur le site, selon la même audience.
+    if (user.email && user.email !== mailbox.address) {
+      await queueEmail({
+        to: user.email,
+        ...inboundEmailNotice({ mailboxAddress: mailbox.address, sender: senderLabel, subject: email.subject, snippet, link }),
+      });
+    }
   }
   return email;
 };

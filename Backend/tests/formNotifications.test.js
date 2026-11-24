@@ -149,7 +149,12 @@ describe("Notifications des formulaires publics", () => {
         where: { idUser: users[role].idUser, type: "rental_request:new" },
       });
       expect(notification?.relatedEntityId).toBe(client.idClient);
-      expect(await emailEventsTo(users[role].email)).toHaveLength(1);
+      // Les copies d'e-mails reçus sur contact@ (autres fichiers de test en
+      // parallèle, audience par rôle) ne concernent pas ce formulaire.
+      const formEmails = (await emailEventsTo(users[role].email)).filter(
+        ({ payload }) => !String(payload.subject).startsWith("Nouveau message sur")
+      );
+      expect(formEmails).toHaveLength(1);
     }
     expect(
       await Notification.count({ where: { idUser: users.tresorerie.idUser, type: "rental_request:new" } })

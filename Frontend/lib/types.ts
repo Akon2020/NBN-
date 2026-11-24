@@ -10,7 +10,7 @@ export type PropertyType =
   | "TERRAIN_PLAT"
   | "TERRAIN_PENTE"
 
-// GOAL 1 — cycle de vie du bien. VENDU n'est atteignable qu'en category=SALE
+// GOAL 1 - cycle de vie du bien. VENDU n'est atteignable qu'en category=SALE
 // (validé côté Backend, jamais côté client).
 export type PropertyStatut =
   | "DISPONIBLE"
@@ -46,10 +46,10 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   TERRAIN_PENTE: "Terrain en pente",
 }
 
-// GOAL 9 — gestion automatique des marges. `MarginSetting` n'est visible
+// GOAL 9 - gestion automatique des marges. `MarginSetting` n'est visible
 // que via /api/margin-settings, déjà filtré côté Backend par
 // property:margin:read (jamais présumer sa présence côté Frontend).
-// GOAL 12 — une location facturée à la journée (RentalProperty.unit=DAY)
+// GOAL 12 - une location facturée à la journée (RentalProperty.unit=DAY)
 // est une courte durée ; tout le reste (MONTH/YEAR, ou une vente) reste
 // longue durée. Chaque combinaison type de bien × type de séjour a son
 // propre pourcentage configurable indépendamment.
@@ -101,7 +101,7 @@ export const RENTAL_UNIT_LABELS: Record<RentalUnit, string> = {
   YEAR: "Ans",
 }
 
-// GOAL 12 — `price` est le tarif dans l'unité du bien (jamais implicitement
+// GOAL 12 - `price` est le tarif dans l'unité du bien (jamais implicitement
 // mensuel) : ce suffixe reflète toujours `unit`, plus jamais "/mois" codé
 // en dur indépendamment de sa valeur réelle.
 export const RENTAL_UNIT_PRICE_SUFFIX: Record<RentalUnit, string> = {
@@ -127,7 +127,7 @@ export interface PropertyImageEntry {
   order: number
 }
 
-// GOAL 2 — vidéos de bien, jamais mélangées avec PropertyImageEntry (table
+// GOAL 2 - vidéos de bien, jamais mélangées avec PropertyImageEntry (table
 // dédiée côté Backend, contraintes de format/taille différentes).
 export interface PropertyVideoEntry {
   idPropertyVideo: number
@@ -145,7 +145,7 @@ export interface PropertyPhoneEntry {
 // Forme réelle renvoyée par le Backend (Backend/controllers/property.controller.js
 // + Backend/utils/serializers/property.serializer.js). `margin` est absent
 // de la réponse si l'utilisateur n'a pas la permission property:margin:read
-// (field-level authorization, CLAUDE.md §5) — jamais présumer sa présence.
+// (field-level authorization, CLAUDE.md §5) - jamais présumer sa présence.
 export interface Property {
   idProperty: number
   category: PropertyCategory
@@ -160,12 +160,12 @@ export interface Property {
   kitchens?: number | null
   price: number
   commune?: "IBANDA" | "KADUTU" | "BAGIRA" | null
-  // Plancher de négociation du responsable — absent de la réponse sans
+  // Plancher de négociation du responsable - absent de la réponse sans
   // property:prix_minimum:read (administration uniquement).
   prixMinimum?: number | null
   modalitePaiement?: string | null
   modalitePaiementAutre?: string | null
-  // GOAL 9 — `margin` est désormais dérivé (jamais saisi directement) :
+  // GOAL 9 - `margin` est désormais dérivé (jamais saisi directement) :
   // price * pourcentage effectif (override du bien ou défaut du type).
   margin?: number
   // Pourcentage propre à ce bien, prioritaire sur le défaut de son type.
@@ -224,7 +224,7 @@ export interface Person {
   email?: string | null
   idNumber?: string | null
   idUser?: number | null
-  // Une pièce d'identité est annexée — le fichier se consulte via
+  // Une pièce d'identité est annexée - le fichier se consulte via
   // GET /api/bailleurs/:id/piece-identite (le chemin n'est jamais exposé).
   hasIdDocument?: boolean
 }
@@ -279,7 +279,7 @@ export const CLIENT_SCORE_LABELS: Record<ClientScore, string> = {
 
 export interface Client {
   idClient: number
-  // GOAL 6 — référence lisible/recherchable (ex. "CLI-2026-000042"),
+  // GOAL 6 - référence lisible/recherchable (ex. "CLI-2026-000042"),
   // générée côté Backend à la création, jamais saisie manuellement.
   dossierNumber?: string | null
   idPerson: number
@@ -287,7 +287,7 @@ export interface Client {
   sousType?: ClientSousType | null
   source?: ClientSource | null
   sourceCommissionnaireCode?: string | null
-  // GOAL 4 — résolu côté Backend via l'association sur le code unique
+  // GOAL 4 - résolu côté Backend via l'association sur le code unique
   // (jamais reconstruit à la main côté Frontend à partir du code seul).
   commissionnaireSource?: {
     idCommissionnaire: number
@@ -330,7 +330,7 @@ export interface ClientCreatePayload {
 export interface ClientUpdatePayload {
   sousType?: ClientSousType
   source?: ClientSource
-  // GOAL 4 — code du commissionnaire à l'origine du client (référence
+  // GOAL 4 - code du commissionnaire à l'origine du client (référence
   // métier, jamais un idCommissionnaire interne). `null` retire
   // explicitement l'attribution, `undefined` laisse le champ inchangé.
   sourceCommissionnaireCode?: string | null
@@ -352,7 +352,7 @@ export interface ClientUpdatePayload {
   notesAgent?: string
 }
 
-// GOAL 8 — plaintes client, distinctes des CommissionnaireIncident (terrain).
+// GOAL 8 - plaintes client, distinctes des CommissionnaireIncident (terrain).
 export type ClientComplaintStatut = "OUVERTE" | "RESOLUE"
 
 export const CLIENT_COMPLAINT_STATUT_LABELS: Record<ClientComplaintStatut, string> = {
@@ -381,7 +381,7 @@ export interface ClientComplaintCreatePayload {
   description?: string
 }
 
-// GOAL 8 — vue 360 : agrégat en lecture seule, jamais une entité en soi.
+// GOAL 8 - vue 360 : agrégat en lecture seule, jamais une entité en soi.
 export interface ClientDossierMatching {
   idMatching: number
   idClient: number
@@ -404,7 +404,7 @@ export interface ClientDossierProposal {
 }
 
 // Propositions envoyées depuis le panier (GET /api/proposals/client/:id).
-// Le bien n'y porte que ce que le client a reçu — jamais le bailleur, le prix
+// Le bien n'y porte que ce que le client a reçu - jamais le bailleur, le prix
 // minimum, la marge ni l'informateur.
 export type ProposalChannel = "WHATSAPP" | "EMAIL" | "AUTRE"
 
@@ -486,8 +486,8 @@ export const BAILLEUR_VALEUR_LABELS: Record<BailleurValeur, string> = {
 
 // `margeAgence` est absent de la réponse si l'utilisateur n'a pas
 // `bailleur:marge:read` (field-level authorization, même principe que
-// Property.margin) — jamais présumer sa présence.
-// Profil défini par l'agence — ordonne la liste des bailleurs.
+// Property.margin) - jamais présumer sa présence.
+// Profil défini par l'agence - ordonne la liste des bailleurs.
 export type BailleurPriorite = "VIP" | "PREMIUM" | "STANDARD" | "INACTIF"
 
 export const BAILLEUR_PRIORITES: BailleurPriorite[] = ["VIP", "PREMIUM", "STANDARD", "INACTIF"]
@@ -508,7 +508,7 @@ export const BAILLEUR_PRIORITE_BADGE_CLASS: Record<BailleurPriorite, string> = {
 
 export interface Bailleur {
   idBailleur: number
-  // GOAL 6 — voir Client.dossierNumber.
+  // GOAL 6 - voir Client.dossierNumber.
   dossierNumber?: string | null
   idPerson: number
   type: BailleurType
@@ -771,7 +771,7 @@ export interface Mission {
   motifRejet?: string | null
   validatedBy?: number | null
   validatedAt?: string | null
-  // GOAL 14 — avancement terrain déclaré par le commissionnaire assigné
+  // GOAL 14 - avancement terrain déclaré par le commissionnaire assigné
   // (0-100), distinct du `statut` de validation administrative.
   progression: number
   commissionnaire?: Commissionnaire
@@ -815,7 +815,7 @@ export interface Caisse {
   createdAt: string
 }
 
-// GOAL 10 — virement entre deux caisses, immuable une fois créé (pas de
+// GOAL 10 - virement entre deux caisses, immuable une fois créé (pas de
 // correction possible, seulement un nouveau virement en sens inverse).
 export interface CaisseTransfer {
   idCaisseTransfer: number
@@ -985,7 +985,7 @@ export interface Commission {
   commissionnaire?: { idCommissionnaire: number; code: string; person?: { fullName: string } } | null
   currency?: Currency
   caisse?: { idCaisse: number; label: string } | null
-  // GOAL 8 — associaton inverse (Commission.hasOne(Payment)), consultée en
+  // GOAL 8 - associaton inverse (Commission.hasOne(Payment)), consultée en
   // lecture seule sur la vue 360 client, jamais recalculée côté Frontend.
   payment?: {
     idPayment: number
@@ -1008,7 +1008,7 @@ export interface CommissionCreatePayload {
   montantCommission?: number
 }
 
-// --- Milestone 5 : Notifications/Alerts/Realtime (ADMIN-G07 — BACK-G17/G18) ---
+// --- Milestone 5 : Notifications/Alerts/Realtime (ADMIN-G07 - BACK-G17/G18) ---
 
 export interface Notification {
   idNotification: number
@@ -1056,7 +1056,7 @@ export interface Alert {
   resolvedAt?: string | null
 }
 
-// --- Milestone 6 : Calendrier agrégé (ADMIN-G08 — BACK-G19) ---
+// --- Milestone 6 : Calendrier agrégé (ADMIN-G08 - BACK-G19) ---
 // Vue agrégée uniquement (CLAUDE.md §4) : chaque entrée référence sa
 // source d'origine, jamais une copie de son statut.
 export type CalendarSource = "TASK" | "REMINDER" | "RELANCE_CLIENT" | "EVENT"
@@ -1071,7 +1071,7 @@ export interface CalendarEntry {
   statut?: string | null
   priorite?: string | null
   creator?: string | null
-  // GOAL 11 — personnes concernées par un rendez-vous (source EVENT
+  // GOAL 11 - personnes concernées par un rendez-vous (source EVENT
   // uniquement), chacune notifiée automatiquement à l'assignation.
   participants?: { idUser: number; fullName?: string }[]
 }
@@ -1208,7 +1208,7 @@ export interface TaskComment {
 // --- GOAL 16 : Gestion des utilisateurs ---
 
 // Catalogue reel des roles (Backend/seeders/20260714200000-seed-rbac-catalog.cjs)
-// — distinct du RoleEnum de types/type.ts (identique en valeurs), garde ici
+// - distinct du RoleEnum de types/type.ts (identique en valeurs), garde ici
 // pour fournir des libelles lisibles sans dupliquer la logique RBAC.
 export const ROLE_LABELS: Record<string, string> = {
   admin: "Administrateur",
@@ -1269,6 +1269,10 @@ export interface InboundEmail {
   receivedAt: string
   repliedAt?: string | null
   repliedBy?: number | null
+  // Lu par l'utilisateur connecté (chacun a son propre état).
+  isRead?: boolean
+  // Extrait du texte, pour la liste et les notifications.
+  snippet?: string | null
 }
 
 export interface InboundEmailReply {
@@ -1348,7 +1352,7 @@ export interface CommissionnairePerformanceEntry {
   scoreGlobal: number
 }
 
-// GOAL 19 — chaque champ est optionnel : absent de la réponse si
+// GOAL 19 - chaque champ est optionnel : absent de la réponse si
 // l'appelant n'a pas la permission de lecture du domaine correspondant
 // (même principe que DashboardStats, jamais un tableau vide qui laisserait
 // croire "aucune donnée" là où c'est en réalité "accès non autorisé").
@@ -1503,7 +1507,7 @@ export const ELEMENT_PARTICULIER_CHOICES = [
   { value: "AUCUNE", label: "Aucune" },
 ]
 
-// Corps envoyé à POST /api/rental-requests — les champs non optionnels
+// Corps envoyé à POST /api/rental-requests - les champs non optionnels
 // sont exigés côté Backend (voir la documentation Swagger de la route).
 export interface RentalRequestPayload {
   fullName: string
@@ -1569,7 +1573,7 @@ export const TYPE_MISSION_CHOICES = [
   { value: "MISE_A_JOUR", label: "Mise à jour d'un bien existant" },
 ]
 
-// Types réellement proposés au collecteur terrain — sous-ensemble du
+// Types réellement proposés au collecteur terrain - sous-ensemble du
 // catalogue complet (le formulaire ne demande pas de distinguer une
 // construction durable d'une semi-durable sur le terrain).
 export const COLLECTE_TYPE_BIEN_CHOICES = [
@@ -1628,7 +1632,7 @@ export const OBSERVATION_CHOICES = [
   { value: "AUTRE", label: "Autre" },
 ]
 
-// Compteurs proposés en pastilles, plus une saisie libre — évite un menu
+// Compteurs proposés en pastilles, plus une saisie libre - évite un menu
 // déroulant pour une valeur qui est presque toujours petite. `withZero`
 // quand la question est obligatoire : « aucun » doit rester une réponse.
 export const countChoices = (max: number, withZero = false) => [

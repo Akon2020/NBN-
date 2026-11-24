@@ -173,3 +173,17 @@ export const propertyCollectionConfirmation = ({ fullName, localisation, request
     <p>Merci pour votre confiance &ndash; <em>La crédibilité au service de votre projet immobilier.</em></p>
     <p style="margin-top:24px">L'équipe NBN Express</p>`),
 });
+
+// Copie d'un e-mail reçu sur une boîte professionnelle, adressée à chaque
+// membre de son audience.
+export const inboundEmailNotice = ({ mailboxAddress, sender, subject, snippet, link }) => ({
+  subject: `Nouveau message sur ${mailboxAddress} : ${subject || "(sans objet)"}`,
+  html: layout(`
+    <p>Un nouveau message est arrivé sur <strong>${escapeHtml(mailboxAddress)}</strong>.</p>
+    ${detailRows([
+      ["De", sender],
+      ["Objet", subject],
+    ])}
+    ${snippet ? `<p style="color:${MUTED};font-style:italic">${escapeHtml(snippet)}</p>` : ""}
+    ${actionButton(link, "Lire et répondre")}`),
+});

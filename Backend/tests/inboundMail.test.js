@@ -189,6 +189,36 @@ describe("Consultation et réponse depuis le site", () => {
     expect(asDirection.body.data.textBody).toContain("Confidentiel");
   });
 
+  it("lu / non lu est propre à chaque membre, et suit la règle d'audience", async () => {
+    const email = await InboundEmail.findOne({ where: { mailboxKey: CONTACT } });
+    const listFor = async (who) =>
+      (await request(app).get("/api/inbound-emails").set("Cookie", cookies[who])).body.data.find(
+        (e) => e.idInboundEmail === email.idInboundEmail
+      );
+
+    expect((await listFor("communication")).isRead).toBe(false);
+    expect((await listFor("communication")).snippet).toEqual(expect.any(String));
+    expect((await listFor("communication")).textBody).toBeUndefined();
+
+    await request(app).get(`/api/inbound-emails/${email.idInboundEmail}`).set("Cookie", cookies.communication);
+    expect((await listFor("communication")).isRead).toBe(true);
+    expect((await listFor("admin")).isRead).toBe(false);
+
+    const unread = await request(app)
+      .patch(`/api/inbound-emails/${email.idInboundEmail}/read`)
+      .set("Cookie", cookies.communication)
+      .send({ read: false });
+    expect(unread.status).toBe(200);
+    expect((await listFor("communication")).isRead).toBe(false);
+
+    const direction = await InboundEmail.findOne({ where: { mailboxKey: DIRECTION } });
+    const outsider = await request(app)
+      .patch(`/api/inbound-emails/${direction.idInboundEmail}/read`)
+      .set("Cookie", cookies.admin)
+      .send({ read: true });
+    expect(outsider.status).toBe(404);
+  });
+
   it("répond à l'expéditeur depuis contact@, dans le même fil", async () => {
     const email = await InboundEmail.findOne({ where: { mailboxKey: CONTACT } });
     const sent = [];

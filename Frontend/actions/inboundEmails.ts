@@ -33,6 +33,14 @@ export const getInboundEmail = async (id: number): Promise<InboundEmailDetail> =
   }
 };
 
+export const markInboundEmailRead = async (id: number, read: boolean): Promise<void> => {
+  try {
+    await api.patch(`/api/inbound-emails/${id}/read`, { read });
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Erreur lors de la mise à jour du message"));
+  }
+};
+
 // Audience des boîtes dont l'utilisateur est membre (seuls ses membres la règlent).
 export const getMailboxAudiences = async (): Promise<MailboxAudience[]> => {
   try {

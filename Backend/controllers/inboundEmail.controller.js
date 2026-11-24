@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { InboundEmail, InboundEmailReply, User } from "../models/index.model.js";
+import { InboundEmail, InboundEmailRead, InboundEmailReply, User } from "../models/index.model.js";
 import { getMailbox } from "../config/mailboxes.js";
 import { accessibleMailboxes, canAccessMailbox } from "../services/inboundMail.service.js";
 import {
@@ -11,6 +11,15 @@ import {
 import { sendFromMailbox } from "../services/email.service.js";
 
 const MAX_REPLY_LENGTH = 20000;
+const SNIPPET_LENGTH = 160;
+
+const snippetOf = (text) => {
+  const compact = String(text ?? "").replace(/\s+/g, " ").trim();
+  return compact.length > SNIPPET_LENGTH ? `${compact.slice(0, SNIPPET_LENGTH)}...` : compact;
+};
+
+const markRead = (idInboundEmail, idUser) =>
+  InboundEmailRead.upsert({ idInboundEmail, idUser, readAt: new Date() });
 
 // Un message d'une boîte hors de l'audience de l'utilisateur répond 404,
 // pas 403 : l'existence même d'un message à la direction n'a pas à être
@@ -121,13 +130,30 @@ export const getInboundEmails = async (req, res, next) => {
       where[Op.or] = [{ subject: like }, { fromAddress: like }, { fromName: like }];
     }
 
+    if (req.query.unread === "true") {
+      const read = await InboundEmailRead.findAll({ where: { idUser: req.user.idUser }, attributes: ["idInboundEmail"] });
+      if (read.length) where.idInboundEmail = { [Op.notIn]: read.map((r) => r.idInboundEmail) };
+    }
+
     const emails = await InboundEmail.findAll({
       where,
-      attributes: { exclude: ["textBody"] },
       order: [["receivedAt", "DESC"]],
       limit: 200,
     });
-    return res.status(200).json({ nombre: emails.length, data: emails });
+    const readIds = new Set(
+      (
+        await InboundEmailRead.findAll({
+          where: { idUser: req.user.idUser, idInboundEmail: emails.map((e) => e.idInboundEmail) },
+          attributes: ["idInboundEmail"],
+        })
+      ).map((r) => String(r.idInboundEmail)),
+    );
+    // Le corps complet reste réservé au détail ; la liste n'en garde qu'un extrait.
+    const data = emails.map((email) => {
+      const { textBody, ...rest } = email.toJSON();
+      return { ...rest, snippet: snippetOf(textBody), isRead: readIds.has(String(email.idInboundEmail)) };
+    });
+    return res.status(200).json({ nombre: data.length, unread: data.filter((e) => !e.isRead).length, data });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
@@ -148,7 +174,10 @@ export const getInboundEmail = async (req, res, next) => {
     });
     if (!found) return res.status(404).json({ message: "Message introuvable." });
 
-    return res.status(200).json({ data: { ...found.email.toJSON(), canReply: found.mailbox.canSend } });
+    await markRead(found.email.idInboundEmail, req.user.idUser);
+    return res
+      .status(200)
+      .json({ data: { ...found.email.toJSON(), canReply: found.mailbox.canSend, isRead: true } });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
@@ -210,6 +239,25 @@ export const replyToInboundEmail = async (req, res, next) => {
     await email.update({ repliedAt: new Date(), repliedBy: req.user.idUser });
 
     return res.status(201).json({ message: "Réponse envoyée.", data: reply });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// Lu / non lu pour l'utilisateur connecté seulement. Même règle d'accès que
+// la lecture : hors audience de la boîte, 404.
+export const setInboundEmailRead = async (req, res, next) => {
+  try {
+    const found = await findAccessibleEmail(req.user, req.params.id);
+    if (!found) return res.status(404).json({ message: "Message introuvable." });
+
+    if (req.body?.read === false) {
+      await InboundEmailRead.destroy({ where: { idInboundEmail: found.email.idInboundEmail, idUser: req.user.idUser } });
+    } else {
+      await markRead(found.email.idInboundEmail, req.user.idUser);
+    }
+    return res.status(200).json({ data: { idInboundEmail: found.email.idInboundEmail, isRead: req.body?.read !== false } });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);

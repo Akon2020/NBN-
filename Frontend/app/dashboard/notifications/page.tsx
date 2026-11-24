@@ -150,7 +150,14 @@ export default function NotificationsPage() {
                           )}
                         </div>
                         {notification.message && (
-                          <p className="text-sm text-muted-foreground mt-1 break-words">{notification.message}</p>
+                          <p className="text-sm text-muted-foreground mt-1 break-words whitespace-pre-line line-clamp-4">
+                            {notification.message}
+                          </p>
+                        )}
+                        {notification.type === "inbound_email:new" && href && (
+                          <span className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-accent-600 px-3 py-1.5 text-xs font-semibold text-white">
+                            Répondre
+                          </span>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
                           {new Date(notification.createdAt).toLocaleTimeString("fr-FR", {

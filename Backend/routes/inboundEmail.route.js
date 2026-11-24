@@ -5,6 +5,7 @@ import {
   getMailboxAudiences,
   getMyMailboxes,
   replyToInboundEmail,
+  setInboundEmailRead,
   resetMailboxAudience,
   updateMailboxAudience,
 } from "../controllers/inboundEmail.controller.js";
@@ -147,5 +148,30 @@ inboundEmailRouter.get("/:id", authMiddlware, getInboundEmail);
  *         description: Échec d'envoi (tracé dans l'historique des réponses)
  */
 inboundEmailRouter.post("/:id/reply", authMiddlware, replyToInboundEmail);
+
+/**
+ * @swagger
+ * /api/inbound-emails/{id}/read:
+ *   patch:
+ *     summary: Marque un message reçu lu ou non lu pour l'utilisateur connecté
+ *     description: >
+ *       L'état est propre à chaque utilisateur. Ouvrir le détail d'un message
+ *       le marque lu. La liste (GET /api/inbound-emails) renvoie isRead et
+ *       snippet pour chaque message, et accepte ?unread=true.
+ *     tags: [InboundEmails]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               read: { type: boolean, default: true }
+ *     responses:
+ *       200: { description: État enregistré }
+ *       404: { description: Message introuvable ou hors de l'audience de la boîte }
+ */
+inboundEmailRouter.patch("/:id/read", authMiddlware, setInboundEmailRead);
 
 export default inboundEmailRouter;
