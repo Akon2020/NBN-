@@ -14,8 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ArrowLeft, Loader2, Search, Send } from "lucide-react"
-import { sendBailleurEmails } from "@/actions/bailleurMessages"
+import { ArrowLeft, Loader2, Mail, Search, Send } from "lucide-react"
+import { logBailleurContact, sendBailleurEmails } from "@/actions/bailleurMessages"
+import { AGENCY_GMAIL_ACCOUNT, openCompose } from "@/lib/gmail"
 import { DEFAULT_BAILLEUR_MESSAGE } from "@/lib/bailleurContact"
 import {
   BAILLEUR_PRIORITE_LABELS,
@@ -88,6 +89,25 @@ export function BailleurEmailsDialog({
     }
   }
 
+  // Gmail : un seul message, destinataires réunis en copie cachée (un
+  // bailleur ne voit jamais l'adresse d'un autre), depuis le compte de
+  // l'agence. « {nom} » ne peut pas être personnalisé dans un envoi groupé.
+  const selectedBailleurs = withEmail.filter((b) => selectedIds.includes(b.idBailleur))
+  const handleOpenGmail = () => {
+    const body = message.trim().replaceAll("{nom}", "Madame, Monsieur")
+    openCompose(
+      {
+        to: AGENCY_GMAIL_ACCOUNT,
+        bcc: selectedBailleurs.map((b) => b.person?.email ?? "").filter(Boolean),
+        subject: subject.trim(),
+        body,
+      },
+      "gmail"
+    )
+    selectedBailleurs.forEach((b) => void logBailleurContact(b.idBailleur, "EMAIL", body).catch(() => {}))
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -95,8 +115,8 @@ export function BailleurEmailsDialog({
           <DialogTitle>Emails aux bailleurs</DialogTitle>
           <DialogDescription>
             {step === "selection"
-              ? `Étape 1 sur 2 — Destinataires (${withEmail.length} bailleurs ont une adresse e-mail)`
-              : "Étape 2 sur 2 — Message, envoyé depuis contact@nbnexpress.org"}
+              ? `Étape 1 sur 2 - Destinataires (${withEmail.length} bailleurs ont une adresse e-mail)`
+              : "Étape 2 sur 2 - Message, envoyé depuis contact@nbnexpress.org"}
           </DialogDescription>
         </DialogHeader>
 
@@ -178,13 +198,17 @@ export function BailleurEmailsDialog({
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Retour
               </Button>
+              <Button variant="outline" onClick={handleSend} disabled={isSending || !subject.trim() || !message.trim()}>
+                {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                Envoyer depuis le site
+              </Button>
               <Button
-                onClick={handleSend}
+                onClick={handleOpenGmail}
                 disabled={isSending || !subject.trim() || !message.trim()}
                 className="bg-accent-600 text-white hover:bg-accent-600/90"
               >
-                {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                Envoyer
+                <Mail className="mr-2 h-4 w-4" />
+                Ouvrir dans Gmail
               </Button>
             </DialogFooter>
           </div>

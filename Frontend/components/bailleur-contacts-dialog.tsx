@@ -24,6 +24,7 @@ import {
 } from "@/lib/bailleurContact"
 import type { Bailleur, BailleurContactChannel } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { mailtoComposeLink, openCompose } from "@/lib/gmail"
 
 // « Contacts » : la liste des numéros des bailleurs ; un bailleur choisi,
 // on l'appelle, on lui écrit sur WhatsApp ou par SMS, ou par e-mail.
@@ -69,9 +70,15 @@ export function BailleurContactsDialog({
 
   const phone = selected?.person?.phone
   const email = selected?.person?.email
-  const mailto = email
-    ? `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("NBN Express")}&body=${encodeURIComponent(personalized)}`
-    : null
+  const mailto = email ? mailtoComposeLink({ to: email, subject: "NBN Express", body: personalized }) : null
+
+  // E-mail : nouveau message Gmail sur le compte de l'agence (ordinateur)
+  // ou messagerie du téléphone, puis trace dans l'historique.
+  const writeEmail = (prefer: "gmail" | "mailto") => {
+    if (!selected || !email) return
+    openCompose({ to: email, subject: "NBN Express", body: personalized }, prefer)
+    void logBailleurContact(selected.idBailleur, "EMAIL", personalized)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -159,9 +166,14 @@ export function BailleurContactsDialog({
                     {email || "Aucune adresse e-mail"}
                   </p>
                   {mailto && (
-                    <Button variant="link" className="h-auto px-0" onClick={() => act("EMAIL", mailto)}>
-                      Écrire depuis ma messagerie
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" className="bg-accent-600 text-white hover:bg-accent-600/90" onClick={() => writeEmail("gmail")}>
+                        Ouvrir dans Gmail
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => writeEmail("mailto")}>
+                        Autre messagerie
+                      </Button>
+                    </div>
                   )}
                 </div>
               </>

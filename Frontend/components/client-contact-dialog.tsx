@@ -24,6 +24,7 @@ import {
 } from "@/lib/clientContact"
 import type { Client } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { openCompose } from "@/lib/gmail"
 
 type Channel = "WHATSAPP" | "EMAIL"
 
@@ -62,11 +63,16 @@ export function ClientContactDialog({
 
   const link = channel === "WHATSAPP" ? whatsAppLink(phone, message) : mailtoLink(email, subject, message)
 
-  const handleOpen = () => {
+  const handleOpen = (prefer: "gmail" | "mailto" | "auto" = "auto") => {
     if (!link) return
     // Ouvert immédiatement, dans le geste de l'utilisateur (sinon bloqué
-    // comme pop-up, surtout sur iPhone).
-    window.open(link, "_blank")
+    // comme pop-up, surtout sur iPhone). E-mail : nouveau message Gmail sur
+    // le compte de l'agence, ou messagerie du téléphone.
+    if (channel === "EMAIL") {
+      openCompose({ to: email, subject, body: message }, prefer)
+    } else {
+      window.open(link, "_blank")
+    }
     onOpenChange(false)
     // Traçabilité non bloquante : un rôle sans clients:manage contacte quand même.
     updateClient(client.idClient, { dernierContact: new Date().toISOString() })
@@ -119,13 +125,23 @@ export function ClientContactDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          {channel === "EMAIL" && (
+            <Button
+              variant="outline"
+              onClick={() => handleOpen("mailto")}
+              disabled={!link || !message.trim()}
+              className="w-full sm:w-auto"
+            >
+              Autre messagerie
+            </Button>
+          )}
           <Button
-            onClick={handleOpen}
+            onClick={() => handleOpen(channel === "EMAIL" ? "gmail" : "auto")}
             disabled={!link || !message.trim()}
             className="w-full bg-accent-600 text-white hover:bg-accent-600/90 sm:w-auto"
           >
-            {channel === "WHATSAPP" ? "Ouvrir WhatsApp" : "Ouvrir la messagerie"}
+            {channel === "WHATSAPP" ? "Ouvrir WhatsApp" : "Ouvrir dans Gmail"}
           </Button>
         </DialogFooter>
       </DialogContent>
