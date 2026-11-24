@@ -1308,3 +1308,131 @@ Corrections :
 - Tests : `Backend/tests/passwordReset.test.js` (6), `Frontend/tests/lib/apiError.test.ts` et `axios.test.ts` complétés. Backend auth 27/27, Frontend 46/46, `tsc` OK.
 - **Recommandation lien magique** : ne pas en créer. Le besoin réel (première connexion simple) est couvert par la clé d'accès + choix du mot de passe, et la réinitialisation par lien court. Un lien qui connecte sans mot de passe ferait de la boîte mail le seul facteur.
 - **À faire** : `FRONT_URL="https://nbnexpress.org"` et `HOST_URL="https://api.nbnexpress.org"` sur le serveur (corrigés dans `.env.production.local` local), `npm run db:migrate`, supprimer ou protéger le projet Vercel `nbn-plus`.
+
+### P0.5 E-mail du Pipeline vers Gmail
+
+- `lib/gmail.ts` : nouveau message Gmail (`view=cm&fs=1`, `to`, `su`, `body` encodés, `authuser=contact@nbnexpress.org`, réglable par `NEXT_PUBLIC_GMAIL_ACCOUNT`), nouvel onglet, secours `mailto:` (« Autre messagerie », utilisé d'office sur écran tactile).
+- Fiche client « Contacter », « Contacts » d'un bailleur, « Emails » aux bailleurs (destinataires réunis en copie cachée d'un seul message, chaque contact tracé dans l'historique), « Répondre » d'un message reçu.
+- WhatsApp vérifié : `wa.me/<numéro international sans +>?text=` (inchangé).
+- Tests : `Frontend/tests/lib/gmail.test.ts`.
+
+### Tirets cadratins
+
+Remplacés par des tirets simples dans le code, les commentaires et les textes du Frontend et du Backend (273 fichiers, Mobile non touché). Suites complètes vertes.
+
+### P1.6 / P1.7 Messages reçus et notifications
+
+- Ce que faisait la page : liste des e-mails relevés en IMAP (lecture seule) sur les boîtes dont l'utilisateur fait partie de l'audience, avec réponse envoyée depuis le site ; rien n'expliquait la relève ni l'audience.
+- Désormais : texte d'aide, état vide explicite (« Aucun message reçu sur contact@... pour le moment »), lu / non lu par utilisateur (table `inboundEmailReads`, ouvrir = lu, filtre « Non lus », « Marquer lu / non lu », 404 hors audience), « Répondre dans Gmail » depuis le compte de la boîte.
+- Notification d'e-mail reçu : expéditeur, objet, extrait, appel « Répondre » ; copie par e-mail aux membres de l'audience (extrait et lien, jamais le corps complet).
+- La correspondance boîte → rôles / comptes était déjà administrable (Paramètres).
+
+### Conventions de codes (CMR / CTR / CCL) et types de biens
+
+- `shared/codes.js` et `lib/contactValidation.ts` : Commissionnaire `CMR-NNN`, Collecteur `CTR-NNN`, Client `CCL-NNN`. Séquences verrouillées (`codeSequences`, une seule instruction `INSERT ... ON DUPLICATE KEY UPDATE LAST_INSERT_ID()` : ni doublon ni interblocage, vérifié par trois créations simultanées).
+- Migration : `CCM-NNN` → `CMR-NNN` partout où un code est stocké ; numéros client `CLI-AAAA-NNNNNN` → `CCL-NNN` (ordre de création). « CCM » encore accepté à la saisie.
+- Liste unique des types (`shared/propertyKinds.js`, `lib/propertyKinds.ts`) : formulaires, filtre de la Galerie, indicateurs. Nouveaux types `TERRAIN`, `CHAMBRETTE`, `BUREAU`, `LOCAL_COMMERCIAL` avec leurs lignes de marge ; anciens types rattachés.
+
+### P1.1 Commissionnaires
+
+- Code en lecture seule (« Sera généré : CMR-043 »), attribué dans la transaction de création, affiché dans la confirmation. Les collecteurs partagent la fiche (profil `COLLECTEUR`, code `CTR`).
+- Pièce d'identité : carte d'électeur (défaut) ou carte d'identité, numéro et recto obligatoires, verso facultatif, JPG/PNG/PDF de 5 Mo, miniature et suppression, photo directe sur téléphone ; « Ajouter » désactivé tant qu'il manque un élément. Contenu réel vérifié, stockage privé, consultation et remplacement avec `commissionnaires:identity:read` (admin par défaut). Badge « Pièce manquante » pour l'existant.
+- Compteurs actifs / inactifs sur la page et `GET /api/commissionnaires/stats`.
+
+### P1.2 Espace commissionnaire
+
+- « Clé d'accès » sur la fiche : compte créé si besoin (rôle commissionnaire), clé à usage unique 72 h par e-mail et lien WhatsApp ; première connexion sur `/auth/activer`, choix du mot de passe.
+- `/api/field-agent` et page « Mon espace » : biens enregistrés, clients traités / en cours, tâches ouvertes, commissions en attente / prêtes / payées ; ses tâches seulement, statut, « Déclarer conclue » (révision, agence prévenue).
+- Jamais sa notation ni les autres fiches : le rôle perd `commissionnaires:read`, `/me` masque les scores, la liste générique des tâches est filtrée.
+- Notifications site + e-mail : code saisi dans une demande ou une collecte, commission prête, commission payée.
+- Règle de commission dans Paramètres (`commissions.commissionnaireRule` : manuel par défaut, pourcentage ou montant fixe, global ou par type).
+
+### P1.3 / P1.4 Formulaire de collecte
+
+- « Qui remplit » : responsable (pièce), collecteur (CTR vérifié, champ qui manquait), commissionnaire (CMR vérifié), avec nom et téléphone de la fiche pendant la saisie (`GET /api/property-collections/agents/:code`, téléphone masqué pour un visiteur, 30 vérifications / 15 min).
+- « Apporté par un commissionnaire ? » : Non → « Enregistrer le bien » ; Oui → « Identité du commissionnaire » (nom et téléphone repris de la fiche).
+- E-mail du responsable toujours obligatoire.
+- Version de l'agence (`bailleurs:manage`) : bailleur nouveau (pièce obligatoire) ou existant (recherche nom / téléphone, `GET /api/bailleurs?q=`), catégorie VIP / PREMIUM / STANDARD / INACTIF, second téléphone.
+- Quota des formulaires publics : seules les soumissions acceptées comptent, pas de quota pour un membre connecté.
+- P0.3 vérifié de bout en bout dans le navigateur : bien Bureau à Panzi enregistré (prix minimum, modalité « 1 mois d'avance + 3 mois de garantie », code CTR, bailleur passé en VIP). Bug trouvé et corrigé : la vérification du code restait bloquée après restauration d'un brouillon.
+
+### P1.8 Accusé de réception
+
+Texte de l'agence avec `[N° de demande]` (code CCL, dans l'objet), `[Civilité]`, `[Prénom du client]`, `[Date de la demande]` ; modifiable dans Paramètres, validé par l'API ; « Bonjour Nom » sans civilité connue ; toujours via l'outbox.
+
+### P1.9 Marketing et Juridique
+
+`bailleurs:read` (consultation seule), `clients:read` (pipeline, demandes), nouvelle permission `property:media:manage` (photos et vidéos sans modifier le bien). Tests pour les deux rôles et un rôle témoin.
+
+### P1.10 Aperçu du tableau de bord
+
+`GET /api/dashboard/overview?period=day|week|month|year`, bornes à l'heure de Bukavu (UTC+2, semaine du lundi, testé aux limites) : demandes reçues et traitées, collectes au total et par type, commissionnaires actifs / inactifs. Bloc « Aperçu » vérifié dans le navigateur.
+
+### P2.1 et Galerie
+
+Vidéos déjà livrées en 5.1 (`playsInline`, `preload="metadata"`, Photos / Vidéos), revérifiées. Galerie : filtre par type de la liste unique, libellés de tous les types stockés.
+
+---
+
+## Bilan du lot (livrables)
+
+### 1. État par point
+
+| Point | État |
+|---|---|
+| Landing page | Fait |
+| P0.1 iPhone | Corrigé (site servi en HTTP sans redirection) ; activer aussi « Forcer HTTPS » dans cPanel |
+| P0.2 Sécurité | Corrigé (lien exposé dans la réponse, liens réutilisables, inscription libre) |
+| P0.3 Enregistrement du bien | Corrigé et vérifié de bout en bout |
+| P0.4 Bailleurs | Fait (phase 0) ; plus d'affichage après expiration |
+| P0.5 Email | Corrigé |
+| P1.1 à P1.10 | Faits (P1.2, P1.9, P1.10 : règles à confirmer) |
+| P2.1 | Fait |
+| Vérifications « OK » | Toutes revérifiées ; code commissionnaire passé au format CMR, notifications complétées |
+
+### 2. Migrations et seeders, dans l'ordre
+
+Sauvegarder la base avant (les clients sont renumérotés).
+
+```
+npm run db:migrate
+  20261124000000-create-auth-tokens
+  20261124010000-create-inbound-email-reads
+  20261124020000-codes-and-property-kinds
+  20261124030000-property-code-collecteur
+  20261124040000-seed-template-and-commission-settings
+npm run db:seed
+  20261124000000-seed-commissionnaire-identity-permission
+  20261124000010-restrict-commissionnaire-role
+  20261124000020-marketing-juridique-permissions
+```
+
+### 3. Variables d'environnement et hébergement
+
+- Backend : `FRONT_URL=https://nbnexpress.org`, `HOST_URL=https://api.nbnexpress.org`, `ACCESS_TOKEN_EXPIRES_IN=24h`. Nouvelles (facultatives, défaut documenté dans `.env.example`) : `COOKIE_SAME_SITE`, `PASSWORD_RESET_TTL_MINUTES`, `PASSWORD_SETUP_TTL_MINUTES`, `ACCESS_KEY_TTL_HOURS`, `LOGIN_RATE_LIMIT_PER_IP`, `LOGIN_RATE_LIMIT_PER_ACCOUNT`, `PASSWORD_RESET_RATE_LIMIT`, `TOKEN_RATE_LIMIT`, `AGENT_LOOKUP_RATE_LIMIT`, `PUBLIC_FORM_RATE_LIMIT`, `MAX_COMMISSIONNAIRE_ID_SIZE_MB`, `ALLOW_PUBLIC_REGISTRATION=false`, `AGENCY_UTC_OFFSET_MINUTES`. SMTP / IMAP : à compléter comme en phase 2.
+- Frontend : `NEXT_PUBLIC_API_URL=https://api.nbnexpress.org`, facultatif `NEXT_PUBLIC_GMAIL_ACCOUNT`.
+- Hébergement : « Forcer la redirection HTTPS » (nbnexpress.org et www), Passenger toujours actif, dossier privé des pièces d'identité inscriptible et sauvegardé, projet Vercel `nbn-plus` à supprimer ou protéger.
+
+### 4. Questions en suspens
+
+1. Règle de calcul des commissions (réglable, « manuel » en attendant).
+2. Marketing / Juridique sur les Bailleurs : consultation seule (en place) ou modification ?
+3. « Demande traitée » = client sorti de l'étape « Nouveau » : à confirmer.
+4. Lien magique : recommandation de ne pas en créer.
+5. Actif = actif ou observation ; inactif = suspendu ou exclu : à confirmer.
+6. `[Prénom du client]` : seul le nom complet est collecté ; ajouter un champ prénom ?
+7. Le rôle commissionnaire garde `clients:manage` et `property:manage` pour l'application mobile : à restreindre quand le Mobile passera par `/api/field-agent`.
+
+### 5. Checklist de test manuel
+
+**iPhone (Safari puis Chrome, Wi-Fi puis 4G)** : `nbnexpress.org` tapé sans https devient https ; connexion e-mail + mot de passe ; mauvais mot de passe = message précis ; téléphone verrouillé 10 min puis retour ; « Mot de passe oublié » (lien 15 min, usage unique, puis reconnexion).
+
+**Commissionnaire** : ajout de fiche (recto obligatoire, code dans la confirmation) → Clé d'accès → WhatsApp → `/auth/activer` sur son téléphone → « Mon espace » → tâche assignée (notification) → « Déclarer conclue » (notification agence) → commission calculée, due, payée (En attente → Prête → Payée, notifications).
+
+**Collecte** : responsable (pièce et e-mail obligatoires, confirmation reçue) ; collecteur (CTR vérifié, code inconnu refusé) ; commissionnaire (CMR vérifié ; « apporté par un commissionnaire = Oui » → dernière étape et notification).
+
+**Accusé de réception** : demande de location → « Avis de réception de votre demande CCL-... » ; modifier le modèle dans Paramètres → nouveau texte utilisé.
+
+**contact@ / direction@** : contact@ visible par admin, communication, marketing (cloche, e-mail, Messages reçus), pas par opérations ; direction@ visible par la seule direction, introuvable pour l'admin ; « Répondre dans Gmail » ouvre « Re: ... ».
+
+Tests automatisés à la clôture : Backend 357 (56 fichiers) et Frontend 50 (17 fichiers) verts, `tsc` sans erreur.

@@ -227,6 +227,15 @@ Session
 - **Limite assumée à documenter et surveiller** : si l'hébergement final fait tourner plusieurs process Node en parallèle (cluster), ce cache n'est plus synchronisé entre process. L'interface de cache est conçue comme une abstraction remplaçable (interface `SecurityVersionCache`) pour basculer vers un cache partagé (Redis ou équivalent) sans réécrire la logique de vérification, dès que les caractéristiques réelles de l'hébergement cPanel seront connues.
 - Suspension/exclusion d'un compte → révocation immédiate de toutes ses `Session` actives, **et** incrément de `securityVersion` (double mécanisme, cohérent l'un avec l'autre).
 
+### Décisions du lot « avant mise en ligne » (2026-11-24)
+
+- **Codes** : Commissionnaire `CMR-NNN`, Collecteur `CTR-NNN`, Client `CCL-NNN`, générés par le serveur sous verrou (`shared/codes.js`, table `codeSequences`). L'ancien `CCM` n'est plus produit (accepté à la saisie).
+- **Liens à usage unique** (`authTokens`, hachés) : réinitialisation 15 min, premier mot de passe 15 min, clé d'accès commissionnaire 72 h. Aucun lien qui ouvrirait une session sans mot de passe.
+- **Cookies** `SameSite=Lax` par défaut (site et API sur le même site) ; HTTPS forcé côté Frontend (`proxy.ts` + HSTS).
+- **Inscription libre fermée en production** (`ALLOW_PUBLIC_REGISTRATION`).
+- **Espace commissionnaire** : règle contextuelle (`/api/field-agent`, fiche liée au compte), pas une permission RBAC ; le rôle commissionnaire n'a plus `commissionnaires:read`.
+- **Types de biens** : liste unique de six types (`shared/propertyKinds.js` / `lib/propertyKinds.ts`), anciens types conservés et rattachés.
+
 ### RBAC — modèle retenu
 
 ```
