@@ -29,6 +29,14 @@ import { AddClientModal } from "@/components/client-modals/add-client-modal"
 import Link from "next/link"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { ViewModeToggle, useViewMode } from "@/components/view-mode-toggle"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 // GOAL 7 - pipeline commercial en vrai Kanban : glisser une carte dans une
 // autre colonne appelle exactement le même endpoint que l'ancien bouton
@@ -120,6 +128,86 @@ function PipelineColumn({
   )
 }
 
+// Vue liste du pipeline : même donnée, étape modifiable par une liste
+// déroulante (même appel que le glisser-déposer).
+function ClientList({
+  clients,
+  onStageChange,
+}: {
+  clients: Client[]
+  onStageChange: (client: Client, next: ClientStatutPipeline) => void
+}) {
+  const order = (stage: ClientStatutPipeline) => CLIENT_PIPELINE_STAGES.indexOf(stage)
+  const sorted = [...clients].sort((a, b) => order(a.statutPipeline) - order(b.statutPipeline))
+  const columns = "md:grid-cols-[minmax(0,2fr)_200px_140px_minmax(0,1fr)_80px]"
+  return (
+    <div className="overflow-hidden rounded-xl border border-border">
+      <div
+        className={cn(
+          "hidden gap-4 border-b border-border bg-muted/40 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid",
+          columns
+        )}
+      >
+        <span>Client</span>
+        <span>Étape</span>
+        <span>Type</span>
+        <span>Téléphone</span>
+        <span>Score</span>
+      </div>
+      <ul className="divide-y divide-border">
+        {sorted.map((client) => {
+          const name = client.person?.fullName || `Client ${client.dossierNumber ?? client.idClient}`
+          return (
+            <li key={client.idClient} className={cn("grid gap-3 px-4 py-3 md:items-center md:gap-4", columns)}>
+              <Link href={`/dashboard/clients/${client.idClient}`} className="min-w-0 hover:underline">
+                <span className="block truncate font-medium">{name}</span>
+                {client.dossierNumber && (
+                  <span className="block font-mono text-xs text-muted-foreground">{client.dossierNumber}</span>
+                )}
+              </Link>
+              <Select
+                value={client.statutPipeline}
+                onValueChange={(v) => onStageChange(client, v as ClientStatutPipeline)}
+              >
+                <SelectTrigger className="h-9" aria-label={`Étape de ${name}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLIENT_PIPELINE_STAGES.map((stage) => (
+                    <SelectItem key={stage} value={stage}>
+                      {CLIENT_PIPELINE_LABELS[stage]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex flex-wrap items-center gap-3 md:contents">
+                <span>
+                  <Badge variant="outline" className="text-xs">
+                    {CLIENT_TYPE_LABELS[client.type]}
+                  </Badge>
+                </span>
+                <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                  {client.person?.phone && (
+                    <>
+                      <Phone className="h-3.5 w-3.5" aria-hidden />
+                      {client.person.phone}
+                    </>
+                  )}
+                </span>
+                <span>
+                  {client.score && (
+                    <Badge className="text-xs bg-secondary text-secondary-foreground">{client.score}</Badge>
+                  )}
+                </span>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -128,6 +216,7 @@ export default function ClientsPage() {
   const [activeClient, setActiveClient] = useState<Client | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const [viewMode, setViewMode] = useViewMode("nbn-clients-view")
 
   useEffect(() => {
     const load = async () => {
@@ -159,9 +248,11 @@ export default function ClientsPage() {
     if (!over) return
 
     const client = clients.find((c) => c.idClient === active.id)
-    const nextStage = over.id as ClientStatutPipeline
-    if (!client || client.statutPipeline === nextStage) return
+    if (client) await changeStage(client, over.id as ClientStatutPipeline)
+  }
 
+  const changeStage = async (client: Client, nextStage: ClientStatutPipeline) => {
+    if (client.statutPipeline === nextStage) return
     const previousClients = clients
     setClients(clients.map((c) => (c.idClient === client.idClient ? { ...c, statutPipeline: nextStage } : c)))
 
@@ -191,21 +282,32 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-balance">Clients - Pipeline commercial</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Clients : pipeline commercial</h1>
           <p className="text-muted-foreground mt-2">
-            Glissez une carte vers une autre étape pour faire progresser (ou sauter) le pipeline
+            {viewMode === "kanban"
+              ? "Glissez une carte vers une autre étape pour faire avancer le dossier"
+              : "Changez l'étape d'un client avec la liste déroulante"}
           </p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto bg-primary text-primary-foreground">
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un client
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto bg-primary text-primary-foreground">
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter un client
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
+      ) : viewMode === "list" ? (
+        clients.length === 0 ? (
+          <p className="py-16 text-center text-muted-foreground">Aucun client pour le moment.</p>
+        ) : (
+          <ClientList clients={clients} onStageChange={changeStage} />
+        )
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid grid-flow-col auto-cols-[280px] gap-4 overflow-x-auto pb-4">

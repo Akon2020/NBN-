@@ -47,6 +47,7 @@ import { createTask, getAllTasks, updateTaskStatus, type TaskInput } from "@/act
 import { CalendarParticipantPicker } from "@/components/calendar-participant-picker"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { ViewModeToggle, useViewMode } from "@/components/view-mode-toggle"
 
 const PRIORITE_BADGE_CLASS: Record<TaskPriorite, string> = {
   BASSE: "bg-muted text-muted-foreground",
@@ -132,6 +133,74 @@ function TaskColumn({ stage, tasks }: { stage: TaskStatut; tasks: Task[] }) {
   )
 }
 
+// Vue liste : mêmes tâches, statut modifiable par une liste déroulante (même
+// appel que le glisser-déposer du Kanban).
+function TaskList({ tasks, onStatusChange }: { tasks: Task[]; onStatusChange: (task: Task, next: TaskStatut) => void }) {
+  const order = (statut: TaskStatut) => TASK_STATUT_STAGES.indexOf(statut)
+  const sorted = [...tasks].sort(
+    (a, b) =>
+      order(a.statut) - order(b.statut) ||
+      (a.dateEcheance ?? "9999").localeCompare(b.dateEcheance ?? "9999")
+  )
+  return (
+    <div className="overflow-hidden rounded-xl border border-border">
+      <div className="hidden grid-cols-[minmax(0,2fr)_180px_120px_120px_minmax(0,1.2fr)] gap-4 border-b border-border bg-muted/40 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground md:grid">
+        <span>Tâche</span>
+        <span>Statut</span>
+        <span>Priorité</span>
+        <span>Échéance</span>
+        <span>Assignés</span>
+      </div>
+      <ul className="divide-y divide-border">
+        {sorted.map((task) => (
+          <li
+            key={task.idTask}
+            className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,2fr)_180px_120px_120px_minmax(0,1.2fr)] md:items-center md:gap-4"
+          >
+            <Link href={`/dashboard/tasks/${task.idTask}`} className="min-w-0 font-medium hover:underline">
+              <span className="line-clamp-2">{task.title}</span>
+            </Link>
+            <Select value={task.statut} onValueChange={(v) => onStatusChange(task, v as TaskStatut)}>
+              <SelectTrigger className="h-9" aria-label={`Statut de ${task.title}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TASK_STATUT_STAGES.map((stage) => (
+                  <SelectItem key={stage} value={stage}>
+                    {TASK_STATUT_LABELS[stage]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex flex-wrap items-center gap-2 md:contents">
+              <span>
+                <Badge className={cn("text-xs", PRIORITE_BADGE_CLASS[task.priorite])}>{TASK_PRIORITE_LABELS[task.priorite]}</Badge>
+              </span>
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                {task.dateEcheance ? (
+                  <>
+                    <CalendarClock className="h-3.5 w-3.5 md:hidden" aria-hidden />
+                    {new Date(task.dateEcheance).toLocaleDateString("fr-FR")}
+                  </>
+                ) : (
+                  <span className="hidden md:inline">Sans échéance</span>
+                )}
+              </span>
+              <span className="flex flex-wrap gap-1">
+                {task.assignees.map((a) => (
+                  <Badge key={a.idUser} variant="outline" className="text-xs">
+                    {a.user?.fullName || `Utilisateur ${a.idUser}`}
+                  </Badge>
+                ))}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -147,6 +216,7 @@ export default function TasksPage() {
   const [assigneeUserIds, setAssigneeUserIds] = useState<number[]>([])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const [viewMode, setViewMode] = useViewMode("nbn-tasks-view")
 
   useEffect(() => {
     const load = async () => {
@@ -210,9 +280,11 @@ export default function TasksPage() {
     if (!over) return
 
     const task = tasks.find((t) => t.idTask === active.id)
-    const nextStatut = over.id as TaskStatut
-    if (!task || task.statut === nextStatut) return
+    if (task) await changeStatus(task, over.id as TaskStatut)
+  }
 
+  const changeStatus = async (task: Task, nextStatut: TaskStatut) => {
+    if (task.statut === nextStatut) return
     const previousTasks = tasks
     setTasks(tasks.map((t) => (t.idTask === task.idTask ? { ...t, statut: nextStatut } : t)))
 
@@ -244,13 +316,18 @@ export default function TasksPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Tâches</h1>
           <p className="text-muted-foreground mt-2">
-            Glissez une carte vers une autre colonne pour changer son statut
+            {viewMode === "kanban"
+              ? "Glissez une carte vers une autre colonne pour changer son statut"
+              : "Changez le statut d'une tâche avec la liste déroulante"}
           </p>
         </div>
-        <Button onClick={() => setShowModal(true)} className="w-full sm:w-auto bg-primary text-primary-foreground">
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle tâche
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          <Button onClick={() => setShowModal(true)} className="w-full sm:w-auto bg-primary text-primary-foreground">
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvelle tâche
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -262,6 +339,8 @@ export default function TasksPage() {
           <ListChecks className="h-16 w-16 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold">Aucune tâche</h3>
         </div>
+      ) : viewMode === "list" ? (
+        <TaskList tasks={tasks} onStatusChange={changeStatus} />
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid grid-flow-col auto-cols-[280px] gap-4 overflow-x-auto pb-4">
