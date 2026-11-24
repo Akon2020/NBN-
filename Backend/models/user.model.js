@@ -48,6 +48,14 @@ const User = db.define("users", {
     type: DataTypes.DATE,
     allowNull: true,
   },
+  mustChangePassword: {
+    // Mot de passe donné par l'administration (création du compte ou
+    // réinitialisation) : l'utilisateur choisit le sien à la connexion
+    // suivante avant d'obtenir une session.
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   // BACK-G17 - jeton Expo Push enregistré par le Mobile (MOBILE-G05).
   // Nullable : un compte peut n'avoir jamais ouvert l'app mobile, ou avoir
   // refusé les notifications - dans ce cas la Notification reste

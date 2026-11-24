@@ -39,6 +39,11 @@ export default function ResetPasswordPage() {
       description={
         info ? (
           <>
+            {info.purpose === "PASSWORD_SETUP" && (
+              <span className="mb-1 block">
+                Première connexion : remplacez le mot de passe reçu par un mot de passe que vous seul connaissez.
+              </span>
+            )}
             Compte : <strong className="text-foreground">{info.email}</strong>
           </>
         ) : undefined

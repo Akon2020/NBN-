@@ -193,14 +193,14 @@ export const login = async (req, res, next) => {
       user.password
     );
 
-    if (isDefaultPassword) {
-      // Le mot de passe par défaut prouve l'identité une seule fois : un
+    if (isDefaultPassword || user.mustChangePassword) {
+      // Le mot de passe par défaut (ou donné par un administrateur) prouve
+      // l'identité une seule fois : un
       // jeton court permet de choisir son propre mot de passe tout de suite,
       // sans session ouverte d'ici là.
       const { token } = await issueAuthToken({ idUser: user.idUser, purpose: "PASSWORD_SETUP" });
       return res.status(403).json({
-        message:
-          "Vous utilisez le mot de passe par défaut. Choisissez votre propre mot de passe pour continuer.",
+        message: "Première connexion : choisissez votre propre mot de passe pour continuer.",
         requiresPasswordChange: true,
         setupToken: token,
       });
@@ -377,6 +377,8 @@ export const checkAuthToken = async (req, res, next) => {
  * - Clé d'accès / premier mot de passe : la clé prouve l'identité, la
  *   session est ouverte directement pour une première connexion fluide.
  */
+class SamePasswordError extends Error {}
+
 export const updatePassword = async (req, res, next) => {
   try {
     const raw = req.body?.token || req.query?.token;
@@ -399,8 +401,12 @@ export const updatePassword = async (req, res, next) => {
       async (token, transaction) => {
         const user = await User.findByPk(token.idUser, { transaction, lock: transaction.LOCK.UPDATE });
         if (!user || user.status === "INACTIVE") return null;
+        // Reprendre le mot de passe donné par l'admin ne compte pas : erreur
+        // levée dans la transaction, le lien reste donc utilisable.
+        if (await bcrypt.compare(newPassword, user.password)) throw new SamePasswordError();
         user.password = hashedPassword;
         user.securityVersion = user.securityVersion + 1;
+        user.mustChangePassword = false;
         await user.save({ transaction });
         // Les autres liens encore valides de ce compte tombent aussi.
         await AuthToken.update(
@@ -436,6 +442,9 @@ export const updatePassword = async (req, res, next) => {
       data: { token: accessToken, refreshToken, userInfo: getUserWithoutPassword(user) },
     });
   } catch (error) {
+    if (error instanceof SamePasswordError) {
+      return res.status(400).json({ message: "Choisissez un mot de passe différent de celui qui vous a été donné." });
+    }
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }

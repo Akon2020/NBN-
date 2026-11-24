@@ -115,6 +115,12 @@ authRouter.post("/register", authLimiter, upload.single("avatar"), normalizeUplo
  *         description: Connexion réussie
  *       401:
  *         description: Email ou mot de passe incorrect
+ *       403:
+ *         description: >
+ *           Première connexion (mot de passe par défaut ou donné par un administrateur,
+ *           champ User.mustChangePassword) - aucune session ouverte ; la réponse porte
+ *           requiresPasswordChange=true et un setupToken (15 min) à utiliser sur
+ *           /api/auth/reset-password/confirm.
  */
 authRouter.post("/login", authLimiter, loginAccountLimiter, login);
 

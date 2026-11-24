@@ -81,7 +81,10 @@ export const getUserByEmail = async (req, res, next) => {
 
 export const createUser = async (req, res, next) => {
   try {
-    const { fullName, email, role } = req.body;
+    const { fullName, role } = req.body;
+    // Même normalisation qu'à la connexion : l'adresse saisie par l'admin
+    // doit ouvrir le compte quelle que soit la casse tapée ensuite.
+    const email = String(req.body.email ?? "").trim().toLowerCase();
     const avatar = req.file ? req.file.path : null;
 
     if (!fullName || !email) {
@@ -113,6 +116,7 @@ export const createUser = async (req, res, next) => {
       password: hashedPassword,
       role,
       avatar,
+      mustChangePassword: true,
       createdAt: new Date(),
     });
 
@@ -265,6 +269,7 @@ export const updateUserPassword = async (req, res, next) => {
     await user.update({
       password: hashedPassword,
       securityVersion: user.securityVersion + 1,
+      mustChangePassword: false,
     });
     await revokeAllUserSessions(user.idUser, "password_changed");
     invalidateSecurityVersion(user.idUser);
@@ -305,9 +310,12 @@ export const resetUserPassword = async (req, res, next) => {
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
+    // Mot de passe connu de l'admin : l'utilisateur en choisit un nouveau à
+    // sa prochaine connexion.
     await user.update({
       password: hashedPassword,
       securityVersion: user.securityVersion + 1,
+      mustChangePassword: true,
     });
     await revokeAllUserSessions(user.idUser, "admin_revoke");
     invalidateSecurityVersion(user.idUser);

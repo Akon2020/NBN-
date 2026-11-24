@@ -30,7 +30,7 @@ export function ResetPasswordModal({ open, onOpenChange, user }: ResetPasswordMo
     setSubmitting(true)
     try {
       await resetUserPassword(user.idUser, newPassword)
-      toast.success(`Mot de passe de ${user.fullName} réinitialisé - sessions déconnectées`)
+      toast.success(`Mot de passe de ${user.fullName} réinitialisé : sessions déconnectées`)
       onOpenChange(false)
       setNewPassword("")
     } catch (error) {
@@ -48,8 +48,8 @@ export function ResetPasswordModal({ open, onOpenChange, user }: ResetPasswordMo
         <DialogHeader>
           <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
           <DialogDescription>
-            Définir un nouveau mot de passe pour <strong>{user.fullName}</strong>. Toutes ses sessions actives
-            seront immédiatement déconnectées.
+            Définir un mot de passe provisoire pour <strong>{user.fullName}</strong>. Toutes ses sessions actives
+            seront immédiatement déconnectées, et il devra choisir son propre mot de passe à sa prochaine connexion.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">

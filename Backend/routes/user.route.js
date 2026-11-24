@@ -248,7 +248,7 @@ userRouter.patch("/update/:id/password", authMiddlware, updateUserPassword);
  *                 type: string
  *     responses:
  *       200:
- *         description: Mot de passe réinitialisé
+ *         description: Mot de passe réinitialisé ; l'utilisateur devra en choisir un nouveau à sa prochaine connexion (mustChangePassword)
  *       404:
  *         description: Utilisateur non trouvé
  */
