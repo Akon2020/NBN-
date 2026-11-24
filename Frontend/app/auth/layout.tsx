@@ -2,40 +2,36 @@
 
 import type React from "react";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/axios";
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// Pages où une session déjà ouverte ne doit pas rediriger : on peut vouloir
+// définir un mot de passe pour un autre compte ou activer une clé reçue.
+const NO_REDIRECT = ["/auth/reset-password", "/auth/activer"];
+
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // ADMIN-G01 : le cookie httpOnly n'étant pas lisible en JS, on ne peut
-    // plus présumer d'une session active à partir d'un cookie côté client —
-    // on interroge directement le backend, qui tranche.
-    const checkIfAlreadyLoggedIn = async () => {
-      try {
-        const response = await api.get("/api/auth/profile/");
-
-        if (response.status === 200 && response.data.authenticated) {
-          const user = response.data.user;
-
-          if (user.role === "admin") {
-            router.push("/dashboard");
-          } else if (user.role === "agent") {
-            router.push("/dashboard/search");
-          }
+    if (NO_REDIRECT.some((path) => pathname?.startsWith(path))) return;
+    // Le cookie httpOnly n'est pas lisible en JS : seul le Backend sait si
+    // une session est ouverte.
+    let cancelled = false;
+    api
+      .get("/api/auth/profile/")
+      .then((response) => {
+        if (!cancelled && response.status === 200 && response.data.authenticated) {
+          router.replace("/dashboard");
         }
-      } catch (error) {
-        // Non authentifié : on reste sur la page d'auth.
-      }
+      })
+      .catch(() => {
+        // Pas de session : on reste sur la page.
+      });
+    return () => {
+      cancelled = true;
     };
-
-    checkIfAlreadyLoggedIn();
-  }, [router]);
+  }, [pathname, router]);
 
   return <>{children}</>;
 }
