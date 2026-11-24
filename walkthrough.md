@@ -1401,10 +1401,13 @@ npm run db:migrate
   20261124020000-codes-and-property-kinds
   20261124030000-property-code-collecteur
   20261124040000-seed-template-and-commission-settings
+  20261125000000-commission-rule-percentage-of-rent
+  20261125010000-user-must-change-password
 npm run db:seed
   20261124000000-seed-commissionnaire-identity-permission
   20261124000010-restrict-commissionnaire-role
   20261124000020-marketing-juridique-permissions
+  20261125000000-marketing-juridique-bailleurs-manage
 ```
 
 ### 3. Variables d'environnement et hébergement
@@ -1413,15 +1416,15 @@ npm run db:seed
 - Frontend : `NEXT_PUBLIC_API_URL=https://api.nbnexpress.org`, facultatif `NEXT_PUBLIC_GMAIL_ACCOUNT`.
 - Hébergement : « Forcer la redirection HTTPS » (nbnexpress.org et www), Passenger toujours actif, dossier privé des pièces d'identité inscriptible et sauvegardé, projet Vercel `nbn-plus` à supprimer ou protéger.
 
-### 4. Questions en suspens
+### 4. Questions en suspens (tranchées le 2026-11-24, voir le lot suivant)
 
-1. Règle de calcul des commissions (réglable, « manuel » en attendant).
-2. Marketing / Juridique sur les Bailleurs : consultation seule (en place) ou modification ?
-3. « Demande traitée » = client sorti de l'étape « Nouveau » : à confirmer.
-4. Lien magique : recommandation de ne pas en créer.
-5. Actif = actif ou observation ; inactif = suspendu ou exclu : à confirmer.
-6. `[Prénom du client]` : seul le nom complet est collecté ; ajouter un champ prénom ?
-7. Le rôle commissionnaire garde `clients:manage` et `property:manage` pour l'application mobile : à restreindre quand le Mobile passera par `/api/field-agent`.
+1. Commission : pourcentage du loyer. Fait.
+2. Marketing / Juridique : modification des bailleurs aussi. Fait.
+3. « Demande traitée » = client sorti de l'étape « Nouveau » : confirmé.
+4. Lien magique : pas de lien magique, confirmé.
+5. Actif = actif ou observation ; inactif = suspendu ou exclu : confirmé.
+6. `[Prénom du client]` : affiche le nom complet, confirmé.
+7. Rôle commissionnaire : restriction plus tard, quand le Mobile passera par `/api/field-agent`. Confirmé.
 
 ### 5. Checklist de test manuel
 
@@ -1436,3 +1439,51 @@ npm run db:seed
 **contact@ / direction@** : contact@ visible par admin, communication, marketing (cloche, e-mail, Messages reçus), pas par opérations ; direction@ visible par la seule direction, introuvable pour l'admin ; « Répondre dans Gmail » ouvre « Re: ... ».
 
 Tests automatisés à la clôture : Backend 357 (56 fichiers) et Frontend 50 (17 fichiers) verts, `tsc` sans erreur.
+
+---
+
+## Lot « Retours du porteur de projet » (2026-11-24)
+
+Réponses aux sept questions et nouvelles demandes, toutes sur la branche `dev`. Rien n'est déployé.
+
+### Décisions appliquées
+
+- **Commission en pourcentage du loyer.** Migration `20261125000000-commission-rule-percentage-of-rent` : la règle passe de « Manuel » à « Pourcentage du loyer » (une règle déjà choisie n'est pas touchée). Le taux se saisit dans Paramètres ; tant qu'il est vide, il est demandé à chaque commission. La fenêtre « Calculer une commission » parle de « Loyer mensuel (ou prix de vente) » et le pourcentage n'y est plus obligatoire pour un commissionnaire.
+- **Marketing et Juridique gèrent les bailleurs.** Seeder `20261125000000-marketing-juridique-bailleurs-manage` (`bailleurs:manage`). La pièce d'identité reste réservée à `bailleurs:identity:read`. Tests mis à jour : la trésorerie sert désormais de rôle « sans droit ».
+- Questions 3 à 7 : choix par défaut confirmés, rien à changer.
+
+### Landing page
+
+- Hero en plein écran, d'un bord à l'autre (plus de cadre blanc autour), dégradé vertical sur téléphone pour garder le texte lisible.
+- Barre de navigation fixée en haut : vitrée sur la photo, bleu de marque dès que la page défile. Bouton de thème clair / sombre visible sur ordinateur et téléphone (et dans le menu mobile). Le numéro de téléphone a quitté la barre sur ordinateur (il chevauchait les liens) ; il reste dans le menu mobile et le pied de page.
+- « Des biens vérifiés à Bukavu » devient une section marketing : six cartes par type de bien, une carte « Un autre besoin ? » et un bandeau d'engagements. Aucun bien réel ni prix. Chaque action mène à la demande de location (préremplie avec le type choisi). La barre de recherche ouvre aussi la demande préremplie. La page n'appelle plus l'API des biens.
+- Section FAQ (sept questions, sans JavaScript, accessible au clavier).
+- Pages `/confidentialite`, `/conditions`, `/mentions-legales` (gabarit commun avec sommaire et bouton de retour), liées depuis le pied de page et depuis la dernière étape de la demande de location. Les engagements de la demande de location sont partagés entre le formulaire et les conditions (`lib/company.ts`).
+- Bouton « Retour » sur la demande de location et la collecte de bien (revient à la page précédente du site, sinon à l'accueil).
+
+### Tableau de bord
+
+- **Tâches et Pipeline clients** : bascule « Kanban / Liste ». En liste, le statut (ou l'étape) se change par une liste déroulante, avec le même appel que le glisser-déposer. Le choix est mémorisé sur l'appareil ; la liste est proposée par défaut sur téléphone.
+- **Calendrier** : grille du mois (navigation mois précédent / suivant, « Aujourd'hui »), recherche dans le mois qui garde la grille visible et liste les résultats dessous, clic sur un jour pour ne voir que ce jour, et vue « Liste du mois ». Sur téléphone, la grille affiche des points de couleur.
+
+### Première connexion
+
+- Champ `users.mustChangePassword` (migration `20261125010000-user-must-change-password`), posé à la création d'un compte par l'admin et quand l'admin réinitialise un mot de passe. À la connexion, la réponse est 403 avec un jeton court : l'utilisateur arrive sur « Choisissez votre mot de passe » et n'a pas de session avant. Reprendre le mot de passe donné par l'admin est refusé (le lien reste valable). L'e-mail saisi par l'admin est enregistré en minuscules.
+- Vérifié dans le navigateur avec un compte de test local (adresse tapée avec des majuscules), puis supprimé. Test `tests/firstLogin.test.js`.
+
+### Nettoyage des écrans
+
+- Retrait des références de conception visibles (`CLAUDE.md §4`, `CDC §7`), des flèches, points médians, points de suspension typographiques, « & », du « # » devant les identifiants, et des « (s) » (utilitaire `lib/plural.ts` : « 1 bien », « 3 biens »).
+- E-mails clients : pied de page et accusé de réception sans tiret demi-cadratin (modèle en base corrigé en développement).
+- Les messages WhatsApp préparés pour les clients gardent leur mise en forme (émoticônes, séparateurs) : ce ne sont pas des écrans du site.
+
+### Vérifications
+
+- Backend : 361 tests (57 fichiers) verts. Frontend : 50 tests (16 fichiers) verts, `tsc` sans erreur.
+- Navigateur : landing en 1600 px et 375 px, thème sombre, FAQ, pages légales, retour sur la demande, Kanban / Liste, calendrier avec recherche, première connexion.
+
+### Points ouverts
+
+- Mentions légales : numéro RCCM, identification nationale et nom de l'hébergeur à fournir par l'agence pour compléter la page (rien d'inventé en attendant).
+- Pourcentage de commission à saisir dans Paramètres.
+- Les durées de conservation de la politique de confidentialité restent générales (aucune durée légale affirmée, voir CLAUDE.md §11).

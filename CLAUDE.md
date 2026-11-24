@@ -235,6 +235,11 @@ Session
 - **Inscription libre fermée en production** (`ALLOW_PUBLIC_REGISTRATION`).
 - **Espace commissionnaire** : règle contextuelle (`/api/field-agent`, fiche liée au compte), pas une permission RBAC ; le rôle commissionnaire n'a plus `commissionnaires:read`.
 - **Types de biens** : liste unique de six types (`shared/propertyKinds.js` / `lib/propertyKinds.ts`), anciens types conservés et rattachés.
+- **Commission d'un commissionnaire** (2026-11-24) : pourcentage du loyer mensuel (ou du prix de vente), taux réglé dans Paramètres (`commissions.commissionnaireRule`, mode `POURCENTAGE`).
+- **Marketing et Juridique** ont `bailleurs:manage` (ajout et modification des bailleurs), sans la pièce d'identité.
+- **Première connexion** : `User.mustChangePassword` est posé à la création par l'admin et à toute réinitialisation par l'admin ; la connexion répond 403 + jeton `PASSWORD_SETUP` tant que l'utilisateur n'a pas choisi son mot de passe.
+- **Définitions confirmées** : demande traitée = client sorti de l'étape « Nouveau » ; commissionnaire actif = `ACTIF` ou `OBSERVATION`, inactif = `SUSPENDU` ou `EXCLU` ; `[Prénom du client]` = nom complet ; aucun lien magique.
+- **Site public** : la section des biens de la landing est marketing (aucun bien réel ni prix) et mène à la demande de location. Pages légales : `/confidentialite`, `/conditions`, `/mentions-legales`.
 
 ### RBAC — modèle retenu
 

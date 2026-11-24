@@ -1,6 +1,6 @@
 "use strict";
 
-// Décision de l'agence (2026-11-25) : Marketing et Juridique ne se
+// Décision de l'agence (2026-11-24) : Marketing et Juridique ne se
 // contentent pas de consulter l'onglet Bailleurs, ils peuvent aussi ajouter
 // et modifier un bailleur (bailleurs:manage). La pièce d'identité reste
 // réservée à bailleurs:identity:read.

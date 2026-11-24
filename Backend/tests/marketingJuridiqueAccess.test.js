@@ -33,7 +33,7 @@ afterAll(async () => {
 });
 
 describe.each(["marketing", "juridique"])("P1.9 - rôle %s", (role) => {
-  it("consulte et gère les bailleurs (bailleurs:manage, décision du 2026-11-25)", async () => {
+  it("consulte et gère les bailleurs (bailleurs:manage, décision du 2026-11-24)", async () => {
     expect((await request(app).get("/api/bailleurs").set("Cookie", cookies[role])).status).toBe(200);
     // Corps vide : la permission passe, la validation répond 400 (et non 403).
     const create = await request(app).post("/api/bailleurs").set("Cookie", cookies[role]).send({});

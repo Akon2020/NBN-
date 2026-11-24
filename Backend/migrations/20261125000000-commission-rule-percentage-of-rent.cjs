@@ -1,6 +1,6 @@
 "use strict";
 
-// Décision de l'agence (2026-11-25) : la commission d'un commissionnaire est
+// Décision de l'agence (2026-11-24) : la commission d'un commissionnaire est
 // un pourcentage du loyer (ou du prix de vente). La règle passe donc de
 // « MANUEL » à « POURCENTAGE » ; le taux lui-même se règle dans Paramètres.
 // Une règle déjà choisie par l'agence (autre que MANUEL) n'est pas touchée.
