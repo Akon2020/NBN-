@@ -1605,12 +1605,10 @@ export const TYPE_MISSION_CHOICES = [
 // Types réellement proposés au collecteur terrain - sous-ensemble du
 // catalogue complet (le formulaire ne demande pas de distinguer une
 // construction durable d'une semi-durable sur le terrain).
-export const COLLECTE_TYPE_BIEN_CHOICES = [
-  { value: "MAISON", label: "Maison" },
-  { value: "APPARTEMENT", label: "Appartement" },
-  { value: "PARCELLE", label: "Parcelle" },
-  { value: "CHAMBRE", label: "Chambre" },
-]
+export const COLLECTE_TYPE_BIEN_CHOICES: { value: string; label: string }[] = PROPERTY_KINDS.map((kind) => ({
+  value: kind.value as string,
+  label: kind.label as string,
+}))
 
 export const TYPE_OPERATION_CHOICES = [
   { value: "RENT", label: "Location" },
@@ -1673,6 +1671,7 @@ export const countChoices = (max: number, withZero = false) => [
 export const REMPLISSEUR_CHOICES = [
   { value: "RESPONSABLE", label: "Le responsable du bien" },
   { value: "COLLECTEUR", label: "Un collecteur" },
+  { value: "COMMISSIONNAIRE", label: "Un commissionnaire" },
 ]
 
 export const RESPONSABLE_STATUT_CHOICES = [
@@ -1685,7 +1684,10 @@ export const RESPONSABLE_STATUT_CHOICES = [
 // Corps envoyé à POST /api/property-collections (voir la documentation
 // Swagger de la route pour les champs conditionnels).
 export interface PropertyCollectionPayload {
-  remplisseur: "RESPONSABLE" | "COLLECTEUR"
+  remplisseur: "RESPONSABLE" | "COLLECTEUR" | "COMMISSIONNAIRE"
+  // Code CTR du collecteur, ou CMR du commissionnaire, qui remplit.
+  codeCollecteur?: string
+  codeRemplisseur?: string
   parCommissionnaire?: boolean
   typeMission: string
   typeOperation: string

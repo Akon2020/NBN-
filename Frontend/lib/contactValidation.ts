@@ -16,8 +16,18 @@ export const normalizePhone = (raw: string): string | null => {
   return /^\+\d{8,15}$/.test(digits) ? digits : null
 }
 
-// CCM = Code CoMmissionnaire (CCL identifie un client). "ccm 42" → "CCM-042".
-export const normalizeCommissionnaireCode = (raw: string): string | null => {
-  const match = /^CCM[\s-]?(\d{1,4})$/i.exec(raw.trim())
-  return match ? `CCM-${match[1].padStart(3, "0")}` : null
+// Conventions de codes (Backend/shared/codes.js) : commissionnaire CMR,
+// collecteur CTR, client CCL. "cmr 42" → "CMR-042" ; l'ancien préfixe CCM
+// d'un commissionnaire est ramené à CMR.
+export const CODE_PREFIXES = { COMMISSIONNAIRE: "CMR", COLLECTEUR: "CTR", CLIENT: "CCL" } as const
+
+const normalizeCode = (raw: string, prefix: string, legacy: string[] = []): string | null => {
+  const accepted = [prefix, ...legacy].join("|")
+  const match = new RegExp(`^(?:${accepted})[\\s-]?(\\d{1,6})$`, "i").exec(raw.trim())
+  return match ? `${prefix}-${String(Number(match[1])).padStart(3, "0")}` : null
 }
+
+export const normalizeCommissionnaireCode = (raw: string): string | null =>
+  normalizeCode(raw, CODE_PREFIXES.COMMISSIONNAIRE, ["CCM"])
+
+export const normalizeCollecteurCode = (raw: string): string | null => normalizeCode(raw, CODE_PREFIXES.COLLECTEUR)

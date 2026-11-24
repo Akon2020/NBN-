@@ -25,9 +25,12 @@ import { getMyCommissionnaireCode, submitPropertyCollection } from "@/actions/pr
 import { getAuthUser } from "@/lib/auth"
 import {
   isEmailFormatValid,
+  normalizeCollecteurCode,
   normalizeCommissionnaireCode,
   normalizePhone,
 } from "@/lib/contactValidation"
+import { AgentCodeField } from "@/components/forms/agent-code-field"
+import type { FieldAgentLookup } from "@/actions/propertyCollections"
 import {
   ACCEPTE_COMMISSION_CHOICES,
   ACCESSIBILITE_CHOICES,
@@ -53,8 +56,10 @@ const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variabl
 const EMPTY_LOCATION: LocationValue = { commune: "", quartier: "", avenues: [], avenueAutre: "" }
 
 const EMPTY_FORM = {
-  // "RESPONSABLE" | "COLLECTEUR"
+  // "RESPONSABLE" | "COLLECTEUR" | "COMMISSIONNAIRE"
   remplisseur: "",
+  // Code CTR du collecteur, ou CMR du commissionnaire, qui remplit.
+  codeRemplisseur: "",
   // Tri-état ("" = pas encore répondu), comme toutes les questions oui/non.
   parCommissionnaire: "",
   typeMission: "COLLECTE_BIEN",
@@ -94,8 +99,8 @@ const EMPTY_FORM = {
   codeCommissionnaire: "",
 }
 
-// v2 : « propriétaire » devenu « responsable », localisation structurée.
-const DRAFT_KEY = "nbn-collecte-bien-v2"
+// v3 : trois cas « qui remplit » et codes vérifiés (CMR / CTR).
+const DRAFT_KEY = "nbn-collecte-bien-v3"
 
 // Aligné sur MAX_ID_DOCUMENT_SIZE_MB (8 Mo par défaut) côté Backend.
 const MAX_ID_DOCUMENT_BYTES = 8 * 1024 * 1024
@@ -126,8 +131,16 @@ export default function CollecteBienPage() {
   const set = <K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
+  // Fiches vérifiées en base pour le code de celui qui remplit, et pour le
+  // commissionnaire qui a apporté le bien.
+  const [remplisseurAgent, setRemplisseurAgent] = useState<FieldAgentLookup | null>(null)
+  const [apporteurAgent, setApporteurAgent] = useState<FieldAgentLookup | null>(null)
+
   const parResponsable = form.remplisseur === "RESPONSABLE"
-  const parCommissionnaire = form.remplisseur === "COLLECTEUR" && form.parCommissionnaire === "OUI"
+  const parLeCommissionnaire = form.remplisseur === "COMMISSIONNAIRE"
+  // Dernière étape « Identité du commissionnaire » : bien apporté par un
+  // commissionnaire, quand ce n'est pas lui qui remplit.
+  const parCommissionnaire = !parLeCommissionnaire && form.remplisseur !== "" && form.parCommissionnaire === "OUI"
   const isRent = form.typeOperation === "RENT"
   const countOf = (key: CountKey) => resolveCount(form[key], form[`${key}Autre`])
 
@@ -138,15 +151,14 @@ export default function CollecteBienPage() {
     if (!restored || prefilled) return
     setPrefilled(true)
 
-    const user = getAuthUser()
-    if (user?.fullName) {
-      setForm((prev) => (prev.collecteurNom ? prev : { ...prev, collecteurNom: user.fullName }))
-    }
+    // Commissionnaire ou collecteur connecté : son propre code, et le cas
+    // « qui remplit » correspondant (le Backend n'accepte que le sien).
     getMyCommissionnaireCode().then((code) => {
-      if (code) {
-        setForm((prev) => (prev.codeCommissionnaire ? prev : { ...prev, codeCommissionnaire: code }))
-      }
+      if (!code) return
+      const remplisseur = code.startsWith("CTR") ? "COLLECTEUR" : "COMMISSIONNAIRE"
+      setForm((prev) => (prev.remplisseur ? prev : { ...prev, remplisseur, codeRemplisseur: code }))
     })
+    void getAuthUser
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restored, prefilled])
 
@@ -164,7 +176,12 @@ export default function CollecteBienPage() {
 
       const payload: PropertyCollectionPayload = {
         remplisseur: form.remplisseur as PropertyCollectionPayload["remplisseur"],
-        parCommissionnaire: parResponsable ? undefined : parCommissionnaire,
+        codeCollecteur:
+          form.remplisseur === "COLLECTEUR" ? normalizeCollecteurCode(form.codeRemplisseur) ?? undefined : undefined,
+        codeRemplisseur: parLeCommissionnaire
+          ? normalizeCommissionnaireCode(form.codeRemplisseur) ?? undefined
+          : undefined,
+        parCommissionnaire: parLeCommissionnaire ? undefined : form.parCommissionnaire === "OUI",
         typeMission: form.typeMission,
         typeOperation: form.typeOperation,
         propertyType: form.propertyType,
@@ -189,17 +206,13 @@ export default function CollecteBienPage() {
         responsableStatut: form.responsableStatut,
         responsableNom: form.responsableNom.trim(),
         responsablePhone: normalizePhone(form.responsablePhone) ?? form.responsablePhone.trim(),
-        responsableEmail: form.responsableEmail.trim().toLowerCase() || undefined,
+        responsableEmail: form.responsableEmail.trim().toLowerCase(),
         responsableIdNumber: form.responsableIdNumber.trim() || undefined,
         responsableDisponibiliteVisite: form.responsableDisponibiliteVisite,
         responsableAccepteCommission: form.responsableAccepteCommission,
+        // Nom et téléphone du commissionnaire : repris de sa fiche par le serveur.
         ...(parCommissionnaire
-          ? {
-              collecteurNom: form.collecteurNom.trim(),
-              collecteurPhone: normalizePhone(form.collecteurPhone) ?? form.collecteurPhone.trim(),
-              codeCommissionnaire:
-                normalizeCommissionnaireCode(form.codeCommissionnaire) ?? form.codeCommissionnaire.trim(),
-            }
+          ? { codeCommissionnaire: normalizeCommissionnaireCode(form.codeCommissionnaire) ?? form.codeCommissionnaire.trim() }
           : {}),
       }
 
@@ -228,8 +241,14 @@ export default function CollecteBienPage() {
       subtitle: "La suite du formulaire s'adapte à votre réponse.",
       validate: () => {
         if (!form.remplisseur) return "Indiquez qui remplit ce formulaire."
-        if (form.remplisseur === "COLLECTEUR" && !form.parCommissionnaire) {
-          return "Indiquez si le bien est collecté par un commissionnaire."
+        if (form.remplisseur === "COLLECTEUR" && !remplisseurAgent) {
+          return "Saisissez votre code collecteur (CTR-...) : il doit être vérifié avant de continuer."
+        }
+        if (parLeCommissionnaire && !remplisseurAgent) {
+          return "Saisissez votre code commissionnaire (CMR-...) : il doit être vérifié avant de continuer."
+        }
+        if (!parLeCommissionnaire && !form.parCommissionnaire) {
+          return "Indiquez si ce bien a été apporté par un commissionnaire."
         }
         return null
       },
@@ -239,14 +258,44 @@ export default function CollecteBienPage() {
             <ChoiceChips
               choices={REMPLISSEUR_CHOICES}
               value={form.remplisseur}
-              onChange={(v) => set("remplisseur", v)}
+              onChange={(v) => {
+                setRemplisseurAgent(null)
+                setForm((prev) => ({ ...prev, remplisseur: v, codeRemplisseur: v === prev.remplisseur ? prev.codeRemplisseur : "" }))
+              }}
             />
           </Field>
+          {parResponsable && (
+            <p className="rounded-md bg-muted/60 px-3 py-2.5 text-sm text-muted-foreground">
+              Vous annexerez votre pièce d&apos;identité à l&apos;étape « Vous, responsable du bien ».
+            </p>
+          )}
           {form.remplisseur === "COLLECTEUR" && (
+            <Field label="Votre code collecteur" required hint="Code attribué par l'agence, vérifié automatiquement.">
+              <AgentCodeField
+                value={form.codeRemplisseur}
+                onChange={(v) => set("codeRemplisseur", v)}
+                normalize={normalizeCollecteurCode}
+                placeholder="CTR-007"
+                onVerified={setRemplisseurAgent}
+              />
+            </Field>
+          )}
+          {parLeCommissionnaire && (
+            <Field label="Votre code commissionnaire" required hint="Code attribué par l'agence, vérifié automatiquement.">
+              <AgentCodeField
+                value={form.codeRemplisseur}
+                onChange={(v) => set("codeRemplisseur", v)}
+                normalize={normalizeCommissionnaireCode}
+                placeholder="CMR-042"
+                onVerified={setRemplisseurAgent}
+              />
+            </Field>
+          )}
+          {form.remplisseur && !parLeCommissionnaire && (
             <Field
-              label="Le bien est-il collecté par un commissionnaire ?"
+              label="Ce bien a-t-il été apporté par un commissionnaire ?"
               required
-              hint="Si oui, son identité et son code CCM seront demandés à la dernière étape."
+              hint="Si oui, son code sera demandé à la dernière étape."
             >
               <ChoiceChips
                 choices={OUI_NON_CHOICES}
@@ -435,11 +484,13 @@ export default function CollecteBienPage() {
         if (!form.responsableStatut) return "Indiquez le statut du responsable."
         if (!form.responsableNom.trim()) return "Le nom du responsable est requis."
         if (!normalizePhone(form.responsablePhone)) return "Le téléphone du responsable n'est pas valide."
-        if (parResponsable && !form.responsableEmail.trim()) return "Votre adresse e-mail est requise."
-        if (form.responsableEmail.trim() && !isEmailFormatValid(form.responsableEmail)) {
+        if (!form.responsableEmail.trim()) {
+          return parResponsable ? "Votre adresse e-mail est requise." : "L'adresse e-mail du responsable est requise."
+        }
+        if (!isEmailFormatValid(form.responsableEmail)) {
           return "L'adresse e-mail n'est pas valide."
         }
-        if (parResponsable && !pieceIdentite) return "Annexez votre carte d'identité."
+        if (parResponsable && !pieceIdentite) return "Annexez votre pièce d'identité."
         if (pieceIdentite && pieceIdentite.size > MAX_ID_DOCUMENT_BYTES) {
           return "La pièce d'identité dépasse 8 Mo : prenez une photo moins lourde."
         }
@@ -471,7 +522,7 @@ export default function CollecteBienPage() {
               placeholder="+243 ..."
             />
           </Field>
-          <Field label="Adresse e-mail" required={parResponsable}>
+          <Field label="Adresse e-mail" required>
             <TextField
               value={form.responsableEmail}
               onChange={(v) => set("responsableEmail", v)}
@@ -491,7 +542,7 @@ export default function CollecteBienPage() {
             />
           </Field>
           <Field
-            label={parResponsable ? "Annexer votre carte d'identité" : "Pièce d'identité du responsable"}
+            label={parResponsable ? "Annexer votre pièce d'identité" : "Pièce d'identité du responsable"}
             required={parResponsable}
             hint={
               parResponsable
@@ -544,38 +595,24 @@ export default function CollecteBienPage() {
       ? [
           {
             id: "commissionnaire",
-            title: "Le commissionnaire",
-            subtitle: "Pour que la collecte lui soit correctement attribuée.",
+            title: "Identité du commissionnaire",
+            subtitle: "Son code suffit : nom et téléphone sont repris de sa fiche.",
             validate: () => {
-              if (!form.collecteurNom.trim()) return "Le nom du commissionnaire est requis."
-              if (!normalizePhone(form.collecteurPhone)) return "Le téléphone du commissionnaire n'est pas valide."
               if (!normalizeCommissionnaireCode(form.codeCommissionnaire)) {
-                return "Le code commissionnaire est requis, au format CCM-042."
+                return "Le code du commissionnaire est requis, au format CMR-042."
               }
+              if (!apporteurAgent) return "Le code du commissionnaire doit être vérifié avant l'enregistrement."
               return null
             },
             content: (
               <div className="space-y-5">
-                <Field label="Nom complet" required>
-                  <TextField value={form.collecteurNom} onChange={(v) => set("collecteurNom", v)} />
-                </Field>
-                <Field label="Numéro (WhatsApp actif)" required>
-                  <TextField
-                    value={form.collecteurPhone}
-                    onChange={(v) => set("collecteurPhone", v)}
-                    type="tel"
-                    inputMode="tel"
-                    placeholder="+243 ..."
-                  />
-                </Field>
-                <Field label="Code CCM" required hint="Code CoMmissionnaire attribué par l'agence.">
-                  <TextField
+                <Field label="Code du commissionnaire" required hint="Code CMR attribué par l'agence.">
+                  <AgentCodeField
                     value={form.codeCommissionnaire}
                     onChange={(v) => set("codeCommissionnaire", v)}
-                    autoCapitalize="characters"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    placeholder="Ex. CCM-042"
+                    normalize={normalizeCommissionnaireCode}
+                    placeholder="CMR-042"
+                    onVerified={setApporteurAgent}
                   />
                 </Field>
                 {mediaNote}

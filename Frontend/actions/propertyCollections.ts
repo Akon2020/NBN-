@@ -47,3 +47,15 @@ export const getMyCommissionnaireCode = async (): Promise<string | null> => {
     return null;
   }
 };
+
+export type FieldAgentLookup = { code: string; profil: "COMMISSIONNAIRE" | "COLLECTEUR"; fullName: string | null; phone: string | null }
+
+// Vérifie un code CMR / CTR saisi dans le formulaire (fiche active).
+export const lookupFieldAgent = async (code: string): Promise<FieldAgentLookup> => {
+  try {
+    const res = await api.get<{ data: FieldAgentLookup }>(`/api/property-collections/agents/${encodeURIComponent(code)}`);
+    return res.data.data;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Ce code n'a pas pu être vérifié."));
+  }
+};
