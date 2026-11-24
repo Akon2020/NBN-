@@ -25,39 +25,44 @@ export function AgentCodeField({ value, onChange, normalize, placeholder, onVeri
   const [state, setState] = useState<"idle" | "checking" | "ok" | "error">("idle")
   const [agent, setAgent] = useState<FieldAgentLookup | null>(null)
   const [message, setMessage] = useState("")
-  const lastChecked = useRef<string | null>(null)
   const onVerifiedRef = useRef(onVerified)
   onVerifiedRef.current = onVerified
 
   useEffect(() => {
     const code = normalize(value)
     if (!code) {
-      lastChecked.current = null
       setAgent(null)
       setState(value.trim() ? "error" : "idle")
       setMessage(value.trim() ? `Format attendu : ${placeholder}` : "")
       onVerifiedRef.current(null)
       return
     }
-    if (code === lastChecked.current) return
-    lastChecked.current = code
+    // Vérification différée : chaque nouvelle saisie annule la précédente.
+    // Pas de mémoire « déjà vérifié » : un effet rejoué (brouillon restauré,
+    // double rendu) doit quand même aboutir à une vérification.
+    let cancelled = false
     setState("checking")
     const timer = setTimeout(() => {
       lookupFieldAgent(code)
         .then((found) => {
+          if (cancelled) return
           setAgent(found)
           setState("ok")
           setMessage("")
           onVerifiedRef.current(found)
         })
         .catch((error) => {
+          if (cancelled) return
           setAgent(null)
           setState("error")
           setMessage(error instanceof Error ? error.message : "Code introuvable.")
           onVerifiedRef.current(null)
         })
     }, 350)
-    return () => clearTimeout(timer)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [value, normalize, placeholder])
 
   return (
