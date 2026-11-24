@@ -15,9 +15,10 @@ const propertyCollectionRouter = Router();
  *       Route interne non indexée côté client, atteignable sans compte (un
  *       commissionnaire terrain ou un bailleur n'en a pas toujours).
  *       L'utilisateur connecté est tracé s'il y en a un. Le formulaire est
- *       rempli soit par le responsable du bien lui-même (e-mail requis), soit
- *       par un collecteur - commissionnaire (nom, téléphone et code CCM
- *       requis) ou membre de l'équipe (aucune identité supplémentaire).
+ *       rempli par le responsable du bien lui-même (pièce d'identité
+ *       requise), par un collecteur (code CTR vérifié) ou par un
+ *       commissionnaire (code CMR vérifié) ; un membre de l'équipe connecté
+ *       peut collecter sans code. L'e-mail du responsable est toujours requis.
  *       Pour joindre la pièce d'identité du responsable (obligatoire quand il
  *       remplit lui-même), envoyer un multipart/form-data avec `data` (ce même
  *       JSON, sérialisé) et `pieceIdentite` (JPEG, PNG, WebP ou PDF,

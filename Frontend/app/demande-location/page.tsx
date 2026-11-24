@@ -534,7 +534,7 @@ export default function DemandeLocationPage() {
         }
         if (!form.orienteParAgent) return "Indiquez si vous avez été orienté par un agent ou un commissionnaire."
         if (form.orienteParAgent === "OUI" && !normalizeCommissionnaireCode(form.codeCommissionnaire)) {
-          return "Le code commissionnaire est requis, au format CCM-042."
+          return "Le code commissionnaire est requis, au format CMR-042."
         }
         return null
       },
@@ -587,7 +587,7 @@ export default function DemandeLocationPage() {
                   autoCapitalize="characters"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="Code commissionnaire (ex. CCM-042)"
+                  placeholder="Code commissionnaire (ex. CMR-042)"
                 />
               )}
             </div>

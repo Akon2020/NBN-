@@ -406,10 +406,7 @@ export const createPropertyCollection = async (req, res, next) => {
     });
 
     // --- Mission de traçabilité ---
-    // Rattachée au commissionnaire dont le code est fourni, s'il existe
-    // réellement - un code inconnu n'invalide jamais la collecte (le bien
-    // est déjà en base). Les codes enregistrés avant la normalisation CCM
-    // restent retrouvables par leur saisie d'origine.
+    // Les codes ont été vérifiés avant la transaction (fiches actives).
     let mission = null;
     // La mission de traçabilité va au commissionnaire qui a apporté le
     // bien, sinon au collecteur qui l'a relevé.

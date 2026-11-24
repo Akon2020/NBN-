@@ -82,7 +82,7 @@ const rentalRequestRouter = Router();
  *                 type: boolean
  *               codeCommissionnaire:
  *                 type: string
- *                 description: Requis si orienteParAgent. Format CCM-042 (variantes « ccm 42 » normalisées).
+ *                 description: Requis si orienteParAgent. Format CMR-042 (variantes « cmr 42 » et ancien CCM normalisées).
  *               conditionsAccepted:
  *                 type: boolean
  *     responses:
