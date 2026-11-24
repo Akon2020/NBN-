@@ -27,6 +27,7 @@ import {
   VIDEO_TYPES,
   VIDEOS_PER_UPLOAD,
 } from "@/lib/mediaFiles"
+import { plural } from "@/lib/plural"
 
 const MAX_IMAGE_MB = 5
 const MAX_VIDEO_MB = 50
@@ -262,7 +263,7 @@ export function PropertyMediaManager({ property, onChanged }: PropertyMediaManag
                 ) : (
                   <Upload className="h-4 w-4 mr-1" />
                 )}
-                Envoyer {pendingImages.length} image(s)
+                Envoyer {plural(pendingImages.length, "image")}
               </Button>
             </div>
           )}
@@ -330,7 +331,7 @@ export function PropertyMediaManager({ property, onChanged }: PropertyMediaManag
                 ) : (
                   <VideoIcon className="h-4 w-4 mr-1" />
                 )}
-                Envoyer {pendingVideos.length} vidéo(s)
+                Envoyer {plural(pendingVideos.length, "vidéo")}
               </Button>
             </div>
           )}

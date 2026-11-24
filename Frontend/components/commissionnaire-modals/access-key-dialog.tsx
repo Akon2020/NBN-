@@ -90,7 +90,7 @@ export function AccessKeyDialog({
             <div className="rounded-xl bg-muted p-4 text-center">
               <p className="font-mono text-2xl font-bold tracking-[0.2em]">{result.accessKey}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Compte : {result.email} · expire le {new Date(result.expiresAt).toLocaleString("fr-FR")}
+                Compte : {result.email}, expire le {new Date(result.expiresAt).toLocaleString("fr-FR")}
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">

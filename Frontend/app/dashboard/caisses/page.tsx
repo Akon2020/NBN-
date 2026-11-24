@@ -54,7 +54,7 @@ export default function CaissesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Caisses</h1>
           <p className="text-muted-foreground mt-2">
-            Soldes multi-devises, un solde par devise et par caisse (CLAUDE.md §4)
+            Un solde par devise et par caisse, jamais mélangés
           </p>
         </div>
         <Button

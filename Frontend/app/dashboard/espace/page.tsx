@@ -306,7 +306,7 @@ export default function FieldAgentSpacePage() {
                       {propertyKindLabel(property.propertyType)} {property.category === "RENT" ? "à louer" : "à vendre"}
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
-                      {[property.avenue, property.quartier, property.commune].filter(Boolean).join(", ")} · NBN-
+                      {[property.avenue, property.quartier, property.commune].filter(Boolean).join(", ")}, NBN-
                       {property.idProperty}
                     </p>
                   </div>
@@ -349,7 +349,7 @@ export default function FieldAgentSpacePage() {
                       {Number(commission.montantCommission).toLocaleString("fr-FR")} {commission.currencyCode}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {commission.client?.dossierNumber ?? ""} · {formatDate(commission.createdAt)}
+                      {commission.client?.dossierNumber ?? ""}, {formatDate(commission.createdAt)}
                     </p>
                   </div>
                   <Badge className={COMMISSION_STATUT[commission.statut].className}>

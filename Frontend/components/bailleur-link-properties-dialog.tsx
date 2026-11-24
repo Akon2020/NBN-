@@ -15,6 +15,7 @@ import { UnassignedPropertyPicker } from "@/components/unassigned-property-picke
 import { linkBailleurProperties } from "@/actions/bailleurs"
 import type { Bailleur } from "@/lib/types"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 // « Joindre un bien existant » depuis le profil d'un bailleur.
 export function BailleurLinkPropertiesDialog({
@@ -35,7 +36,7 @@ export function BailleurLinkPropertiesDialog({
     setIsLinking(true)
     try {
       const linked = await linkBailleurProperties(bailleur.idBailleur, idProperties)
-      toast.success(`${linked} bien(s) rattaché(s) à ${bailleur.person?.fullName}`)
+      toast.success(`${plural(linked, "bien rattaché", "biens rattachés")} à ${bailleur.person?.fullName}`)
       setIdProperties([])
       onOpenChange(false)
       onLinked()

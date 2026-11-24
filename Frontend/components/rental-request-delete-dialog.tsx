@@ -16,6 +16,7 @@ import { Loader2 } from "lucide-react"
 import { deleteRentalRequest } from "@/actions/rentalRequests"
 import type { RentalRequest } from "@/lib/types"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 // Aligné sur le minimum exigé par le Backend.
 const MIN_REASON_LENGTH = 10
@@ -62,7 +63,7 @@ export function RentalRequestDeleteDialog({
           <DialogTitle>Supprimer la fiche</DialogTitle>
           <DialogDescription>
             La demande de {request.fullName} disparaîtra de la liste. Elle restera consultable dans
-            Rapports → Demandes de location, avec votre commentaire. Le client reste sur le pipeline.
+            Rapports, rubrique Demandes de location, avec votre commentaire. Le client reste sur le pipeline.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2 py-2">
@@ -72,12 +73,12 @@ export function RentalRequestDeleteDialog({
           <Textarea
             id="deletion-reason"
             rows={4}
-            placeholder="Ex. Doublon d'une demande déjà traitée, client injoignable depuis 3 semaines…"
+            placeholder="Ex. Doublon d'une demande déjà traitée, client injoignable depuis 3 semaines..."
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            {remaining > 0 ? `Encore ${remaining} caractère(s) minimum.` : "Commentaire suffisant."}
+            {remaining > 0 ? `Encore ${plural(remaining, "caractère")} minimum.` : "Commentaire suffisant."}
           </p>
         </div>
         <DialogFooter className="gap-2 sm:gap-2">

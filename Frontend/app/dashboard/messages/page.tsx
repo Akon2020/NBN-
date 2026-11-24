@@ -146,7 +146,7 @@ function MessagesView() {
         <Inbox className="h-16 w-16 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold">Aucune boîte professionnelle</h3>
         <p className="text-sm text-muted-foreground mt-1 max-w-md">
-          Aucune boîte (contact@, direction@…) n&apos;est attribuée à votre compte.
+          Aucune boîte (contact@, direction@, etc.) n&apos;est attribuée à votre compte.
         </p>
       </div>
     )
@@ -161,8 +161,8 @@ function MessagesView() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-balance">Messages reçus</h1>
         <p className="text-muted-foreground mt-2">
-          {mailboxes.map((mailbox) => mailbox.address).join(" · ")}
-          {unreadCount > 0 && ` · ${unreadCount} non lu${unreadCount > 1 ? "s" : ""}`}
+          {mailboxes.map((mailbox) => mailbox.address).join(", ")}
+          {unreadCount > 0 && `, ${unreadCount} non lu${unreadCount > 1 ? "s" : ""}`}
         </p>
       </div>
 
@@ -243,7 +243,7 @@ function MessagesView() {
                   </div>
                   <p className="text-sm truncate">{email.subject}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDate(email.receivedAt)} · {email.mailboxAddress}
+                    {formatDate(email.receivedAt)}, {email.mailboxAddress}
                   </p>
                 </CardContent>
               </Card>
@@ -315,8 +315,8 @@ function MessagesView() {
                         )}
                       >
                         <p className="text-xs text-muted-foreground mb-1">
-                          {item.author?.fullName || "Membre de l'équipe"} · {formatDate(item.createdAt)}
-                          {item.statut === "FAILED" && " · échec d'envoi"}
+                          {item.author?.fullName || "Membre de l'équipe"}, {formatDate(item.createdAt)}
+                          {item.statut === "FAILED" && ", échec d'envoi"}
                         </p>
                         <p className="whitespace-pre-wrap break-words">{item.body}</p>
                       </div>

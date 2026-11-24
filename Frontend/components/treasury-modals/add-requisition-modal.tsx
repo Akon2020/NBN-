@@ -88,7 +88,7 @@ export function AddRequisitionModal({ open, onOpenChange, onAdd }: AddRequisitio
         <DialogHeader>
           <DialogTitle>Soumettre une réquisition de fonds</DialogTitle>
           <DialogDescription>
-            Saisie → Vérification automatique → Approbation par la trésorerie.
+            Saisie, vérification automatique, puis approbation par la trésorerie.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">

@@ -99,7 +99,7 @@ function TaskCard({ task }: { task: Task }) {
           <div className="flex items-center gap-1 flex-wrap pl-5">
             {task.assignees.map((a) => (
               <Badge key={a.idUser} variant="outline" className="text-xs">
-                {a.user?.fullName || `Utilisateur #${a.idUser}`}
+                {a.user?.fullName || `Utilisateur ${a.idUser}`}
               </Badge>
             ))}
           </div>

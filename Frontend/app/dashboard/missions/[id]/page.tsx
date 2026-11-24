@@ -174,7 +174,7 @@ export default function MissionDetailPage({ params }: { params: Promise<{ id: st
                     className="text-primary hover:underline"
                   >
                     {[mission.property.avenue, mission.property.quartier].filter(Boolean).join(", ") ||
-                      `Bien #${mission.property.idProperty}`}
+                      `Bien ${mission.property.idProperty}`}
                   </Link>
                 </div>
               )}
@@ -186,7 +186,7 @@ export default function MissionDetailPage({ params }: { params: Promise<{ id: st
                     href={`/dashboard/clients/${mission.client.idClient}`}
                     className="text-primary hover:underline"
                   >
-                    {mission.client.person?.fullName || `Client #${mission.client.idClient}`}
+                    {mission.client.person?.fullName || `Client ${mission.client.idClient}`}
                   </Link>
                 </div>
               )}

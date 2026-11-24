@@ -156,7 +156,7 @@ export function GlobalSearchCommand() {
                       onSelect={() => navigate(`/dashboard/clients/${client.idClient}`)}
                     >
                       <UserRound className="text-primary" />
-                      {client.person?.fullName || `Client #${client.idClient}`}
+                      {client.person?.fullName || `Client ${client.idClient}`}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -170,7 +170,7 @@ export function GlobalSearchCommand() {
                       onSelect={() => navigate(`/dashboard/bailleurs/${bailleur.idBailleur}`)}
                     >
                       <Handshake className="text-primary" />
-                      {bailleur.person?.fullName || `Bailleur #${bailleur.idBailleur}`}
+                      {bailleur.person?.fullName || `Bailleur ${bailleur.idBailleur}`}
                     </CommandItem>
                   ))}
                 </CommandGroup>

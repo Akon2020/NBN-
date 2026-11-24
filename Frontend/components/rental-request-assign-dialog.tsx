@@ -22,6 +22,7 @@ import { assignRentalRequest } from "@/actions/rentalRequests"
 import { isEmailFormatValid } from "@/lib/contactValidation"
 import { ROLE_LABELS, type Commissionnaire, type RentalRequest } from "@/lib/types"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 // « Assigner une tâche » depuis une demande reçue : on choisit des
 // utilisateurs, des commissionnaires (collecteurs/courtiers) et, pour
@@ -101,7 +102,7 @@ export function RentalRequestAssignDialog({
         note: note.trim() || undefined,
       })
       setResult(data)
-      toast.success(`Tâche créée - fiche envoyée à ${data.emailsQueued} destinataire(s)`)
+      toast.success(`Tâche créée, fiche envoyée à ${plural(data.emailsQueued, "destinataire")}`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur inconnue")
     } finally {
@@ -135,7 +136,7 @@ export function RentalRequestAssignDialog({
         {result ? (
           <div className="space-y-3 py-2 text-sm">
             <p>
-              Tâche créée. Fiche envoyée à <strong>{result.emailsQueued}</strong> destinataire(s).
+              Tâche créée. Fiche envoyée à <strong>{plural(result.emailsQueued, "destinataire")}</strong>.
             </p>
             {result.withoutEmail.length > 0 && (
               <p className="rounded-md bg-warning-500/15 px-3 py-2">

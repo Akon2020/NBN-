@@ -237,7 +237,7 @@ export default function AlertesPage() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {new Date(alert.createdAt).toLocaleString("fr-FR")}
                     {alert.assignee
-                      ? ` · Assignée à ${alert.assignee.fullName}`
+                      ? `, Assignée à ${alert.assignee.fullName}`
                       : ""}
                   </p>
                 </div>

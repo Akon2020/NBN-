@@ -42,6 +42,7 @@ import {
 } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })
@@ -107,8 +108,8 @@ function CreateRelanceDialog({
       })
       toast.success(
         result.statut === "PLANIFIEE"
-          ? `Relance programmée pour ${result.recipients} bailleur(s)`
-          : `Relance lancée pour ${result.recipients} bailleur(s)`
+          ? `Relance programmée pour ${plural(result.recipients, "bailleur")}`
+          : `Relance lancée pour ${plural(result.recipients, "bailleur")}`
       )
       onOpenChange(false)
       onCreated(result.idRelance)
@@ -157,7 +158,7 @@ function CreateRelanceDialog({
 
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label>Bailleurs ({selectedReachable.length} sélectionné(s))</Label>
+              <Label>Bailleurs ({plural(selectedReachable.length, "sélectionné")})</Label>
               <div className="flex flex-wrap gap-1">
                 {BAILLEUR_PRIORITES.map((value) => (
                   <Button
@@ -183,7 +184,7 @@ function CreateRelanceDialog({
                   )
                 }
               />
-              Tout sélectionner ({reachable.length} joignable(s) par {channel === "EMAIL" ? "e-mail" : "WhatsApp"})
+              Tout sélectionner ({plural(reachable.length, "joignable")} par {channel === "EMAIL" ? "e-mail" : "WhatsApp"})
             </label>
             <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-border p-2">
               {reachable.length === 0 ? (
@@ -356,8 +357,8 @@ function RelancesView() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {relance.channel === "EMAIL" ? "E-mail" : "WhatsApp"} · {relance.recipients} bailleur(s)
-                    {relance.counts.A_ENVOYER ? ` · ${relance.counts.A_ENVOYER} à envoyer` : ""}
+                    {relance.channel === "EMAIL" ? "E-mail" : "WhatsApp"}, {plural(relance.recipients, "bailleur")}
+                    {relance.counts.A_ENVOYER ? `, ${relance.counts.A_ENVOYER} à envoyer` : ""}
                   </p>
                   <p className="truncate text-sm">{relance.subject || relance.message}</p>
                 </CardContent>
@@ -391,7 +392,7 @@ function RelancesView() {
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {BAILLEUR_RELANCE_STATUT_LABELS[detail.statut]}
-                      {detail.creator ? ` · programmée par ${detail.creator.fullName}` : ""}
+                      {detail.creator ? `, programmée par ${detail.creator.fullName}` : ""}
                     </p>
                   </div>
                   {detail.statut === "PLANIFIEE" && (

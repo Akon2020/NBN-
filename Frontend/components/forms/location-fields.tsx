@@ -55,7 +55,7 @@ export function LocationFields({
 
       {value.quartier && (
         <Field
-          label={avenueLabel ?? (multipleAvenues ? "Avenue(s)" : "Avenue")}
+          label={avenueLabel ?? (multipleAvenues ? "Avenues" : "Avenue")}
           hint={multipleAvenues ? "Vous pouvez en choisir plusieurs." : undefined}
           required={required}
         >

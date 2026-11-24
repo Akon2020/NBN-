@@ -18,6 +18,7 @@ import { AddToCartButton } from "@/components/add-to-cart-button"
 import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 export default function GalleryPage() {
   const [filter, setFilter] = useState<"all" | "RENT" | "SALE">("all")
@@ -84,7 +85,7 @@ export default function GalleryPage() {
           <p className="text-sm">
             Sélection pour <strong>{proposalTarget.fullName}</strong> : ajoutez les biens au panier (icône
             <ShoppingBag className="mx-1 inline h-3.5 w-3.5" />), puis ouvrez le panier pour les lui envoyer sur WhatsApp.
-            {items.length > 0 && ` ${items.length} bien(s) sélectionné(s).`}
+            {items.length > 0 && ` ${plural(items.length, "bien sélectionné", "biens sélectionnés")}.`}
           </p>
           <Button variant="outline" size="sm" onClick={() => setProposalTarget(null)}>
             Annuler la sélection pour ce client

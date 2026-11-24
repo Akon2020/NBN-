@@ -47,13 +47,13 @@ describe("Envoi WhatsApp bien par bien", () => {
 
     expect(screen.getByText("1. Appartement - Nyawera")).toBeInTheDocument()
     expect(screen.getByText("2. Appartement - Ndendere")).toBeInTheDocument()
-    expect(screen.getByText("0/2 envoyé(s)")).toBeInTheDocument()
+    expect(screen.getByText("0 sur 2 envoyé")).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole("button", { name: /Texte seul au client/ })[0])
     expect(open).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/wa\.me\/243991234567\?text=/), "_blank")
     // Salutation uniquement dans le premier message.
     expect(decodeURIComponent(String(open.mock.calls[0][0]))).toContain("Bonjour Amani Bisimwa,")
-    expect(screen.getByText("1/2 envoyé(s)")).toBeInTheDocument()
+    expect(screen.getByText("1 sur 2 envoyé")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Terminer et enregistrer" }))
     await waitFor(() => expect(onFinished).toHaveBeenCalledWith([1]))

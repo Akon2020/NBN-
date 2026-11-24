@@ -44,7 +44,7 @@ export const welcomeEmailTemplate = (nom, email, url) => `
 
     <p style="font-size:12px;color:#999;text-align:center;">
       Ce message est automatique, merci de ne pas y répondre.<br>
-      &copy; ${currentYear} Nyumbani Express – Tous droits réservés
+      &copy; ${currentYear} Nyumbani Express. Tous droits réservés.
     </p>
   </div>
 </div>
@@ -92,7 +92,7 @@ export const newUserEmailTemplate = (nom, email, defaultPassword, url) => `
     <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
 
     <p style="font-size:12px;color:#999;text-align:center;">
-      &copy; ${currentYear} Nyumbani Express – Tous droits réservés
+      &copy; ${currentYear} Nyumbani Express. Tous droits réservés.
     </p>
   </div>
 </div>

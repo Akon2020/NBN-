@@ -28,6 +28,7 @@ import {
   shareWithPhoto,
   whatsAppShareUrl,
 } from "@/lib/whatsappProposal"
+import { agree, plural } from "@/lib/plural"
 
 // Envoi WhatsApp bien par bien : un message par bien, avec sa photo quand
 // l'appareil sait la joindre (partage natif du téléphone). Les propositions
@@ -114,7 +115,7 @@ export function WhatsAppProposalDialog({
       setIsSaving(true)
       try {
         const result = await sendProposals({ idClient: target.idClient, idProperties: sentIds, channel: "WHATSAPP" })
-        toast.success(`${result.created} bien(s) proposé(s) à ${target.fullName} - ${result.total} proposition(s) au total`)
+        toast.success(`${plural(result.created, "bien proposé", "biens proposés")} à ${target.fullName}, ${plural(result.total, "proposition")} au total`)
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Erreur inconnue")
         setIsSaving(false)
@@ -202,7 +203,7 @@ export function WhatsAppProposalDialog({
 
         <DialogFooter className="items-center gap-2 sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            {sentIds.length}/{properties.length} envoyé(s)
+            {sentIds.length} sur {properties.length} {agree(sentIds.length, "envoyé")}
           </p>
           <Button onClick={finish} disabled={isSaving} className="gap-2">
             {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}

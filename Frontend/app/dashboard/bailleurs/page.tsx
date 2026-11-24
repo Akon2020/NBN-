@@ -25,6 +25,7 @@ import { BailleurAvatar } from "@/components/bailleur-avatar"
 import { BailleurPropertiesDialog } from "@/components/bailleur-properties-dialog"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 // Listing des bailleurs : classés par profil (VIP → Inactif) puis par ordre
 // alphabétique, chacun avec ses biens (« Aperçu ») et son identité (« Profil »).
@@ -95,7 +96,7 @@ export default function BailleursPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Bailleurs</h1>
-          <p className="text-muted-foreground mt-2">Classés par profil (VIP → Inactif) puis par ordre alphabétique</p>
+          <p className="text-muted-foreground mt-2">Classés par profil, de VIP à Inactif, puis par ordre alphabétique</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setShowContacts(true)}>
@@ -194,7 +195,7 @@ export default function BailleursPage() {
                   )}
                   <span className="flex items-center gap-1">
                     <Home className="h-3 w-3" />
-                    {bailleur.propertiesCount ?? 0} bien(s)
+                    {plural(bailleur.propertiesCount ?? 0, "bien")}
                   </span>
                 </div>
 

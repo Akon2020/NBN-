@@ -18,6 +18,7 @@ import {
   PROPOSAL_CHANNEL_LABELS,
   type SentProposal,
 } from "@/lib/types"
+import { plural } from "@/lib/plural"
 
 // « Propositions envoyées » : chaque bien proposé au client, avec ses
 // détails, la date, le canal et l'agent qui l'a envoyé.
@@ -58,11 +59,11 @@ export function ClientProposalsDialog({
               const composition = property
                 ? [
                     property.bedrooms ? `${property.bedrooms} ch.` : null,
-                    property.livingRooms ? `${property.livingRooms} salon(s)` : null,
+                    property.livingRooms ? plural(property.livingRooms, "salon") : null,
                     property.toilets ? `${property.toilets} sdb` : null,
                   ]
                     .filter(Boolean)
-                    .join(" · ")
+                    .join(", ")
                 : ""
 
               return (

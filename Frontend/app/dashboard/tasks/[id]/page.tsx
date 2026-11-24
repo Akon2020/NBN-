@@ -260,7 +260,7 @@ export default function TaskDetailPage() {
                   {comments.map((comment) => (
                     <div key={comment.idTaskComment} className="flex items-start justify-between gap-2 rounded-md border border-border p-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">{comment.author?.fullName || `Utilisateur #${comment.authorId}`}</p>
+                        <p className="text-sm font-medium">{comment.author?.fullName || `Utilisateur ${comment.authorId}`}</p>
                         <p className="text-sm text-muted-foreground mt-0.5 break-words">{comment.content}</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {new Date(comment.createdAt).toLocaleString("fr-FR")}
@@ -311,7 +311,7 @@ export default function TaskDetailPage() {
               ) : (
                 task.assignees.map((a) => (
                   <Badge key={a.idUser} variant="outline" className="mr-1">
-                    {a.user?.fullName || `Utilisateur #${a.idUser}`}
+                    {a.user?.fullName || `Utilisateur ${a.idUser}`}
                   </Badge>
                 ))
               )}
@@ -330,7 +330,7 @@ export default function TaskDetailPage() {
                 {task.dateEcheance ? new Date(task.dateEcheance).toLocaleDateString("fr-FR") : "Aucune échéance"}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
-                Créée par {task.creator?.fullName || `#${task.createdBy}`} le{" "}
+                Créée par {task.creator?.fullName || "un membre de l'équipe"} le{" "}
                 {new Date(task.createdAt).toLocaleDateString("fr-FR")}
               </p>
             </CardContent>
@@ -351,7 +351,7 @@ export default function TaskDetailPage() {
                     href={`/dashboard/rentals/${link.idProperty}`}
                     className={cn("block text-sm hover:underline")}
                   >
-                    Bien - {link.property?.quartier || `#${link.idProperty}`}
+                    Bien - {link.property?.quartier || `NBN-${link.idProperty}`}
                   </Link>
                 ))}
                 {task.clientLinks.map((link) => (
@@ -374,7 +374,7 @@ export default function TaskDetailPage() {
                     href={`/dashboard/commissionnaires/${link.idCommissionnaire}`}
                     className="block text-sm hover:underline"
                   >
-                    {link.commissionnaire?.person?.fullName || `Commissionnaire #${link.idCommissionnaire}`}
+                    {link.commissionnaire?.person?.fullName || `Commissionnaire ${link.idCommissionnaire}`}
                   </Link>
                 ))}
               </CardContent>

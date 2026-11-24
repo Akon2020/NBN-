@@ -187,7 +187,8 @@ describe("BACK-G06/BACK-G03 - Bailleur (fiche VIP, marge sensible)", () => {
     expect(withoutMarge.body.margeAgence).toBeUndefined();
   });
 
-  it("juridique peut consulter (bailleurs:read) mais pas modifier", async () => {
+  // Décision de l'agence (2026-11-25) : Juridique gère aussi les bailleurs.
+  it("juridique peut consulter et modifier un bailleur (bailleurs:manage)", async () => {
     const idBailleur = createdBailleurIds[0];
     const cookies = await loginAs(juridiqueEmail);
 
@@ -199,8 +200,8 @@ describe("BACK-G06/BACK-G03 - Bailleur (fiche VIP, marge sensible)", () => {
     const updateRes = await request(app)
       .patch(`/api/bailleurs/${idBailleur}`)
       .set("Cookie", cookies)
-      .send({ notes: "Ne devrait pas passer" });
-    expect(updateRes.status).toBe(403);
+      .send({ notes: "Note ajoutée par le juridique" });
+    expect(updateRes.status).toBe(200);
   });
 
   it("la réponse de mise à jour d'un bailleur inclut toujours sa Person", async () => {

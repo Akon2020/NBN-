@@ -25,6 +25,7 @@ import {
   type BailleurPriorite,
 } from "@/lib/types"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 // « Emails » : on sélectionne des bailleurs, puis on rédige l'objet et le
 // message ; l'envoi part depuis contact@nbnexpress.org, un e-mail par
@@ -79,7 +80,7 @@ export function BailleurEmailsDialog({
     setIsSending(true)
     try {
       const result = await sendBailleurEmails({ idBailleurs: selectedIds, subject: subject.trim(), message: message.trim() })
-      toast.success(`${result.sent} e-mail(s) envoyé(s) depuis contact@nbnexpress.org`)
+      toast.success(`${plural(result.sent, "e-mail envoyé", "e-mails envoyés")} depuis contact@nbnexpress.org`)
       if (result.withoutEmail.length) toast.warning(`Sans adresse e-mail : ${result.withoutEmail.join(", ")}`)
       onOpenChange(false)
     } catch (error) {
@@ -182,7 +183,7 @@ export function BailleurEmailsDialog({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              De : <strong>contact@nbnexpress.org</strong> · À : {selectedIds.length} bailleur(s)
+              De : <strong>contact@nbnexpress.org</strong>, à : {plural(selectedIds.length, "bailleur")}
             </p>
             <div className="space-y-2">
               <Label htmlFor="bailleur-email-subject">Objet</Label>

@@ -156,7 +156,7 @@ export default function DemandesPage() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     {new Date(request.createdAt).toLocaleString("fr-FR")}
-                    {request.client?.dossierNumber ? ` · ${request.client.dossierNumber}` : ""}
+                    {request.client?.dossierNumber ? `, ${request.client.dossierNumber}` : ""}
                   </p>
                 </div>
                 {request.client && (

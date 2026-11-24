@@ -82,7 +82,7 @@ export function CommissionnaireIdentityCard({
           <>
             <p>
               {person.idDocumentType ? ID_DOCUMENT_TYPE_LABELS[person.idDocumentType] : "Pièce enregistrée"}
-              {person.idNumber ? ` · N° ${person.idNumber}` : ""}
+              {person.idNumber ? `, N° ${person.idNumber}` : ""}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => view("recto")}>

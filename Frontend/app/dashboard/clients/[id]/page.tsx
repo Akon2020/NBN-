@@ -132,7 +132,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowProposals(true)}>
             <Send className="h-4 w-4 mr-2" />
-            Propositions envoyées ({proposalsLoading ? "…" : proposals.length})
+            Propositions envoyées ({proposalsLoading ? "..." : proposals.length})
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
             <Edit className="h-4 w-4 mr-2" />

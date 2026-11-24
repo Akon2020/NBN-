@@ -95,7 +95,7 @@ export default function RequisitionsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Réquisitions de fonds</h1>
           <p className="text-muted-foreground mt-2">
-            Saisie → Vérification → Approbation → Génération → Archivage
+            Saisie, vérification, approbation, génération puis archivage
           </p>
         </div>
         <Button

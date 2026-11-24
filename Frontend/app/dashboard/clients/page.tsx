@@ -72,7 +72,7 @@ function ClientCard({ client }: { client: Client }) {
           </button>
           <Link href={`/dashboard/clients/${client.idClient}`} className="min-w-0 flex-1">
             <p className="font-medium text-sm line-clamp-1 hover:underline">
-              {client.person?.fullName || `Client #${client.idClient}`}
+              {client.person?.fullName || `Client ${client.idClient}`}
             </p>
             {client.dossierNumber && (
               <p className="text-[10px] font-mono text-muted-foreground">{client.dossierNumber}</p>
@@ -324,7 +324,7 @@ export default function ClientsPage() {
               <Card className="border-primary shadow-lg w-[260px]">
                 <CardContent className="p-3">
                   <p className="font-medium text-sm line-clamp-1">
-                    {activeClient.person?.fullName || `Client #${activeClient.idClient}`}
+                    {activeClient.person?.fullName || `Client ${activeClient.idClient}`}
                   </p>
                 </CardContent>
               </Card>

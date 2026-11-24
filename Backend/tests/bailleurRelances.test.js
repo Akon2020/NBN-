@@ -22,7 +22,7 @@ const inOneHour = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
 beforeAll(async () => {
   const hashed = await bcrypt.hash("TestPass@123", await bcrypt.genSalt());
-  for (const role of ["operations", "marketing"]) {
+  for (const role of ["operations", "tresorerie"]) {
     users[role] = await User.create({
       fullName: `${role} relances ${suffix}`,
       email: `${role}.relances.${suffix}@nbn.test`,
@@ -70,7 +70,7 @@ describe("Relances programmées", () => {
       scheduledAt: inOneHour(),
       message: "Bonjour {nom}",
     };
-    expect((await create({ ...payload, subject: "Relance" }, "marketing")).status).toBe(403);
+    expect((await create({ ...payload, subject: "Relance" }, "tresorerie")).status).toBe(403);
     expect((await create(payload)).status).toBe(400);
   });
 

@@ -337,7 +337,7 @@ export default function DemandeLocationPage() {
               onChange={(v) => set("location", v)}
               multipleAvenues
               required
-              avenueLabel="Quelle(s) avenue(s) préférez-vous ?"
+              avenueLabel="Quelles avenues préférez-vous ?"
             />
           )}
           {form.ville === "AUTRE" && (
@@ -345,7 +345,7 @@ export default function DemandeLocationPage() {
               <Field label="Quartier souhaité" required>
                 <TextField value={form.quartierLibre} onChange={(v) => set("quartierLibre", v)} />
               </Field>
-              <Field label="Quelle(s) avenue(s) préférez-vous ?" required>
+              <Field label="Quelles avenues préférez-vous ?" required>
                 <TextField value={form.avenuesLibres} onChange={(v) => set("avenuesLibres", v)} />
               </Field>
             </>

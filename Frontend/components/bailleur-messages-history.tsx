@@ -58,7 +58,7 @@ export function BailleurMessagesHistory({ idBailleur, refreshKey }: { idBailleur
                       )}
                       <span className="text-xs text-muted-foreground">
                         {formatDate(message.sentAt || message.createdAt)}
-                        {message.sender ? ` · ${message.sender.fullName}` : ""}
+                        {message.sender ? `, ${message.sender.fullName}` : ""}
                       </span>
                     </div>
                     {message.subject && <p className="mt-1 font-medium">{message.subject}</p>}
@@ -83,8 +83,8 @@ export function BailleurMessagesHistory({ idBailleur, refreshKey }: { idBailleur
                   >
                     <p className="font-medium">{email.subject}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(email.receivedAt)} · {email.mailboxAddress}
-                      {email.repliedAt ? " · répondu" : ""}
+                      {formatDate(email.receivedAt)}, {email.mailboxAddress}
+                      {email.repliedAt ? ", répondu" : ""}
                     </p>
                   </Link>
                 ))

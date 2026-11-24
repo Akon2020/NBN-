@@ -41,5 +41,5 @@ export const clientContactMessage = ({
     "",
     "Pouvez-vous nous indiquer vos disponibilités pour en discuter ou organiser une visite ?",
     "",
-    "NBN Express – La crédibilité au service de votre projet immobilier.",
+    "NBN Express, la crédibilité au service de votre projet immobilier.",
   ].join("\n")

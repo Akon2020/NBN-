@@ -191,7 +191,7 @@ export default function CollecteBienPage() {
         ...(form.observations.includes("AUTRE") && form.observationAutre.trim()
           ? [form.observationAutre.trim()]
           : []),
-      ].join(" · ")
+      ].join(", ")
 
       const payload: PropertyCollectionPayload = {
         remplisseur: form.remplisseur as PropertyCollectionPayload["remplisseur"],

@@ -88,7 +88,7 @@ export function AgentCodeField({ value, onChange, normalize, placeholder, onVeri
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success-500" aria-hidden />
             <span>
               <strong>{agent.fullName}</strong>
-              {agent.phone ? ` · ${agent.phone}` : ""}
+              {agent.phone ? `, ${agent.phone}` : ""}
               <span className="block text-xs text-muted-foreground">Code {agent.code} vérifié</span>
             </span>
           </span>

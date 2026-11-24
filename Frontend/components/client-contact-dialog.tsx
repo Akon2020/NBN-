@@ -107,7 +107,7 @@ export function ClientContactDialog({
 
         <div className="space-y-4 py-2">
           <div className="flex gap-2">
-            {channelButton("WHATSAPP", phone ? `WhatsApp · ${phone}` : "WhatsApp (pas de numéro)", MessageCircle, Boolean(whatsAppLink(phone, "")))}
+            {channelButton("WHATSAPP", phone ? `WhatsApp, ${phone}` : "WhatsApp (pas de numéro)", MessageCircle, Boolean(whatsAppLink(phone, "")))}
             {channelButton("EMAIL", email ? "E-mail" : "E-mail (pas d'adresse)", Mail, Boolean(email))}
           </div>
 

@@ -27,7 +27,7 @@ beforeAll(async () => {
   });
 
   const hashed = await bcrypt.hash("TestPass@123", await bcrypt.genSalt());
-  for (const role of ["operations", "marketing"]) {
+  for (const role of ["operations", "tresorerie"]) {
     users[role] = await User.create({
       fullName: `${role} messages ${suffix}`,
       email: `${role}.messages.${suffix}@nbn.test`,
@@ -70,7 +70,7 @@ describe("Emails aux bailleurs", () => {
 
     const forbidden = await request(app)
       .post("/api/bailleur-messages/emails")
-      .set("Cookie", cookies.marketing)
+      .set("Cookie", cookies.tresorerie)
       .send({ idBailleurs: [bailleurs.withEmail.idBailleur], subject: "Objet", message: "x" });
     expect(forbidden.status).toBe(403);
   });

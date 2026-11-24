@@ -58,7 +58,7 @@ describe("Onglet Bailleurs", () => {
 
     const names = (await screen.findAllByRole("heading", { level: 3 })).map((heading) => heading.textContent);
     expect(names).toEqual(["Bailleur Avec Marge", "Bailleur Collecté"]);
-    expect(screen.getByText("2 bien(s)")).toBeInTheDocument();
+    expect(screen.getByText("2 biens")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Aperçu/ })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: /Profil/ })[0]).toHaveAttribute("href", "/dashboard/bailleurs/2");
   });

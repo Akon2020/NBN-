@@ -112,7 +112,7 @@ export const notifyRentalRequest = async ({ rentalRequest, client, fieldAgent = 
     notification: {
       type: "rental_request:new",
       title: `Nouvelle demande de location - ${rentalRequest.fullName}`,
-      message: [localisation, budget].filter(Boolean).join(" · "),
+      message: [localisation, budget].filter(Boolean).join(", "),
       relatedEntityType: "Client",
       relatedEntityId: client.idClient,
     },
@@ -164,7 +164,7 @@ export const notifyPropertyCollection = async ({ property, responsable, source, 
       // Le suffixe permet au dashboard d'ouvrir la bonne fiche (location/vente).
       type: `property_collection:new:${property.category === "SALE" ? "sale" : "rent"}`,
       title,
-      message: `${source} · ${localisation}`,
+      message: `${source}, ${localisation}`,
       relatedEntityType: "Property",
       relatedEntityId: property.idProperty,
     },

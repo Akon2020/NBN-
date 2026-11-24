@@ -21,6 +21,7 @@ import {
   type Property,
 } from "@/lib/types"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 // « Aperçu » : tous les biens à l'actif d'un bailleur.
 export function BailleurPropertiesDialog({
@@ -50,7 +51,7 @@ export function BailleurPropertiesDialog({
         <DialogHeader>
           <DialogTitle>Biens de {bailleur?.person?.fullName}</DialogTitle>
           <DialogDescription>
-            {isLoading ? "Chargement…" : `${properties.length} bien(s) à son actif`}
+            {isLoading ? "Chargement..." : `${plural(properties.length, "bien")} à son actif`}
           </DialogDescription>
         </DialogHeader>
 

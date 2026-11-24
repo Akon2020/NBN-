@@ -74,7 +74,7 @@ export function BailleurPicker({ selectedId, onSelect }: Props) {
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{bailleur.person?.fullName}</span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {bailleur.person?.phone || "Sans numéro"} · {bailleur.dossierNumber}
+                    {bailleur.person?.phone || "Sans numéro"}, {bailleur.dossierNumber}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">{bailleur.priorite}</span>

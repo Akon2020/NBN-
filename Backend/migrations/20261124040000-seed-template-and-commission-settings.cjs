@@ -18,7 +18,7 @@ const SETTINGS = [
         "Les informations concernant votre recherche de bien immobilier ont été enregistrées avec succès. Notre équipe va examiner votre demande et un agent NBN Express vous contactera bientôt pour la suite de votre recherche.",
         "",
         "Merci d'avoir choisi NBN Express",
-        "– La crédibilité au service de votre projet immobilier.",
+        "La crédibilité au service de votre projet immobilier.",
         "",
         "L'équipe NBN Express",
       ].join("\n"),

@@ -72,7 +72,7 @@ export function AddIncidentModal({ open, onOpenChange, commissionnaire, onAdded 
         <DialogHeader>
           <DialogTitle>Enregistrer un incident</DialogTitle>
           <DialogDescription>
-            Retard, données incomplètes, non-respect des règles (CDC §7) - impacte le score discipline.
+            Retard, données incomplètes, non-respect des règles : l'incident compte dans le score de discipline.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">

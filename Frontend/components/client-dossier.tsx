@@ -194,7 +194,7 @@ export function ClientDossier({ idClient }: ClientDossierProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Banknote className="h-5 w-5" />
-            Commissions &amp; paiements
+            Commissions et paiements
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">

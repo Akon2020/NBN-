@@ -115,7 +115,7 @@ export default function MissionsPage() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {mission.commissionnaire?.person?.fullName || `Commissionnaire #${mission.idCommissionnaire}`}
+                    {mission.commissionnaire?.person?.fullName || `Commissionnaire ${mission.idCommissionnaire}`}
                     {" - "}
                     {new Date(mission.createdAt).toLocaleDateString("fr-FR")}
                   </p>

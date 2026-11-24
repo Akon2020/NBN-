@@ -29,6 +29,7 @@ import {
   type BailleurType,
 } from "@/lib/types"
 import { toast } from "sonner"
+import { plural } from "@/lib/plural"
 
 interface AddBailleurModalProps {
   open: boolean
@@ -103,7 +104,7 @@ export function AddBailleurModal({ open, onOpenChange, onAdd }: AddBailleurModal
       onAdd(created)
       toast.success(
         idProperties.length
-          ? `Bailleur ajouté avec ${idProperties.length} bien(s) rattaché(s)`
+          ? `Bailleur ajouté avec ${plural(idProperties.length, "bien rattaché", "biens rattachés")}`
           : "Bailleur ajouté"
       )
       onOpenChange(false)

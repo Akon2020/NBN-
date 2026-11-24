@@ -8,6 +8,7 @@ import { Loader2, Search } from "lucide-react"
 import { getAllProperties } from "@/actions/properties"
 import { getImageUrl } from "@/lib/imageUrl"
 import { PROPERTY_TYPE_LABELS, type Property } from "@/lib/types"
+import { plural } from "@/lib/plural"
 
 // Biens de la galerie encore sans bailleur, à rattacher. Le Backend refuse de
 // toute façon un bien déjà attribué : ce filtre évite seulement de le proposer.
@@ -86,7 +87,7 @@ export function UnassignedPropertyPicker({
                     {PROPERTY_TYPE_LABELS[property.propertyType]} {property.category === "SALE" ? "à vendre" : "à louer"}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {[property.avenue, property.quartier].filter(Boolean).join(", ")} · $
+                    {[property.avenue, property.quartier].filter(Boolean).join(", ")}, $
                     {Number(property.price).toLocaleString("fr-FR")}
                   </span>
                 </span>
@@ -95,7 +96,7 @@ export function UnassignedPropertyPicker({
           })
         )}
       </div>
-      {selectedIds.length > 0 && <p className="text-xs text-muted-foreground">{selectedIds.length} bien(s) sélectionné(s)</p>}
+      {selectedIds.length > 0 && <p className="text-xs text-muted-foreground">{plural(selectedIds.length, "bien sélectionné", "biens sélectionnés")}</p>}
     </div>
   )
 }

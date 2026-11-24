@@ -131,7 +131,7 @@ export default function AccessGrantsPage() {
 
   const userLabel = (idUser: number) => {
     const user = consultants.find((c) => c.idUser === idUser);
-    return user ? `${user.fullName} (${user.email})` : `Utilisateur #${idUser}`;
+    return user ? `${user.fullName} (${user.email})` : `Utilisateur ${idUser}`;
   };
 
   return (
