@@ -1263,3 +1263,48 @@ Le workflow Backend échouait sur tous les commits récents (`dev` et `main`), t
 - **Base neuve** : toutes les migrations et seeders rejoués depuis zéro sur une base temporaire (comme le CI) — OK (10 rôles, 38 permissions, admin). La suite y révélait un échec invisible sur la base de développement : `appSettings.test.js` supprimait ses utilisateurs alors que `cart.maxItems` les gardait en `updatedBy` (clé étrangère). Les paramètres touchés sont détachés avant suppression. Backend 317/317 (52 fichiers) sur base neuve ; base temporaire supprimée.
 - Résultat : badge « Backend CI » **passing** sur `dev`.
 - Reste non bloquant : GitHub signale que `actions/checkout@v4` et `actions/setup-node@v4` ciblent Node 20 (dépréciés sur les runners, simple avertissement). Pour éviter de retomber sur le problème de lockfile, régénérer `package-lock.json` avec la version de npm du CI, ou aligner `node-version` du workflow sur la version utilisée en local.
+
+---
+
+## Lot « Améliorations avant mise en ligne » (2026-11-24)
+
+Source : `PROMPT_NBN_Express_ameliorations.md` (retour client). Les points déjà livrés dans les phases 0 à 5 ci-dessus sont revérifiés plutôt que refaits.
+
+### Landing page refondue
+
+- Hero photo pleine largeur dans un cadre arrondi, barre de navigation vitrée, carte flottante, titre « Trouvez le logement idéal pour votre budget. », couleurs de marque conservées (navy `#14294A`, orange bouton `#C13F0B`).
+- Barre de recherche (type, commune, quartier, budget) qui filtre les biens publiés ; sans résultat, renvoi vers la demande de location **préremplie** (`?type=&commune=&quartier=&budgetMax=`).
+- Bandeau de repères, biens réels (API publique, 6 affichés), services, « Comment ça marche », « Pourquoi nous », appel à l'action, pied de page.
+- Accessibilité : lien d'évitement, cibles tactiles de 44 px, menu mobile plein écran (rendu dans `body` : le flou de la barre confinait le panneau `fixed`), aucun défilement horizontal à 375 px (vérifié).
+- `GET /api/properties/public` passe par une **liste blanche** (`serializePublicProperty`) : l'informateur, le code commissionnaire, les observations, le GPS, l'adresse complète, l'auteur et les scores sortaient pour n'importe quel visiteur. `?limit` et `?category` ajoutés, biens archivés exclus.
+- Types de biens : liste unique `lib/propertyKinds.ts` (Appartement, Maison, Terrain, Chambrette, Bureau, Local commercial), anciens types rattachés pour l'affichage.
+
+### P0.1 Connexion impossible sur iPhone : cause trouvée
+
+Diagnostic sur la production : chaîne SSL complète (Let's Encrypt YR1 → Root YR → ISRG Root X1), CORS correct pour `https://` avec et sans `www`, pas d'enregistrement AAAA, API joignable avec un User-Agent iPhone. Mais **`http://nbnexpress.org` répond 200 sans redirection**, et un preflight avec `Origin: http://nbnexpress.org` reçoit un **500 sans en-tête CORS**. Safari iOS ne force pas HTTPS sur ce domaine (Chrome desktop le fait pour une adresse tapée) : la page s'ouvrait en HTTP, l'API refusait l'origine, le navigateur rapportait une erreur réseau, d'où « Serveur injoignable ». Le lien de l'e-mail fonctionnait parce qu'il est en `https://`.
+
+- `Frontend/proxy.ts` : redirection 308 vers HTTPS (`x-forwarded-proto`), filet de sécurité côté navigateur dans `app/layout.tsx`, en-tête HSTS (1 an, sans sous-domaines).
+- `Backend/app.js` : origine refusée → 403 JSON journalisé (`CORS_ORIGIN_REFUSED`) au lieu d'un 500 opaque ; preflight mis en cache 10 min ; `nbn-plus.vercel.app` retiré des origines.
+- `lib/apiError.ts` : distingue page non sécurisée, délai dépassé, hors connexion, 401, 403, 429, 5xx, et journalise la vraie cause. `lib/axios.ts` : délai de 30 s et un nouvel essai pour les lectures et la connexion (jamais pour les envois).
+- Démarrage à froid : déjà documenté (Passenger). Le nouvel essai automatique absorbe le premier appel lent.
+- **À faire sur l'hébergement** : cPanel > Domaines > « Forcer la redirection HTTPS ».
+
+### P0.2 Sécurité de la connexion
+
+Audit : il n'existe pas de « lien magique » dans le code. Le lien reçu par e-mail était celui de **bienvenue / réinitialisation**, qui pointait vers l'ancien déploiement `nbn-plus.vercel.app` (`FRONT_URL`), et surtout :
+
+- `POST /api/auth/reset-password` **renvoyait le lien de réinitialisation dans sa réponse** (`dev.resetUrl`), en production : n'importe qui pouvait prendre n'importe quel compte connaissant son e-mail. Le jeton était un JWT réutilisable d'un jour, le lien menait à l'API (`HOST_URL=http://localhost:5500` en production), et la page « Mot de passe oublié » du site ne faisait qu'une simulation.
+- L'inscription libre (`/api/auth/register`) créait un compte capable de lire les routes protégées par la seule authentification.
+
+Corrections :
+- Table `authTokens` (migration `20261124000000-create-auth-tokens.cjs`, réversible vérifiée) : jetons **hachés, à usage unique**, 15 min (`PASSWORD_RESET_TTL_MINUTES`), un nouveau lien révoque le précédent, tous les liens tombent au changement de mot de passe, sessions fermées après une réinitialisation (reconnexion exigée : le lien ne remplace jamais le mot de passe).
+- Réponse identique que le compte existe ou non, e-mail via l'outbox, lien vers `FRONT_URL/auth/reset-password`.
+- Mot de passe par défaut : jeton court `PASSWORD_SETUP` pour choisir le sien tout de suite (avant : impasse).
+- Quotas : échecs de connexion par réseau (30) et par compte (8) sur 15 min, les connexions réussies ne comptent plus (toute l'agence partage une adresse publique) ; « mot de passe oublié » 5 ; vérification de jeton 20.
+- Cookies `SameSite=Lax` (`COOKIE_SAME_SITE`), toujours `Secure` et `HttpOnly`.
+- Inscription libre fermée en production (`ALLOW_PUBLIC_REGISTRATION`).
+- Expiration de session : contenu masqué immédiatement, retour à la connexion avec explication puis à la page d'origine ; revérification au retour d'un onglet resté en arrière-plan plus de 5 min ou restauré du cache Safari.
+- Frontend : écrans de connexion refaits, vraie page « Mot de passe oublié », `/auth/reset-password`, `/auth/activer` (clé d'accès commissionnaire, P1.2).
+- Tests : `Backend/tests/passwordReset.test.js` (6), `Frontend/tests/lib/apiError.test.ts` et `axios.test.ts` complétés. Backend auth 27/27, Frontend 46/46, `tsc` OK.
+- **Recommandation lien magique** : ne pas en créer. Le besoin réel (première connexion simple) est couvert par la clé d'accès + choix du mot de passe, et la réinitialisation par lien court. Un lien qui connecte sans mot de passe ferait de la boîte mail le seul facteur.
+- **À faire** : `FRONT_URL="https://nbnexpress.org"` et `HOST_URL="https://api.nbnexpress.org"` sur le serveur (corrigés dans `.env.production.local` local), `npm run db:migrate`, supprimer ou protéger le projet Vercel `nbn-plus`.
