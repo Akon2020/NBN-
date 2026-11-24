@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PROPERTY_KINDS, propertyKindOf } from "@/lib/propertyKinds"
 import { ImageIcon, Home, Building2, Eye, Heart, Share2, Loader2, ShoppingBag } from "lucide-react"
 import { useCart } from "@/components/cart-provider"
 import { getAllBailleurs } from "@/actions/bailleurs"
@@ -20,6 +21,8 @@ import { toast } from "sonner"
 
 export default function GalleryPage() {
   const [filter, setFilter] = useState<"all" | "RENT" | "SALE">("all")
+  // Type de bien : liste unique de l'agence (anciens types rattachés).
+  const [kindFilter, setKindFilter] = useState<string>("all")
   const [properties, setProperties] = useState<Property[]>([])
   const [favorites, setFavorites] = useState<Set<number>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
@@ -49,7 +52,11 @@ export default function GalleryPage() {
     load()
   }, [])
 
-  const filteredProperties = filter === "all" ? properties : properties.filter((p) => p.category === filter)
+  const filteredProperties = properties.filter(
+    (p) =>
+      (filter === "all" || p.category === filter) &&
+      (kindFilter === "all" || propertyKindOf(p.propertyType) === kindFilter)
+  )
 
   const toggleFavorite = async (id: number) => {
     try {
@@ -86,10 +93,23 @@ export default function GalleryPage() {
       )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-balance">Galerie d'images</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Galerie d&apos;images</h1>
           <p className="text-muted-foreground mt-2">Toutes les images des biens immobiliers</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={kindFilter} onValueChange={setKindFilter}>
+            <SelectTrigger className="w-44" aria-label="Type de bien">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les types</SelectItem>
+              {PROPERTY_KINDS.map((kind) => (
+                <SelectItem key={kind.value} value={kind.value}>
+                  {kind.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filter} onValueChange={(value: "all" | "RENT" | "SALE") => setFilter(value)}>
             <SelectTrigger className="w-40">
               <SelectValue />

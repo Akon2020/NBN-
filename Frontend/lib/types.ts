@@ -9,6 +9,13 @@ export type PropertyType =
   | "CONSTRUCTION_SEMI_DURABLE"
   | "TERRAIN_PLAT"
   | "TERRAIN_PENTE"
+  | "PARCELLE"
+  | "CHAMBRE"
+  // Liste unique de l'agence (lib/propertyKinds.ts).
+  | "TERRAIN"
+  | "CHAMBRETTE"
+  | "BUREAU"
+  | "LOCAL_COMMERCIAL"
 
 // GOAL 1 - cycle de vie du bien. VENDU n'est atteignable qu'en category=SALE
 // (validé côté Backend, jamais côté client).
@@ -44,6 +51,12 @@ export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   CONSTRUCTION_SEMI_DURABLE: "Construction semi-durable",
   TERRAIN_PLAT: "Terrain plat",
   TERRAIN_PENTE: "Terrain en pente",
+  PARCELLE: "Terrain",
+  CHAMBRE: "Chambrette",
+  TERRAIN: "Terrain",
+  CHAMBRETTE: "Chambrette",
+  BUREAU: "Bureau",
+  LOCAL_COMMERCIAL: "Local commercial",
 }
 
 // GOAL 9 - gestion automatique des marges. `MarginSetting` n'est visible
@@ -93,7 +106,7 @@ export const SALE_PROPERTY_TYPES: PropertyType[] = [
   "TERRAIN_PLAT",
   "TERRAIN_PENTE",
 ]
-export const LAND_PROPERTY_TYPES: PropertyType[] = ["TERRAIN_PLAT", "TERRAIN_PENTE"]
+export const LAND_PROPERTY_TYPES: PropertyType[] = ["TERRAIN_PLAT", "TERRAIN_PENTE", "PARCELLE", "TERRAIN"]
 
 export const RENTAL_UNIT_LABELS: Record<RentalUnit, string> = {
   DAY: "Jours",
