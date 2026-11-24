@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation"
 import { EditScoreModal } from "@/components/commissionnaire-modals/edit-score-modal"
 import { AddIncidentModal } from "@/components/commissionnaire-modals/add-incident-modal"
 import { EntityTimeline } from "@/components/entity-timeline"
+import { CommissionnaireIdentityCard } from "@/components/commissionnaire-identity-card"
 import {
   getCommissionnaireClients,
   getSingleCommissionnaire,
@@ -213,6 +214,8 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
               </div>
             </CardContent>
           </Card>
+
+          <CommissionnaireIdentityCard commissionnaire={commissionnaire} onUpdated={setCommissionnaire} />
 
           <Card className="border-border">
             <CardHeader>

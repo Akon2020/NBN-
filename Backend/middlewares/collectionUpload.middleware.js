@@ -44,3 +44,43 @@ export const parseCollectionUpload = (req, res, next) => {
     return next();
   });
 };
+
+// Fiche commissionnaire / collecteur : recto obligatoire, verso facultatif,
+// 5 Mo par fichier (MAX_COMMISSIONNAIRE_ID_SIZE_MB). Même transport que la
+// collecte : `data` (JSON) + les fichiers. Le contenu réel est vérifié à
+// l'enregistrement (décodage de l'image, signature du PDF).
+const COMMISSIONNAIRE_ID_MAX_MB = Number(process.env.MAX_COMMISSIONNAIRE_ID_SIZE_MB || 5);
+
+const commissionnaireIdUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: COMMISSIONNAIRE_ID_MAX_MB * 1024 * 1024, files: 2 },
+  fileFilter: (_, file, cb) => {
+    if (!["image/jpeg", "image/png", "application/pdf"].includes(file.mimetype)) {
+      return cb(new Error("Format non accepté : JPG, PNG ou PDF uniquement."));
+    }
+    cb(null, true);
+  },
+});
+
+export const parseCommissionnaireUpload = (req, res, next) => {
+  if (!req.is("multipart/form-data")) return next();
+
+  commissionnaireIdUpload.fields([
+    { name: "pieceRecto", maxCount: 1 },
+    { name: "pieceVerso", maxCount: 1 },
+  ])(req, res, (error) => {
+    if (error) {
+      const message =
+        error.code === "LIMIT_FILE_SIZE"
+          ? `Chaque fichier de la pièce d'identité doit faire ${COMMISSIONNAIRE_ID_MAX_MB} Mo au maximum.`
+          : error.message || "Fichier refusé.";
+      return res.status(400).json({ message });
+    }
+    try {
+      req.body = req.body?.data !== undefined ? JSON.parse(req.body.data) : req.body ?? {};
+    } catch {
+      return res.status(400).json({ message: "Les données du formulaire sont illisibles." });
+    }
+    return next();
+  });
+};

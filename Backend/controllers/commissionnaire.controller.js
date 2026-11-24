@@ -15,6 +15,27 @@ import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
 import { eventBus } from "../shared/eventBus.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 import { getSettingValue } from "../shared/appSettings.js";
+import db from "../database/db.js";
+import { codePrefixOfProfil, nextSequenceCode, peekSequenceCode } from "../shared/codes.js";
+import { normalizePhone } from "../utils/contactValidation.js";
+import {
+  deleteIdentityDocument,
+  resolveIdentityDocument,
+  storeIdentityDocumentPair,
+} from "../utils/identityDocuments.js";
+import {
+  commissionnaireAccess,
+  serializeCommissionnaire,
+  serializeOwnCommissionnaire,
+} from "../utils/serializers/commissionnaire.serializer.js";
+
+const PROFILS = ["COMMISSIONNAIRE", "COLLECTEUR"];
+const ID_DOCUMENT_TYPES = ["CARTE_ELECTEUR", "CARTE_IDENTITE"];
+// Actif : en activité (y compris sous observation). Inactif : suspendu ou
+// exclu. Interprétation à confirmer par l'agence.
+const ACTIVE_STATUTS = ["ACTIF", "OBSERVATION"];
+
+const profilLabel = (profil) => (profil === "COLLECTEUR" ? "Collecteur" : "Commissionnaire");
 
 // BACK-G17 - n'émet l'alerte que sur la transition réelle vers
 // OBSERVATION (jamais à chaque recalcul de score qui laisse le statut
@@ -55,7 +76,42 @@ export const getMyCommissionnaireProfile = async (req, res, next) => {
       return res.status(404).json({ message: "Aucune fiche commissionnaire liée à ce compte." });
     }
 
-    return res.status(200).json(withClassement(commissionnaire));
+    // Le commissionnaire ne voit jamais sa notation (P1.2).
+    return res.status(200).json(serializeOwnCommissionnaire(commissionnaire));
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+const countByActivity = (commissionnaires) => {
+  const stats = { total: commissionnaires.length, actifs: 0, inactifs: 0, commissionnaires: 0, collecteurs: 0 };
+  for (const c of commissionnaires) {
+    if (ACTIVE_STATUTS.includes(c.statut)) stats.actifs += 1;
+    else stats.inactifs += 1;
+    if (c.profil === "COLLECTEUR") stats.collecteurs += 1;
+    else stats.commissionnaires += 1;
+  }
+  return stats;
+};
+
+export const getCommissionnaireStats = async (req, res, next) => {
+  try {
+    const rows = await Commissionnaire.findAll({ attributes: ["statut", "profil"] });
+    return res.status(200).json({ data: countByActivity(rows) });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// Aperçu « Sera généré : CMR-043 » de la fenêtre d'ajout. Le code définitif
+// est attribué à l'enregistrement, sous verrou (il peut donc différer si
+// quelqu'un d'autre ajoute une fiche entre-temps).
+export const previewNextCode = async (req, res, next) => {
+  try {
+    const profil = PROFILS.includes(req.query.profil) ? req.query.profil : "COMMISSIONNAIRE";
+    return res.status(200).json({ data: { profil, code: await peekSequenceCode(codePrefixOfProfil(profil)) } });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
@@ -64,13 +120,17 @@ export const getMyCommissionnaireProfile = async (req, res, next) => {
 
 export const getAllCommissionnaires = async (req, res, next) => {
   try {
+    const where = PROFILS.includes(req.query.profil) ? { profil: req.query.profil } : {};
     const commissionnaires = await Commissionnaire.findAll({
+      where,
       include: [{ model: Person, as: "person" }],
       order: [["createdAt", "DESC"]],
     });
+    const access = await commissionnaireAccess(req.user);
     return res.status(200).json({
       nombre: commissionnaires.length,
-      data: commissionnaires.map(withClassement),
+      stats: countByActivity(commissionnaires),
+      data: commissionnaires.map((c) => serializeCommissionnaire(withClassement(c), access)),
     });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
@@ -87,7 +147,9 @@ export const getSingleCommissionnaire = async (req, res, next) => {
     if (!commissionnaire) {
       return res.status(404).json({ message: "Commissionnaire non trouvé" });
     }
-    return res.status(200).json(withClassement(commissionnaire));
+    return res
+      .status(200)
+      .json(serializeCommissionnaire(withClassement(commissionnaire), await commissionnaireAccess(req.user)));
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
@@ -119,35 +181,83 @@ export const getCommissionnaireClients = async (req, res, next) => {
   }
 };
 
+/**
+ * Ajout d'un commissionnaire ou d'un collecteur (P1.1).
+ * - Le code (CMR-NNN ou CTR-NNN) est généré ici, sous verrou, jamais saisi.
+ * - Pièce d'identité : type (carte d'électeur privilégiée, ou carte
+ *   d'identité), numéro et recto obligatoires, verso facultatif ; JPG, PNG
+ *   ou PDF de 5 Mo, contenu réel vérifié, stockage privé.
+ * - Rattachement à une personne existante (`idPerson`) possible ; la pièce
+ *   n'est alors exigée que si cette personne n'en a pas déjà une.
+ */
 export const createCommissionnaire = async (req, res, next) => {
+  const body = req.body ?? {};
+  const recto = req.files?.pieceRecto?.[0];
+  const verso = req.files?.pieceVerso?.[0];
+  const fail = (message) => res.status(400).json({ message });
+
+  const profil = PROFILS.includes(body.profil) ? body.profil : "COMMISSIONNAIRE";
+  const fullName = String(body.fullName ?? "").trim();
+  const idDocumentType = body.idDocumentType || "CARTE_ELECTEUR";
+  const idNumber = String(body.idNumber ?? "").trim();
+
+  let existingPerson = null;
+  if (body.idPerson) {
+    existingPerson = await Person.findByPk(body.idPerson);
+    if (!existingPerson) return res.status(404).json({ message: "Personne non trouvée." });
+  } else if (!fullName) {
+    return fail("Le nom complet est requis.");
+  }
+
+  const needsDocument = !existingPerson?.idDocumentPath;
+  if (needsDocument) {
+    if (!ID_DOCUMENT_TYPES.includes(idDocumentType)) {
+      return fail("Choisissez le type de pièce : carte d'électeur ou carte d'identité.");
+    }
+    if (!idNumber && !existingPerson?.idNumber) return fail("Le numéro de la pièce d'identité est requis.");
+    if (!recto) return fail("Joignez le recto de la pièce d'identité.");
+  }
+
+  let phone = null;
+  if (String(body.phone ?? "").trim()) {
+    phone = normalizePhone(body.phone);
+    if (!phone) return fail("Le numéro de téléphone n'est pas valide.");
+  }
+
+  let stored = {};
   try {
-    const { idPerson, fullName, phone, email, code, zone, dateDebutActivite } = req.body;
+    stored = recto || verso ? await storeIdentityDocumentPair({ recto, verso }) : {};
+  } catch {
+    return fail("La pièce d'identité n'a pas pu être lue : envoyez une photo JPG ou PNG, ou un PDF.");
+  }
 
-    if (!code) {
-      return res.status(400).json({ message: "Le code commissionnaire est requis." });
-    }
-
-    let person;
-    if (idPerson) {
-      person = await Person.findByPk(idPerson);
-      if (!person) {
-        return res.status(404).json({ message: "Personne non trouvée." });
+  try {
+    const commissionnaire = await db.transaction(async (transaction) => {
+      const documentFields = recto ? { ...stored, idDocumentType } : {};
+      let person = existingPerson;
+      if (person) {
+        const missing = { ...documentFields };
+        if (!person.idNumber && idNumber) missing.idNumber = idNumber;
+        if (!person.phone && phone) missing.phone = phone;
+        if (Object.keys(missing).length) await person.update(missing, { transaction });
+      } else {
+        person = await Person.create(
+          { fullName, phone, email: String(body.email ?? "").trim() || null, idNumber: idNumber || null, ...documentFields },
+          { transaction }
+        );
       }
-    } else {
-      if (!fullName) {
-        return res.status(400).json({
-          message: "idPerson ou fullName est requis pour créer un commissionnaire.",
-        });
-      }
-      person = await Person.create({ fullName, phone, email });
-    }
 
-    const commissionnaire = await Commissionnaire.create({
-      idPerson: person.idPerson,
-      code,
-      zone,
-      dateDebutActivite,
-      createdBy: req.user.idUser,
+      return Commissionnaire.create(
+        {
+          idPerson: person.idPerson,
+          profil,
+          code: await nextSequenceCode(codePrefixOfProfil(profil), transaction),
+          zone: String(body.zone ?? "").trim() || null,
+          dateDebutActivite: body.dateDebutActivite || null,
+          createdBy: req.user.idUser,
+        },
+        { transaction }
+      );
     });
 
     const created = await Commissionnaire.findByPk(commissionnaire.idCommissionnaire, {
@@ -158,19 +268,102 @@ export const createCommissionnaire = async (req, res, next) => {
       entityType: "COMMISSIONNAIRE",
       entityId: commissionnaire.idCommissionnaire,
       eventType: "CREATED",
-      title: "Commissionnaire créé",
-      description: `${person.fullName} - ${code}`,
+      title: `${profilLabel(profil)} créé`,
+      description: `${created.person.fullName} - ${commissionnaire.code}`,
       actorUserId: req.user.idUser,
     });
 
     return res.status(201).json({
-      message: "Commissionnaire créé avec succès",
-      data: withClassement(created),
+      message: `${profilLabel(profil)} ajouté avec le code ${commissionnaire.code}.`,
+      data: serializeCommissionnaire(withClassement(created), await commissionnaireAccess(req.user)),
     });
   } catch (error) {
+    await deleteIdentityDocument(stored.idDocumentPath);
+    await deleteIdentityDocument(stored.idDocumentVersoPath);
     if (error.name === "SequelizeUniqueConstraintError") {
-      return res.status(409).json({ message: "Ce code commissionnaire est déjà utilisé." });
+      return res.status(409).json({ message: "Ce code est déjà utilisé, réessayez." });
     }
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// Consultation de la pièce (recto par défaut, `?face=verso`).
+export const getCommissionnaireIdentityDocument = async (req, res, next) => {
+  try {
+    const commissionnaire = await Commissionnaire.findByPk(req.params.id, {
+      include: [{ model: Person, as: "person" }],
+    });
+    const person = commissionnaire?.person;
+    const verso = req.query.face === "verso";
+    const storedPath = verso ? person?.idDocumentVersoPath : person?.idDocumentPath;
+    const absolute = storedPath ? resolveIdentityDocument(storedPath) : null;
+    if (!absolute) return res.status(404).json({ message: "Aucune pièce d'identité enregistrée." });
+
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Content-Disposition", "inline");
+    res.type((verso ? person.idDocumentVersoMimeType : person.idDocumentMimeType) || "application/octet-stream");
+    return res.sendFile(absolute, (error) => {
+      if (error && !res.headersSent) res.status(404).json({ message: "Le fichier est introuvable." });
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+// Ajout ou remplacement de la pièce depuis la fiche ; l'ancien fichier est
+// supprimé une fois le nouveau enregistré.
+export const replaceCommissionnaireIdentityDocument = async (req, res, next) => {
+  const recto = req.files?.pieceRecto?.[0];
+  const verso = req.files?.pieceVerso?.[0];
+  const body = req.body ?? {};
+  if (!recto && !verso) return res.status(400).json({ message: "Joignez au moins le recto ou le verso." });
+  if (body.idDocumentType && !ID_DOCUMENT_TYPES.includes(body.idDocumentType)) {
+    return res.status(400).json({ message: "Type de pièce inconnu." });
+  }
+
+  try {
+    const commissionnaire = await Commissionnaire.findByPk(req.params.id, {
+      include: [{ model: Person, as: "person" }],
+    });
+    if (!commissionnaire) return res.status(404).json({ message: "Commissionnaire non trouvé" });
+    const person = commissionnaire.person;
+    if (!recto && !person.idDocumentPath) {
+      return res.status(400).json({ message: "Le recto de la pièce est requis." });
+    }
+
+    let stored;
+    try {
+      stored = await storeIdentityDocumentPair({ recto, verso });
+    } catch {
+      return res.status(400).json({ message: "La pièce d'identité n'a pas pu être lue : JPG, PNG ou PDF." });
+    }
+
+    const previous = { recto: person.idDocumentPath, verso: person.idDocumentVersoPath };
+    const update = { ...stored };
+    if (body.idDocumentType) update.idDocumentType = body.idDocumentType;
+    if (String(body.idNumber ?? "").trim()) update.idNumber = String(body.idNumber).trim();
+    await person.update(update);
+    if (recto) await deleteIdentityDocument(previous.recto);
+    if (verso) await deleteIdentityDocument(previous.verso);
+
+    await recordTimelineEvent({
+      entityType: "COMMISSIONNAIRE",
+      entityId: commissionnaire.idCommissionnaire,
+      eventType: "UPDATED",
+      title: "Pièce d'identité mise à jour",
+      actorUserId: req.user.idUser,
+    });
+
+    const refreshed = await Commissionnaire.findByPk(commissionnaire.idCommissionnaire, {
+      include: COMMISSIONNAIRE_INCLUDES,
+    });
+    return res.status(200).json({
+      message: "Pièce d'identité enregistrée.",
+      data: serializeCommissionnaire(withClassement(refreshed), await commissionnaireAccess(req.user)),
+    });
+  } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }

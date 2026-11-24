@@ -67,3 +67,21 @@ export const deleteIdentityDocument = async (storedPath) => {
   if (!absolute) return;
   await fs.rm(absolute, { force: true });
 };
+
+/** Recto et verso d'une pièce, rangés dans les colonnes de `persons`. */
+export const storeIdentityDocumentPair = async ({ recto, verso }) => {
+  const stored = {};
+  try {
+    if (recto) Object.assign(stored, await storeIdentityDocument(recto));
+    if (verso) {
+      const back = await storeIdentityDocument(verso);
+      stored.idDocumentVersoPath = back.idDocumentPath;
+      stored.idDocumentVersoMimeType = back.idDocumentMimeType;
+    }
+  } catch (error) {
+    await deleteIdentityDocument(stored.idDocumentPath);
+    await deleteIdentityDocument(stored.idDocumentVersoPath);
+    throw error;
+  }
+  return stored;
+};

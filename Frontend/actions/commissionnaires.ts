@@ -1,5 +1,7 @@
 import api from "@/lib/axios";
 import axios from "axios";
+import { apiErrorMessage } from "@/lib/apiError";
+import type { CommissionnaireStats, FieldAgentProfil, IdDocumentType } from "@/lib/types";
 import {
   Client,
   Commissionnaire,
@@ -41,22 +43,78 @@ export const getSingleCommissionnaire = async (id: number): Promise<Commissionna
   }
 };
 
+// Multipart : `data` (JSON) + recto obligatoire et verso facultatif de la
+// pièce d'identité. Le code CMR / CTR est attribué par le serveur.
 export const createCommissionnaire = async (
-  payload: CommissionnaireCreatePayload
-): Promise<Commissionnaire> => {
+  payload: CommissionnaireCreatePayload,
+  files: { recto: File | null; verso?: File | null }
+): Promise<{ message: string; data: Commissionnaire }> => {
   try {
-    const res = await api.post<{ message: string; data: Commissionnaire }>(
-      "/api/commissionnaires",
-      payload
-    );
+    const form = new FormData();
+    form.append("data", JSON.stringify(payload));
+    if (files.recto) form.append("pieceRecto", files.recto);
+    if (files.verso) form.append("pieceVerso", files.verso);
+    const res = await api.post<{ message: string; data: Commissionnaire }>("/api/commissionnaires", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "Erreur lors de la création de la fiche"));
+  }
+};
+
+export const previewNextCommissionnaireCode = async (profil: FieldAgentProfil): Promise<string | null> => {
+  try {
+    const res = await api.get<{ data: { code: string } }>("/api/commissionnaires/next-code", { params: { profil } });
+    return res.data.data.code;
+  } catch {
+    return null;
+  }
+};
+
+export const getCommissionnaireStats = async (): Promise<CommissionnaireStats> => {
+  try {
+    const res = await api.get<{ data: CommissionnaireStats }>("/api/commissionnaires/stats");
     return res.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(
-        error.response?.data?.message || "Erreur lors de la création du commissionnaire"
-      );
-    }
-    throw new Error("Erreur inconnue");
+    throw new Error(apiErrorMessage(error, "Erreur lors du calcul des statistiques"));
+  }
+};
+
+export const replaceCommissionnaireIdentityDocument = async (
+  id: number,
+  payload: { idDocumentType?: IdDocumentType; idNumber?: string },
+  files: { recto?: File | null; verso?: File | null }
+): Promise<Commissionnaire> => {
+  try {
+    const form = new FormData();
+    form.append("data", JSON.stringify(payload));
+    if (files.recto) form.append("pieceRecto", files.recto);
+    if (files.verso) form.append("pieceVerso", files.verso);
+    const res = await api.post<{ data: Commissionnaire }>(`/api/commissionnaires/${id}/piece-identite`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.data;
+  } catch (error) {
+    throw new Error(apiErrorMessage(error, "La pièce d'identité n'a pas pu être enregistrée"));
+  }
+};
+
+// Le fichier se télécharge par l'API (cookie de session) puis s'affiche
+// dans un onglet ouvert d'avance (sinon bloqué comme pop-up sur iPhone).
+export const openCommissionnaireIdentityDocument = async (id: number, face: "recto" | "verso" = "recto") => {
+  const tab = window.open("", "_blank");
+  try {
+    const res = await api.get(`/api/commissionnaires/${id}/piece-identite`, {
+      params: { face },
+      responseType: "blob",
+    });
+    const url = URL.createObjectURL(res.data as Blob);
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+  } catch (error) {
+    tab?.close();
+    throw new Error(apiErrorMessage(error, "Pièce d'identité indisponible"));
   }
 };
 

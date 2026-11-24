@@ -23,6 +23,8 @@ export const serializeBailleur = async (bailleur, user) => {
     const person = { ...plain.person, hasIdDocument: Boolean(plain.person.idDocumentPath) };
     delete person.idDocumentPath;
     delete person.idDocumentMimeType;
+    delete person.idDocumentVersoPath;
+    delete person.idDocumentVersoMimeType;
     plain.person = person;
   }
 

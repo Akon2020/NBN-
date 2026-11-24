@@ -27,6 +27,12 @@ const Commissionnaire = db.define(
       allowNull: false,
       unique: true,
     },
+    // Commissionnaire (code CMR) ou collecteur (code CTR), même fiche terrain.
+    profil: {
+      type: DataTypes.ENUM("COMMISSIONNAIRE", "COLLECTEUR"),
+      allowNull: false,
+      defaultValue: "COMMISSIONNAIRE",
+    },
     zone: {
       type: DataTypes.STRING(150),
       allowNull: true,

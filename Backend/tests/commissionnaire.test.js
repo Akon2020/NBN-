@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import bcrypt from "bcryptjs";
+import sharp from "sharp";
 import app from "../app.js";
+import { deleteIdentityDocument } from "../utils/identityDocuments.js";
 import {
   User,
   Person,
@@ -22,8 +24,20 @@ let juridiqueEmail;
 let fieldCommissionnaireEmail;
 let fieldCommissionnaireUserId;
 let fieldPersonId;
+let pngRecto;
+
+// Fiche avec pièce d'identité (multipart : `data` JSON + recto image).
+const postCommissionnaire = (cookies, data, { recto = pngRecto, verso } = {}) => {
+  let req = request(app).post("/api/commissionnaires").set("Cookie", cookies).field("data", JSON.stringify(data));
+  if (recto) req = req.attach("pieceRecto", recto, { filename: "recto.png", contentType: "image/png" });
+  if (verso) req = req.attach("pieceVerso", verso, { filename: "verso.png", contentType: "image/png" });
+  return req;
+};
 
 beforeAll(async () => {
+  pngRecto = await sharp({ create: { width: 40, height: 25, channels: 3, background: "#14294a" } })
+    .png()
+    .toBuffer();
   const hashed = await bcrypt.hash(testPassword, await bcrypt.genSalt());
 
   operationsEmail = `operations.commissionnaire.${suffix}@nbn.test`;
@@ -80,6 +94,11 @@ afterAll(async () => {
     await Commissionnaire.destroy({ where: { idCommissionnaire: createdCommissionnaireIds } });
   }
   if (createdPersonIds.length) {
+    const persons = await Person.findAll({ where: { idPerson: createdPersonIds } });
+    for (const person of persons) {
+      await deleteIdentityDocument(person.idDocumentPath);
+      await deleteIdentityDocument(person.idDocumentVersoPath);
+    }
     await Person.destroy({ where: { idPerson: createdPersonIds } });
   }
   if (createdUserIds.length) {
@@ -106,32 +125,41 @@ const loginAs = async (email, { fresh = false } = {}) => {
 };
 
 describe("BACK-G09 - Commissionnaire (fiche digitale, scoring, grille d'évolution)", () => {
-  it("operations peut créer un commissionnaire rattaché à la Person du terrain", async () => {
+  it("operations peut créer un commissionnaire rattaché à la Person du terrain, code CMR généré", async () => {
     const { headers } = await loginAs(operationsEmail);
-    const res = await request(app)
-      .post("/api/commissionnaires")
-      .set("Cookie", headers["set-cookie"])
-      .send({
-        idPerson: fieldPersonId,
-        code: `CMR-${suffix}`,
-        zone: "Ibanda",
-      });
+    const res = await postCommissionnaire(headers["set-cookie"], {
+      idPerson: fieldPersonId,
+      code: "CMR-999999",
+      zone: "Ibanda",
+      idDocumentType: "CARTE_ELECTEUR",
+      idNumber: `EL-${suffix}`,
+    });
 
     expect(res.status).toBe(201);
+    expect(res.body.data.code).toMatch(/^CMR-\d{3,}$/);
+    expect(res.body.data.code).not.toBe("CMR-999999");
+    expect(res.body.message).toContain(res.body.data.code);
     expect(res.body.data.niveau).toBe("JUNIOR");
     expect(res.body.data.statut).toBe("ACTIF");
     expect(res.body.data.classement).toBe("RISQUE"); // score par défaut 25/100, pas encore évalué
     expect(res.body.data.person.fullName).toBe("Terrain Commissionnaire Test");
+    expect(res.body.data.person.hasIdDocument).toBe(true);
+    expect(res.body.data.person.idDocumentPath).toBeUndefined();
+    // Numéro de la pièce réservé à commissionnaires:identity:read (admin).
+    expect(res.body.data.person.idNumber).toBeUndefined();
     createdCommissionnaireIds.push(res.body.data.idCommissionnaire);
   });
 
-  it("/commissionnaires/me résout la fiche du compte terrain connecté (MOBILE-G04)", async () => {
+  it("/commissionnaires/me résout la fiche du compte terrain connecté, sans sa notation", async () => {
     const { headers } = await loginAs(fieldCommissionnaireEmail);
     const res = await request(app)
       .get("/api/commissionnaires/me")
       .set("Cookie", headers["set-cookie"]);
     expect(res.status).toBe(200);
     expect(res.body.idCommissionnaire).toBe(createdCommissionnaireIds[0]);
+    for (const field of ["scoreGlobal", "scorePerformance", "classement", "incidents", "niveau"]) {
+      expect(res.body[field]).toBeUndefined();
+    }
   });
 
   it("/commissionnaires/me renvoie 404 pour un compte sans fiche liée", async () => {
@@ -144,20 +172,77 @@ describe("BACK-G09 - Commissionnaire (fiche digitale, scoring, grille d'évoluti
 
   it("juridique ne peut pas créer de commissionnaire (commissionnaires:manage manquant)", async () => {
     const { headers } = await loginAs(juridiqueEmail);
-    const res = await request(app)
-      .post("/api/commissionnaires")
-      .set("Cookie", headers["set-cookie"])
-      .send({ fullName: "Refusé", code: "CMR-REFUSE" });
+    const res = await postCommissionnaire(headers["set-cookie"], {
+      fullName: "Refusé",
+      idDocumentType: "CARTE_ELECTEUR",
+      idNumber: "X",
+    });
     expect(res.status).toBe(403);
   });
 
-  it("un code commissionnaire dupliqué est refusé (409)", async () => {
+  it("P1.1 : nom, type et numéro de pièce, et recto sont obligatoires", async () => {
     const { headers } = await loginAs(operationsEmail);
-    const res = await request(app)
-      .post("/api/commissionnaires")
-      .set("Cookie", headers["set-cookie"])
-      .send({ fullName: "Doublon", code: `CMR-${suffix}` });
-    expect(res.status).toBe(409);
+    const cookies = headers["set-cookie"];
+    const base = { fullName: "Sans pièce", idDocumentType: "CARTE_ELECTEUR", idNumber: "EL-1" };
+    expect((await postCommissionnaire(cookies, { ...base, fullName: "" })).status).toBe(400);
+    expect((await postCommissionnaire(cookies, { ...base, idDocumentType: "PASSEPORT" })).status).toBe(400);
+    expect((await postCommissionnaire(cookies, { ...base, idNumber: "" })).status).toBe(400);
+    const noRecto = await postCommissionnaire(cookies, base, { recto: null });
+    expect(noRecto.status).toBe(400);
+    expect(noRecto.body.message).toMatch(/recto/);
+    // Contenu qui n'est pas réellement une image : refusé malgré le type annoncé.
+    const fake = await postCommissionnaire(cookies, base, { recto: Buffer.from("pas une image") });
+    expect(fake.status).toBe(400);
+  });
+
+  it("P1.1 : des ajouts simultanés reçoivent des codes distincts et consécutifs ; un collecteur reçoit un code CTR", async () => {
+    const { headers } = await loginAs(operationsEmail);
+    const cookies = headers["set-cookie"];
+    const preview = await request(app).get("/api/commissionnaires/next-code").set("Cookie", cookies);
+    expect(preview.body.data.code).toMatch(/^CMR-\d{3,}$/);
+
+    const results = await Promise.all(
+      [1, 2, 3].map((n) =>
+        postCommissionnaire(cookies, {
+          fullName: `Simultané ${n} ${suffix}`,
+          idDocumentType: "CARTE_IDENTITE",
+          idNumber: `ID-${n}-${suffix}`,
+        })
+      )
+    );
+    results.forEach((res) => expect(res.status).toBe(201));
+    const codes = results.map((res) => res.body.data.code);
+    expect(new Set(codes).size).toBe(3);
+    results.forEach((res) => {
+      createdCommissionnaireIds.push(res.body.data.idCommissionnaire);
+      createdPersonIds.push(res.body.data.idPerson);
+    });
+
+    const collecteur = await postCommissionnaire(
+      cookies,
+      { fullName: `Collecteur ${suffix}`, profil: "COLLECTEUR", idDocumentType: "CARTE_ELECTEUR", idNumber: `CT-${suffix}` },
+      { verso: pngRecto }
+    );
+    expect(collecteur.status).toBe(201);
+    expect(collecteur.body.data.code).toMatch(/^CTR-\d{3,}$/);
+    expect(collecteur.body.data.person.hasIdDocumentVerso).toBe(true);
+    createdCommissionnaireIds.push(collecteur.body.data.idCommissionnaire);
+    createdPersonIds.push(collecteur.body.data.idPerson);
+
+    const stats = await request(app).get("/api/commissionnaires/stats").set("Cookie", cookies);
+    expect(stats.body.data.actifs).toBeGreaterThanOrEqual(4);
+    expect(stats.body.data.collecteurs).toBeGreaterThanOrEqual(1);
+  });
+
+  it("P1.1 : la pièce n'est consultable qu'avec commissionnaires:identity:read", async () => {
+    const id = createdCommissionnaireIds[0];
+    const { headers } = await loginAs(operationsEmail);
+    const refused = await request(app).get(`/api/commissionnaires/${id}/piece-identite`).set("Cookie", headers["set-cookie"]);
+    expect(refused.status).toBe(403);
+    // Jamais servie par le dossier public des fichiers.
+    const person = await Person.findByPk(fieldPersonId);
+    const direct = await request(app).get(`/${person.idDocumentPath}`);
+    expect(direct.status).toBe(404);
   });
 
   it("l'évaluation du score déclenche la grille d'évolution automatique (≥75 → Confirmé)", async () => {
@@ -207,10 +292,11 @@ describe("BACK-G09 - Commissionnaire (fiche digitale, scoring, grille d'évoluti
     // le score de départ : la seule chose qu'un incident peut réduire est
     // le score discipline, donc les 3 autres dimensions doivent déjà être
     // assez basses pour que la perte de discipline franchisse le seuil.
-    const createRes = await request(app)
-      .post("/api/commissionnaires")
-      .set("Cookie", headers["set-cookie"])
-      .send({ fullName: "Commissionnaire Observation Test", code: `CMR-OBS-${suffix}` });
+    const createRes = await postCommissionnaire(headers["set-cookie"], {
+      fullName: "Commissionnaire Observation Test",
+      idDocumentType: "CARTE_ELECTEUR",
+      idNumber: `OBS-${suffix}`,
+    });
     expect(createRes.status).toBe(201);
     const idCommissionnaire = createRes.body.data.idCommissionnaire;
     createdCommissionnaireIds.push(idCommissionnaire);

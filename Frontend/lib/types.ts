@@ -227,6 +227,15 @@ export interface Person {
   // Une pièce d'identité est annexée - le fichier se consulte via
   // GET /api/bailleurs/:id/piece-identite (le chemin n'est jamais exposé).
   hasIdDocument?: boolean
+  hasIdDocumentVerso?: boolean
+  idDocumentType?: IdDocumentType | null
+}
+
+export type IdDocumentType = "CARTE_ELECTEUR" | "CARTE_IDENTITE"
+
+export const ID_DOCUMENT_TYPE_LABELS: Record<IdDocumentType, string> = {
+  CARTE_ELECTEUR: "Carte d'électeur",
+  CARTE_IDENTITE: "Carte d'identité",
 }
 
 export type ClientType = "LOCATAIRE" | "ACHETEUR"
@@ -692,10 +701,28 @@ export interface CommissionnaireIncident {
   createdAt: string
 }
 
+export type FieldAgentProfil = "COMMISSIONNAIRE" | "COLLECTEUR"
+
+export const FIELD_AGENT_PROFIL_LABELS: Record<FieldAgentProfil, string> = {
+  COMMISSIONNAIRE: "Commissionnaire",
+  COLLECTEUR: "Collecteur",
+}
+
+export interface CommissionnaireStats {
+  total: number
+  actifs: number
+  inactifs: number
+  commissionnaires: number
+  collecteurs: number
+}
+
 export interface Commissionnaire {
   idCommissionnaire: number
   idPerson: number
   code: string
+  profil?: FieldAgentProfil
+  // Fiche créée avant l'obligation de la pièce d'identité (badge « Pièce manquante »).
+  missingIdDocument?: boolean
   zone?: string | null
   niveau: CommissionnaireNiveau
   statut: CommissionnaireStatut
@@ -718,8 +745,10 @@ export interface CommissionnaireCreatePayload {
   fullName?: string
   phone?: string
   email?: string
-  code: string
   zone?: string
+  profil?: FieldAgentProfil
+  idDocumentType?: IdDocumentType
+  idNumber?: string
   dateDebutActivite?: string
 }
 

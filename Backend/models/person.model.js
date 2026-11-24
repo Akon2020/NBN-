@@ -42,6 +42,12 @@ const Person = db.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    idDocumentType: {
+      type: DataTypes.ENUM("CARTE_ELECTEUR", "CARTE_IDENTITE"),
+      allowNull: true,
+    },
+    idDocumentVersoPath: { type: DataTypes.STRING(255), allowNull: true },
+    idDocumentVersoMimeType: { type: DataTypes.STRING(100), allowNull: true },
     idUser: {
       type: DataTypes.BIGINT,
       allowNull: true,

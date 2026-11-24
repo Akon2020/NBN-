@@ -1,14 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, Phone, Eye, ShieldAlert, Users } from "lucide-react"
+import { Plus, Loader2, Phone, Eye, ShieldAlert, Users, UserCheck, UserX, FileWarning } from "lucide-react"
 import {
   CLASSEMENT_LABELS,
   NIVEAU_LABELS,
   STATUT_COMMISSIONNAIRE_LABELS,
+  FIELD_AGENT_PROFIL_LABELS,
+  type FieldAgentProfil,
   type Commissionnaire,
   type CommissionnaireClassement,
 } from "@/lib/types"
@@ -36,6 +38,20 @@ export default function CommissionnairesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [profil, setProfil] = useState<FieldAgentProfil | "">("")
+
+  // Actifs : en activité ou sous observation ; inactifs : suspendus ou exclus.
+  const stats = useMemo(() => {
+    const actifs = commissionnaires.filter((c) => c.statut === "ACTIF" || c.statut === "OBSERVATION").length
+    return {
+      actifs,
+      inactifs: commissionnaires.length - actifs,
+      collecteurs: commissionnaires.filter((c) => c.profil === "COLLECTEUR").length,
+      pieceManquante: commissionnaires.filter((c) => c.missingIdDocument).length,
+    }
+  }, [commissionnaires])
+
+  const visible = profil ? commissionnaires.filter((c) => (c.profil ?? "COMMISSIONNAIRE") === profil) : commissionnaires
 
   useEffect(() => {
     const load = async () => {
@@ -75,14 +91,50 @@ export default function CommissionnairesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Commissionnaires</h1>
           <p className="text-muted-foreground mt-2">
-            Pilotage des fiches terrain - score, niveau, statut (CDC §7)
+            Fiches terrain des commissionnaires (CMR) et collecteurs (CTR) : score, niveau, statut
           </p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto bg-primary text-primary-foreground">
           <Plus className="mr-2 h-4 w-4" />
-          Ajouter un commissionnaire
+          Ajouter une fiche
         </Button>
       </div>
+
+      {!isLoading && commissionnaires.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              { label: "Actifs", value: stats.actifs, icon: UserCheck, tone: "text-success-500" },
+              { label: "Inactifs", value: stats.inactifs, icon: UserX, tone: "text-muted-foreground" },
+              { label: "Collecteurs", value: stats.collecteurs, icon: Users, tone: "text-primary-900 dark:text-white" },
+              { label: "Pièce manquante", value: stats.pieceManquante, icon: FileWarning, tone: "text-warning-500" },
+            ].map((item) => (
+              <Card key={item.label} className="border-border">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <item.icon className={`h-5 w-5 ${item.tone}`} aria-hidden />
+                  <div>
+                    <p className="text-2xl font-bold leading-none">{item.value}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer par profil">
+            {[{ value: "" as const, label: "Tous" }, ...(Object.keys(FIELD_AGENT_PROFIL_LABELS) as FieldAgentProfil[]).map((value) => ({ value, label: `${FIELD_AGENT_PROFIL_LABELS[value]}s` }))].map((option) => (
+              <Button
+                key={option.value || "all"}
+                size="sm"
+                variant={profil === option.value ? "default" : "outline"}
+                onClick={() => setProfil(option.value)}
+                aria-pressed={profil === option.value}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
@@ -95,7 +147,7 @@ export default function CommissionnairesPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {commissionnaires.map((commissionnaire) => (
+          {visible.map((commissionnaire) => (
             <Link key={commissionnaire.idCommissionnaire} href={`/dashboard/commissionnaires/${commissionnaire.idCommissionnaire}`}>
               <Card className="border-border h-full">
                 <CardContent className="p-4 space-y-3">
@@ -106,9 +158,15 @@ export default function CommissionnairesPage() {
                         {commissionnaire.code} {commissionnaire.zone ? `- ${commissionnaire.zone}` : ""}
                       </p>
                     </div>
-                    <Badge className={STATUT_BADGE_VARIANT[commissionnaire.statut]}>
-                      {STATUT_COMMISSIONNAIRE_LABELS[commissionnaire.statut]}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className={STATUT_BADGE_VARIANT[commissionnaire.statut]}>
+                        {STATUT_COMMISSIONNAIRE_LABELS[commissionnaire.statut]}
+                      </Badge>
+                      {commissionnaire.profil === "COLLECTEUR" && <Badge variant="outline">Collecteur</Badge>}
+                      {commissionnaire.missingIdDocument && (
+                        <Badge className="bg-warning-500 text-neutral-900">Pièce manquante</Badge>
+                      )}
+                    </div>
                   </div>
 
                   {commissionnaire.person?.phone && (

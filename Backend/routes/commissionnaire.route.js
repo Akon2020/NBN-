@@ -9,7 +9,12 @@ import {
   getSingleCommissionnaire,
   updateCommissionnaire,
   updateCommissionnaireScore,
+  getCommissionnaireStats,
+  previewNextCode,
+  getCommissionnaireIdentityDocument,
+  replaceCommissionnaireIdentityDocument,
 } from "../controllers/commissionnaire.controller.js";
+import { parseCommissionnaireUpload } from "../middlewares/collectionUpload.middleware.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
 
@@ -33,6 +38,31 @@ commissionnaireRouter.get(
   requirePermission("commissionnaires:read"),
   getMyCommissionnaireProfile
 );
+
+/**
+ * @swagger
+ * /api/commissionnaires/stats:
+ *   get:
+ *     summary: Nombre de commissionnaires et collecteurs actifs et inactifs
+ *     description: Actifs = statut ACTIF ou OBSERVATION ; inactifs = SUSPENDU ou EXCLU.
+ *     tags: [Commissionnaires]
+ *     responses:
+ *       200: { description: "{ total, actifs, inactifs, commissionnaires, collecteurs }" }
+ */
+commissionnaireRouter.get("/stats", authMiddlware, requirePermission("commissionnaires:read"), getCommissionnaireStats);
+
+/**
+ * @swagger
+ * /api/commissionnaires/next-code:
+ *   get:
+ *     summary: Aperçu du prochain code (CMR-NNN ou CTR-NNN), sans le réserver
+ *     tags: [Commissionnaires]
+ *     parameters:
+ *       - { in: query, name: profil, schema: { type: string, enum: [COMMISSIONNAIRE, COLLECTEUR] } }
+ *     responses:
+ *       200: { description: "{ profil, code }" }
+ */
+commissionnaireRouter.get("/next-code", authMiddlware, requirePermission("commissionnaires:manage"), previewNextCode);
 
 /**
  * @swagger
@@ -101,46 +131,76 @@ commissionnaireRouter.get(
   getCommissionnaireClients
 );
 
+
+
 /**
  * @swagger
  * /api/commissionnaires:
  *   post:
- *     summary: Crée un nouveau commissionnaire
+ *     summary: Ajoute un commissionnaire (code CMR) ou un collecteur (code CTR)
+ *     description: >
+ *       Le code est généré par le serveur dans une transaction (séquence
+ *       verrouillée, aucun doublon). Multipart : `data` (JSON ci-dessous),
+ *       `pieceRecto` (obligatoire) et `pieceVerso` (facultatif), JPG, PNG ou
+ *       PDF de 5 Mo maximum, stockés hors de tout dossier public.
  *     tags: [Commissionnaires]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - code
  *             properties:
- *               idPerson:
- *                 type: integer
- *               fullName:
+ *               data:
  *                 type: string
- *               phone:
- *                 type: string
- *               email:
- *                 type: string
- *               code:
- *                 type: string
- *               zone:
- *                 type: string
+ *                 description: >
+ *                   JSON { fullName, phone, email, zone, profil (COMMISSIONNAIRE | COLLECTEUR),
+ *                   idDocumentType (CARTE_ELECTEUR | CARTE_IDENTITE), idNumber, idPerson?, dateDebutActivite? }
+ *               pieceRecto: { type: string, format: binary }
+ *               pieceVerso: { type: string, format: binary }
  *     responses:
- *       201:
- *         description: Commissionnaire créé avec succès
- *       400:
- *         description: Données invalides
- *       409:
- *         description: Code déjà utilisé
+ *       201: { description: Créé ; le code attribué est dans data.code et dans le message }
+ *       400: { description: Nom, type ou numéro de pièce, ou recto manquant ; fichier refusé }
  */
 commissionnaireRouter.post(
   "/",
   authMiddlware,
   requirePermission("commissionnaires:manage"),
+  parseCommissionnaireUpload,
   createCommissionnaire
+);
+
+/**
+ * @swagger
+ * /api/commissionnaires/{id}/piece-identite:
+ *   get:
+ *     summary: Affiche la pièce d'identité (recto, ou verso avec ?face=verso)
+ *     tags: [Commissionnaires]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *       - { in: query, name: face, schema: { type: string, enum: [recto, verso] } }
+ *     responses:
+ *       200: { description: Fichier (no-store) }
+ *       403: { description: Permission commissionnaires:identity:read manquante }
+ *       404: { description: Aucune pièce }
+ *   post:
+ *     summary: Ajoute ou remplace la pièce d'identité (multipart pieceRecto / pieceVerso, data JSON { idDocumentType, idNumber })
+ *     tags: [Commissionnaires]
+ *     responses:
+ *       200: { description: Pièce enregistrée, ancien fichier supprimé }
+ */
+commissionnaireRouter.get(
+  "/:id/piece-identite",
+  authMiddlware,
+  requirePermission("commissionnaires:identity:read"),
+  getCommissionnaireIdentityDocument
+);
+commissionnaireRouter.post(
+  "/:id/piece-identite",
+  authMiddlware,
+  requirePermission("commissionnaires:identity:read"),
+  parseCommissionnaireUpload,
+  replaceCommissionnaireIdentityDocument
 );
 
 /**
