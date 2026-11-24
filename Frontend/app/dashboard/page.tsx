@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getAuthUser } from "@/lib/auth";
 import { getDashboardStats } from "@/actions/dashboard";
 import { DashboardCharts } from "@/components/dashboard-charts";
@@ -52,8 +53,15 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const router = useRouter();
+
   useEffect(() => {
     const user = getAuthUser();
+    // Un commissionnaire ou un collecteur arrive sur son propre espace.
+    if (user?.role === "commissionnaire") {
+      router.replace("/dashboard/espace");
+      return;
+    }
     setUserName(user?.fullName || "Utilisateur");
 
     const load = async () => {
@@ -66,7 +74,7 @@ export default function DashboardPage() {
       }
     };
     load();
-  }, []);
+  }, [router]);
 
   type StatCard = {
     title: string;

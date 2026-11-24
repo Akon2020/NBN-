@@ -91,7 +91,9 @@ export const getAllTasks = async (req, res, next) => {
       order: [["createdAt", "DESC"]],
     });
 
-    if (assignedToMe === "true") {
+    // Un commissionnaire ne voit que ses propres tâches (règle contextuelle,
+    // P1.2), quelle que soit la requête.
+    if (assignedToMe === "true" || req.user.role === "commissionnaire") {
       tasks = tasks.filter((task) =>
         task.assignees.some((a) => a.idUser === req.user.idUser)
       );
@@ -107,6 +109,13 @@ export const getAllTasks = async (req, res, next) => {
 export const getSingleTask = async (req, res, next) => {
   try {
     const task = await Task.findByPk(req.params.id, { include: TASK_INCLUDES });
+    if (
+      task &&
+      req.user.role === "commissionnaire" &&
+      !task.assignees.some((a) => a.idUser === req.user.idUser)
+    ) {
+      return res.status(404).json({ message: "Tâche non trouvée" });
+    }
     if (!task) {
       return res.status(404).json({ message: "Tâche non trouvée" });
     }

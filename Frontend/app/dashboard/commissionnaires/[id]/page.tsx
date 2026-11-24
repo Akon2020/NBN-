@@ -28,6 +28,8 @@ import { EditScoreModal } from "@/components/commissionnaire-modals/edit-score-m
 import { AddIncidentModal } from "@/components/commissionnaire-modals/add-incident-modal"
 import { EntityTimeline } from "@/components/entity-timeline"
 import { CommissionnaireIdentityCard } from "@/components/commissionnaire-identity-card"
+import { AccessKeyDialog } from "@/components/commissionnaire-modals/access-key-dialog"
+import { KeyRound } from "lucide-react"
 import {
   getCommissionnaireClients,
   getSingleCommissionnaire,
@@ -55,6 +57,7 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
   const [showScoreModal, setShowScoreModal] = useState(false)
   const [showIncidentModal, setShowIncidentModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showAccessKey, setShowAccessKey] = useState(false)
 
   const reload = async () => {
     try {
@@ -143,6 +146,10 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
           </Button>
         </Link>
         <div className="flex flex-wrap gap-2">
+          <Button size="sm" className="bg-primary-900 text-white hover:bg-primary-700" onClick={() => setShowAccessKey(true)}>
+            <KeyRound className="h-4 w-4 mr-2" />
+            Clé d&apos;accès
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowIncidentModal(true)}>
             <AlertTriangle className="h-4 w-4 mr-2" />
             Incident
@@ -326,6 +333,8 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
         entityType="COMMISSIONNAIRE"
         entityId={commissionnaire.idCommissionnaire}
       />
+
+      <AccessKeyDialog commissionnaire={commissionnaire} open={showAccessKey} onOpenChange={setShowAccessKey} />
 
       <EditScoreModal
         open={showScoreModal}

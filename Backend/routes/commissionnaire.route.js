@@ -13,6 +13,7 @@ import {
   previewNextCode,
   getCommissionnaireIdentityDocument,
   replaceCommissionnaireIdentityDocument,
+  sendCommissionnaireAccessKey,
 } from "../controllers/commissionnaire.controller.js";
 import { parseCommissionnaireUpload } from "../middlewares/collectionUpload.middleware.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
@@ -32,12 +33,9 @@ const commissionnaireRouter = Router();
  *       404:
  *         description: Aucune fiche commissionnaire liée à ce compte
  */
-commissionnaireRouter.get(
-  "/me",
-  authMiddlware,
-  requirePermission("commissionnaires:read"),
-  getMyCommissionnaireProfile
-);
+// Sa propre fiche : authentification seule (règle contextuelle), le rôle
+// commissionnaire n'a pas accès à la liste des autres fiches.
+commissionnaireRouter.get("/me", authMiddlware, getMyCommissionnaireProfile);
 
 /**
  * @swagger
@@ -189,6 +187,37 @@ commissionnaireRouter.post(
  *     responses:
  *       200: { description: Pièce enregistrée, ancien fichier supprimé }
  */
+/**
+ * @swagger
+ * /api/commissionnaires/{id}/access-key:
+ *   post:
+ *     summary: Crée le compte du commissionnaire si besoin et lui envoie une clé d'accès
+ *     description: >
+ *       Clé à usage unique (ACCESS_KEY_TTL_HOURS, 72 h par défaut) : première
+ *       connexion sur /auth/activer, puis choix du mot de passe. Une nouvelle
+ *       clé remplace la précédente. Envoyée par e-mail si demandé ; la réponse
+ *       contient la clé et un lien WhatsApp prérempli pour l'agence.
+ *     tags: [Commissionnaires]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string, description: "Adresse de connexion, si la fiche n'en a pas" }
+ *               sendEmail: { type: boolean, default: true }
+ *     responses:
+ *       200: { description: "{ accessKey, link, whatsappLink, expiresAt, emailQueued }" }
+ *       400: { description: Adresse e-mail manquante ou invalide }
+ *       409: { description: Adresse déjà utilisée par un autre compte }
+ */
+commissionnaireRouter.post(
+  "/:id/access-key",
+  authMiddlware,
+  requirePermission("commissionnaires:manage"),
+  sendCommissionnaireAccessKey
+);
+
 commissionnaireRouter.get(
   "/:id/piece-identite",
   authMiddlware,

@@ -10,8 +10,11 @@ import {
   Currency,
   Requisition,
   Commission,
+  Commissionnaire,
+  Person,
   User,
 } from "../models/index.model.js";
+import { notifyFieldAgent } from "../services/formNotifications.service.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 
 const PAYMENT_INCLUDES = [
@@ -200,6 +203,17 @@ export const recordPayment = async (req, res, next) => {
         title: `Commission payée (${amount} ${currencyCode.toUpperCase()})`,
         actorUserId: req.user.idUser,
       });
+      // « Votre commission a été payée » au commissionnaire bénéficiaire.
+      if (commission.idCommissionnaire) {
+        const agent = await Commissionnaire.findByPk(commission.idCommissionnaire, {
+          include: [{ model: Person, as: "person" }],
+        });
+        await notifyFieldAgent(agent, {
+          type: "field_agent:commission_paid",
+          title: "Votre commission a été payée",
+          message: `${Number(amount).toLocaleString("fr-FR")} ${currencyCode.toUpperCase()} enregistrés par la caisse.`,
+        }).catch((error) => console.error("Notification de commission :", error.message));
+      }
     }
 
     const created = await Payment.findByPk(payment.idPayment, { include: PAYMENT_INCLUDES });

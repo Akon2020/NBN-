@@ -137,9 +137,9 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
     // L'émission de l'event est synchrone mais son listener est async
     // (await createNotification à l'intérieur). Un délai fixe (50 ms) ne
     // suffisait plus quand toute la suite charge la base en parallèle : on
-    // interroge jusqu'à ce que la notification apparaisse (5 s au plus).
+    // interroge jusqu'à ce que la notification apparaisse (15 s au plus).
     let notifications = [];
-    for (let attempt = 0; attempt < 50 && notifications.length === 0; attempt += 1) {
+    for (let attempt = 0; attempt < 150 && notifications.length === 0; attempt += 1) {
       notifications = await Notification.findAll({
         where: { idUser: demandeurUserId, type: "requisition:approved" },
         order: [["createdAt", "DESC"]],

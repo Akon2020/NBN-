@@ -16,6 +16,13 @@ import { eventBus } from "../shared/eventBus.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 import { getSettingValue } from "../shared/appSettings.js";
 import db from "../database/db.js";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { FRONT_URL } from "../config/env.js";
+import { issueAuthToken } from "../utils/authTokens.js";
+import { accessKeyEmail } from "../utils/accountEmail.templates.js";
+import { queueEmail } from "../services/email.service.js";
+import { valideEmail } from "../utils/user.utils.js";
 import { codePrefixOfProfil, nextSequenceCode, peekSequenceCode } from "../shared/codes.js";
 import { normalizePhone } from "../utils/contactValidation.js";
 import {
@@ -534,6 +541,90 @@ export const createIncident = async (req, res, next) => {
       message: "Incident enregistré",
       data: incident,
       commissionnaire: withClassement(commissionnaire),
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+/**
+ * Clé d'accès d'un commissionnaire (P1.2) : crée son compte (rôle
+ * commissionnaire) s'il n'en a pas, puis une clé à usage unique. Il se
+ * connecte la première fois avec la clé et choisit son mot de passe.
+ */
+export const sendCommissionnaireAccessKey = async (req, res, next) => {
+  try {
+    const commissionnaire = await Commissionnaire.findByPk(req.params.id, {
+      include: [{ model: Person, as: "person" }],
+    });
+    if (!commissionnaire) return res.status(404).json({ message: "Commissionnaire non trouvé" });
+    const person = commissionnaire.person;
+
+    let user = person.idUser ? await User.findByPk(person.idUser) : null;
+    if (!user) {
+      const email = String(req.body?.email || person.email || "").trim().toLowerCase();
+      if (!email || !valideEmail(email)) {
+        return res.status(400).json({ message: "Indiquez l'adresse e-mail qui servira à se connecter." });
+      }
+      if (await User.findOne({ where: { email } })) {
+        return res.status(409).json({ message: "Cette adresse est déjà utilisée par un autre compte." });
+      }
+      // Mot de passe aléatoire jamais communiqué : la connexion passe par
+      // la clé d'accès, puis par le mot de passe choisi par le titulaire.
+      user = await User.create({
+        fullName: person.fullName,
+        email,
+        password: await bcrypt.hash(crypto.randomBytes(24).toString("hex"), await bcrypt.genSalt()),
+        role: "commissionnaire",
+        status: "ACTIVE",
+      });
+      await person.update({ idUser: user.idUser, email: person.email || email });
+    }
+    if (user.status === "INACTIVE") {
+      return res.status(409).json({ message: "Le compte de ce commissionnaire est désactivé." });
+    }
+
+    const { token, expiresAt } = await issueAuthToken({
+      idUser: user.idUser,
+      purpose: "ACCESS_KEY",
+      createdBy: req.user.idUser,
+    });
+    const base = (FRONT_URL || "https://nbnexpress.org").replace(/\/+$/, "");
+    const link = `${base}/auth/activer?cle=${encodeURIComponent(token)}`;
+    const hours = Number(process.env.ACCESS_KEY_TTL_HOURS || 72);
+
+    let emailQueued = false;
+    if (req.body?.sendEmail !== false) {
+      await queueEmail({
+        to: user.email,
+        ...accessKeyEmail({ fullName: person.fullName, code: commissionnaire.code, accessKey: token, link, hours }),
+      });
+      emailQueued = true;
+    }
+
+    const phone = person.phone ? person.phone.replace(/^\+/, "") : null;
+    const whatsappText = `Bonjour ${person.fullName}, voici votre accès à l'espace commissionnaire NBN Express (code ${commissionnaire.code}).\nClé d'accès : ${token} (valable ${hours} h, usage unique)\nActivez votre espace ici : ${link}`;
+
+    await recordTimelineEvent({
+      entityType: "COMMISSIONNAIRE",
+      entityId: commissionnaire.idCommissionnaire,
+      eventType: "ACCESS_KEY_SENT",
+      title: "Clé d'accès envoyée",
+      description: emailQueued ? `Par e-mail à ${user.email}` : "À transmettre par l'agence",
+      actorUserId: req.user.idUser,
+    });
+
+    return res.status(200).json({
+      message: emailQueued ? `Clé d'accès envoyée à ${user.email}.` : "Clé d'accès générée.",
+      data: {
+        accessKey: token,
+        link,
+        expiresAt,
+        email: user.email,
+        emailQueued,
+        whatsappLink: phone ? `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}` : null,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });

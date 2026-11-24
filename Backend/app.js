@@ -44,6 +44,7 @@ import propertyCollectionRouter from "./routes/propertyCollection.route.js";
 import inboundEmailRouter from "./routes/inboundEmail.route.js";
 import bailleurMessageRouter from "./routes/bailleurMessage.route.js";
 import bailleurRelanceRouter from "./routes/bailleurRelance.route.js";
+import fieldAgentRouter from "./routes/fieldAgent.route.js";
 import { registerEventListeners } from "./shared/eventListeners.js";
 import { registerRealtimeListeners } from "./shared/socketGateway.js";
 
@@ -192,6 +193,7 @@ app.use("/api/property-collections", propertyCollectionRouter);
 app.use("/api/inbound-emails", inboundEmailRouter);
 app.use("/api/bailleur-messages", bailleurMessageRouter);
 app.use("/api/bailleur-relances", bailleurRelanceRouter);
+app.use("/api/field-agent", fieldAgentRouter);
 
 app.get("/error", errorLogs);
 app.use(errorMiddleware);

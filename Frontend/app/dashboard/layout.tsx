@@ -74,7 +74,15 @@ export default function DashboardLayout({
     }
   };
 
-  const navigation = [
+  // Affichage seulement : un commissionnaire ou un collecteur ne voit que
+  // son espace (le Backend refuse de toute façon le reste).
+  const fieldAgentNavigation = [
+    { name: "Mon espace", href: "/dashboard/espace", icon: Compass },
+    { name: "Collecter un bien", href: "/collecte-bien", icon: MapPin },
+    { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
+  ];
+
+  const staffNavigation = [
     { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
     { name: "Biens à louer", href: "/dashboard/rentals", icon: Home },
     { name: "Biens à vendre", href: "/dashboard/sales", icon: Building2 },
@@ -99,6 +107,8 @@ export default function DashboardLayout({
     { name: "Accès consultants", href: "/dashboard/access-grants", icon: ShieldCheck },
     { name: "Paramètres", href: "/dashboard/settings", icon: Settings },
   ];
+
+  const navigation = userRole === "commissionnaire" ? fieldAgentNavigation : staffNavigation;
 
   // BACK-G02 : le catalogue de rôles ne se limite plus à admin/agent -
   // l'autorisation réelle est tranchée par le backend (RBAC par
