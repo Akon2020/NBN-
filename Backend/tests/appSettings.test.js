@@ -127,6 +127,9 @@ describe("GOAL 13 - Centre de configuration", () => {
   it("refuse un modèle d'accusé de réception ou une règle de commission mal formés (400)", async () => {
     const login = await loginAs(technologiqueEmail);
     const auth = `Bearer ${login.body.data.token}`;
+    // La base de test est la base de développement : la règle d'origine est
+    // remise en place à la fin.
+    const original = await AppSetting.findOne({ where: { key: "commissions.commissionnaireRule" } });
     const badTemplate = await request(app)
       .patch("/api/settings/emails.rentalRequestAcknowledgement")
       .set("Authorization", auth)
@@ -140,8 +143,9 @@ describe("GOAL 13 - Centre de configuration", () => {
     const okRule = await request(app)
       .patch("/api/settings/commissions.commissionnaireRule")
       .set("Authorization", auth)
-      .send({ value: { mode: "MANUEL", valeur: null, parType: {} } });
+      .send({ value: { mode: "POURCENTAGE", valeur: null, parType: {} } });
     expect(okRule.status).toBe(200);
+    if (original) await AppSetting.update({ value: original.value }, { where: { key: "commissions.commissionnaireRule" } });
   });
 
   it("404 sur une clé de paramètre inexistante (jamais créée à la volée)", async () => {

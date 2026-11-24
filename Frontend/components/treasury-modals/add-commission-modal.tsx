@@ -121,7 +121,7 @@ export function AddCommissionModal({ open, onOpenChange, onAdd }: AddCommissionM
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="montantTransaction">Montant de la transaction *</Label>
+              <Label htmlFor="montantTransaction">Loyer mensuel (ou prix de vente) *</Label>
               <Input
                 id="montantTransaction"
                 type="number"
@@ -147,7 +147,9 @@ export function AddCommissionModal({ open, onOpenChange, onAdd }: AddCommissionM
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tauxCommission">Taux de commission (%) *</Label>
+            <Label htmlFor="tauxCommission">
+              Pourcentage du loyer (%){beneficiaireType === "COMMISSIONNAIRE" ? "" : " *"}
+            </Label>
             <Input
               id="tauxCommission"
               type="number"
@@ -156,8 +158,13 @@ export function AddCommissionModal({ open, onOpenChange, onAdd }: AddCommissionM
               step="0.1"
               value={tauxCommission}
               onChange={(e) => setTauxCommission(e.target.value)}
-              required
+              required={beneficiaireType !== "COMMISSIONNAIRE"}
             />
+            {beneficiaireType === "COMMISSIONNAIRE" && (
+              <p className="text-xs text-muted-foreground">
+                Laissez vide pour appliquer le pourcentage réglé dans Paramètres.
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

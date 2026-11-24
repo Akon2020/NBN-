@@ -59,6 +59,9 @@ const SETTING_VALIDATORS = {
     }
     if (value.mode === "MANUEL") return null;
     const numbers = [value.valeur, ...Object.values(value.parType ?? {})].filter((v) => v !== null && v !== undefined);
+    // Pourcentage du loyer sans taux encore choisi : accepté, la règle reste
+    // sans effet (le taux se saisit alors à chaque commission).
+    if (!numbers.length && value.mode === "POURCENTAGE") return null;
     if (!numbers.length || numbers.some((n) => typeof n !== "number" || !Number.isFinite(n) || n < 0)) {
       return "Indiquez une valeur positive (globale ou par type de bien).";
     }

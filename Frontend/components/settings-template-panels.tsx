@@ -126,15 +126,15 @@ export function SettingsTemplatePanels() {
               Commission des commissionnaires
             </CardTitle>
             <CardDescription>
-              Appliquée quand l&apos;agence calcule la commission d&apos;une transaction conclue sans saisir de montant.
-              « Manuel » : le montant est saisi à chaque fois.
+              La commission d&apos;un commissionnaire est un pourcentage du loyer mensuel (ou du prix pour une vente).
+              Tant qu&apos;aucun pourcentage n&apos;est saisi ici, il est demandé à chaque commission.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Mode de calcul">
               {[
                 { value: "MANUEL", label: "Manuel" },
-                { value: "POURCENTAGE", label: "Pourcentage du montant" },
+                { value: "POURCENTAGE", label: "Pourcentage du loyer" },
                 { value: "MONTANT_FIXE", label: "Montant fixe" },
               ].map((option) => (
                 <Button
@@ -152,7 +152,7 @@ export function SettingsTemplatePanels() {
             {rule.mode !== "MANUEL" && (
               <>
                 <div className="space-y-2 sm:max-w-xs">
-                  <Label htmlFor="rule-value">{rule.mode === "POURCENTAGE" ? "Pourcentage par défaut (%)" : "Montant par défaut"}</Label>
+                  <Label htmlFor="rule-value">{rule.mode === "POURCENTAGE" ? "Pourcentage du loyer (%)" : "Montant par défaut"}</Label>
                   <Input
                     id="rule-value"
                     type="number"

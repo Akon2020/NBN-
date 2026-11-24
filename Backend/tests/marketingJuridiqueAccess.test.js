@@ -33,10 +33,11 @@ afterAll(async () => {
 });
 
 describe.each(["marketing", "juridique"])("P1.9 - rôle %s", (role) => {
-  it("consulte les bailleurs, sans pouvoir en ajouter (consultation seule par défaut)", async () => {
+  it("consulte et gère les bailleurs (bailleurs:manage, décision du 2026-11-25)", async () => {
     expect((await request(app).get("/api/bailleurs").set("Cookie", cookies[role])).status).toBe(200);
+    // Corps vide : la permission passe, la validation répond 400 (et non 403).
     const create = await request(app).post("/api/bailleurs").set("Cookie", cookies[role]).send({});
-    expect(create.status).toBe(403);
+    expect(create.status).toBe(400);
   });
 
   it("consulte le pipeline client et les demandes reçues", async () => {
@@ -63,6 +64,11 @@ describe.each(["marketing", "juridique"])("P1.9 - rôle %s", (role) => {
 describe("P1.9 - un autre rôle reste exclu", () => {
   it("la trésorerie ne gère pas les médias des biens", async () => {
     const res = await request(app).post(`/api/properties/${property.idProperty}/images`).set("Cookie", cookies.tresorerie);
+    expect(res.status).toBe(403);
+  });
+
+  it("la trésorerie ne crée pas de bailleur", async () => {
+    const res = await request(app).post("/api/bailleurs").set("Cookie", cookies.tresorerie).send({});
     expect(res.status).toBe(403);
   });
 });
