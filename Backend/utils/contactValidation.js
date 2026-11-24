@@ -1,3 +1,4 @@
+import { CODE_PREFIXES, normalizeCode } from "../shared/codes.js";
 import { promises as dns } from "dns";
 import { EMAIL_MX_CHECK_TIMEOUT_MS } from "../config/env.js";
 
@@ -75,10 +76,10 @@ export const normalizePhone = (raw) => {
 };
 
 /**
- * Code commissionnaire (CCM = Code CoMmissionnaire ; CCL identifie un client).
- * "ccm 42", "CCM042", "CCM-042" → "CCM-042". `null` si le format est faux.
+ * Code commissionnaire CMR-NNN (CCL identifie un client, CTR un collecteur).
+ * "cmr 42", "CMR042", ancien "CCM-042" → "CMR-042". `null` si le format est faux.
  */
-export const normalizeCommissionnaireCode = (raw) => {
-  const match = /^CCM[\s-]?(\d{1,4})$/i.exec(String(raw ?? "").trim());
-  return match ? `CCM-${match[1].padStart(3, "0")}` : null;
-};
+export const normalizeCommissionnaireCode = (raw) => normalizeCode(raw, CODE_PREFIXES.COMMISSIONNAIRE);
+
+/** Code collecteur CTR-NNN. */
+export const normalizeCollecteurCode = (raw) => normalizeCode(raw, CODE_PREFIXES.COLLECTEUR);

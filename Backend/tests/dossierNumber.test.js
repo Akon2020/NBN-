@@ -72,7 +72,7 @@ describe("GOAL 6 - Numéro de dossier unique", () => {
     createdClientIds.push(res.body.data.idClient);
 
     const currentYear = new Date().getFullYear();
-    expect(res.body.data.dossierNumber).toMatch(new RegExp(`^CLI-${currentYear}-\\d{6}$`));
+    expect(res.body.data.dossierNumber).toMatch(/^CCL-\d{3,}$/);
   });
 
   it("retrouve un client par recherche partielle de numéro de dossier", async () => {

@@ -1,3 +1,5 @@
+import { CODE_PREFIXES, nextSequenceCode } from "../shared/codes.js";
+import db from "../database/db.js";
 import { Op } from "sequelize";
 import {
   Client,
@@ -108,18 +110,19 @@ export const createClient = async (req, res, next) => {
       person = await Person.create({ fullName, phone, email });
     }
 
-    const client = await Client.create({
-      idPerson: person.idPerson,
-      type,
-      ...clientFields,
-      createdBy: req.user.idUser,
-    });
-
-    // GOAL 6 - dérivé de idClient une fois connu (voir le modèle) :
-    // aucune séquence externe à maintenir, unicité garantie par construction.
-    await client.update({
-      dossierNumber: `CLI-${new Date().getFullYear()}-${String(client.idClient).padStart(6, "0")}`,
-    });
+    // Code client CCL-NNN réservé sous verrou (shared/codes.js).
+    const client = await db.transaction(async (transaction) =>
+      Client.create(
+        {
+          idPerson: person.idPerson,
+          type,
+          ...clientFields,
+          dossierNumber: await nextSequenceCode(CODE_PREFIXES.CLIENT, transaction),
+          createdBy: req.user.idUser,
+        },
+        { transaction }
+      )
+    );
 
     const clientWithPerson = await Client.findByPk(client.idClient, {
       include: CLIENT_INCLUDES,

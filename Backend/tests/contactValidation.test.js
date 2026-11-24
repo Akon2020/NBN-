@@ -59,10 +59,12 @@ describe("normalizePhone", () => {
 });
 
 describe("normalizeCommissionnaireCode", () => {
-  it("accepte les variantes de saisie du code CCM", () => {
-    expect(normalizeCommissionnaireCode("CCM-042")).toBe("CCM-042");
-    expect(normalizeCommissionnaireCode("ccm 42")).toBe("CCM-042");
-    expect(normalizeCommissionnaireCode("CCM042")).toBe("CCM-042");
+  it("accepte les variantes de saisie du code CMR, et l'ancien préfixe CCM", () => {
+    expect(normalizeCommissionnaireCode("CMR-042")).toBe("CMR-042");
+    expect(normalizeCommissionnaireCode("cmr 42")).toBe("CMR-042");
+    expect(normalizeCommissionnaireCode("CMR042")).toBe("CMR-042");
+    expect(normalizeCommissionnaireCode("CCM-042")).toBe("CMR-042");
+    expect(normalizeCommissionnaireCode("CTR-042")).toBeNull();
   });
 
   it("refuse un code client (CCL) ou un format libre", () => {

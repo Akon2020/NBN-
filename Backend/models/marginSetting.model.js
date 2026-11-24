@@ -17,13 +17,20 @@ const MarginSetting = db.define(
     },
     propertyType: {
       type: DataTypes.ENUM(
-        "APPARTEMENT",
-        "MAISON",
-        "CONSTRUCTION_DURABLE",
-        "CONSTRUCTION_SEMI_DURABLE",
-        "TERRAIN_PLAT",
-        "TERRAIN_PENTE"
-      ),
+      "APPARTEMENT",
+      "MAISON",
+      "CONSTRUCTION_DURABLE",
+      "CONSTRUCTION_SEMI_DURABLE",
+      "TERRAIN_PLAT",
+      "TERRAIN_PENTE",
+      "PARCELLE",
+      "CHAMBRE",
+      // Liste unique de l'agence (shared/propertyKinds.js).
+      "TERRAIN",
+      "CHAMBRETTE",
+      "BUREAU",
+      "LOCAL_COMMERCIAL"
+    ),
       allowNull: false,
     },
     stayType: {

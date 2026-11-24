@@ -107,7 +107,7 @@ describe("Formulaire public de demande de location", () => {
     ["sans modalité de paiement", { modalitePaiement: undefined }, /modalité/],
     ["« Autre » occupants sans nombre", { typeOccupants: "AUTRE" }, /nombre d'occupants/],
     ["sans réponse à l'orientation", { orienteParAgent: undefined }, /orienté/],
-    ["un code client CCL au lieu d'un CCM", { codeCommissionnaire: "CCL-042" }, /CCM-042/],
+    ["un code client CCL au lieu d'un CMR", { codeCommissionnaire: "CCL-042" }, /CMR-042/],
   ])("refuse %s (400) avec un message explicite", async (_, override, message) => {
     const res = await request(app)
       .post("/api/rental-requests")
@@ -121,7 +121,7 @@ describe("Formulaire public de demande de location", () => {
     const res = await request(app).post("/api/rental-requests").send(basePayload);
 
     expect(res.status).toBe(201);
-    expect(res.body.data.dossierNumber).toMatch(/^CLI-\d{4}-\d{6}$/);
+    expect(res.body.data.dossierNumber).toMatch(/^CCL-\d{3,}$/);
     createdRequestIds.push(res.body.data.idRentalRequest);
 
     const stored = await RentalRequest.findByPk(res.body.data.idRentalRequest);
@@ -142,14 +142,14 @@ describe("Formulaire public de demande de location", () => {
     expect(client.besoinUsage).toBe("HABITATION");
     // Orienté par un commissionnaire : la source commerciale le reflète.
     expect(client.source).toBe("COMMISSIONNAIRE");
-    expect(client.sourceCommissionnaireCode).toBe("CCM-042");
+    expect(client.sourceCommissionnaireCode).toBe("CMR-042");
     expect(Number(client.budgetMin)).toBe(150);
     expect(Number(client.budgetMax)).toBe(300);
     expect(client.person.email).toBe(basePayload.email);
 
     // Valeurs normalisées sur la trace de la demande.
     expect(stored.quartier).toBe("Nyalukemba");
-    expect(stored.codeCommissionnaire).toBe("CCM-042");
+    expect(stored.codeCommissionnaire).toBe("CMR-042");
     expect(stored.modalitePaiement).toBe("AVANCE_1_GARANTIE_3");
     expect(stored.typeOccupants).toBe("COUPLE");
 
