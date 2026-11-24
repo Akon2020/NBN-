@@ -58,7 +58,7 @@ export const newUserEmailTemplate = (nom, email, defaultPassword, url) => `
   <div style="max-width:600px;margin:auto;background:#fff;padding:24px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)">
     
     <div style="text-align:center;margin-bottom:20px">
-      <img src="https://nbn-plus.vercel.app/nyumbani-logo.png" height="80" alt="Nyumbani Express">
+      <img src="https://nbnexpress.org/nyumbani-logo.png" height="80" alt="Nyumbani Express">
     </div>
 
     <h2 style="color:${SECONDARY};">Bienvenue ${nom} 👋</h2>
@@ -106,7 +106,7 @@ export const resetPasswordEmailTemplate = (nom, email, url, resetToken) => `
   <div style="max-width:600px;margin:auto;background:#fff;padding:24px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,.08)">
     
     <div style="text-align:center;margin-bottom:20px">
-      <img src="https://nbn-plus.vercel.app/nyumbani-logo.png" height="80" alt="Nyumbani Express">
+      <img src="https://nbnexpress.org/nyumbani-logo.png" height="80" alt="Nyumbani Express">
     </div>
 
     <h2 style="color:${SECONDARY};">Bonjour ${nom},</h2>

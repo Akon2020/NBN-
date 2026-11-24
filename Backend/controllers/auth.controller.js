@@ -1,19 +1,12 @@
 import { User } from "../models/index.model.js";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import {
   DEFAULT_PASSWD,
   FRONT_URL,
-  HOST_URL,
-  JWT_SECRET,
 } from "../config/env.js";
 import { sendMail } from "../config/nodemailer.js";
+import { welcomeEmailTemplate } from "../utils/email.template.js";
 import {
-  resetPasswordEmailTemplate,
-  welcomeEmailTemplate,
-} from "../utils/email.template.js";
-import {
-  generateToken,
   getUserWithoutPassword,
   strongPasswd,
   valideEmail,
@@ -29,13 +22,28 @@ import {
   accessTokenMaxAge,
 } from "../utils/session.utils.js";
 import { invalidateSecurityVersion } from "../utils/securityVersionCache.js";
-import { Session } from "../models/index.model.js";
+import { Session, AuthToken } from "../models/index.model.js";
+import {
+  consumeAuthToken,
+  issueAuthToken,
+  normalizeAccessKey,
+  TOKEN_REFUSAL_MESSAGES,
+} from "../utils/authTokens.js";
+import { passwordResetEmail } from "../utils/accountEmail.templates.js";
+import { queueEmail } from "../services/email.service.js";
 
-const ACCESS_COOKIE_OPTIONS = { httpOnly: true, secure: true, sameSite: "strict" };
+// Le site (nbnexpress.org) et l'API (api.nbnexpress.org) sont sur le même
+// site : `Lax` suffit et reste accepté par Safari iOS après une navigation
+// venue d'un lien externe (e-mail, WhatsApp), là où `Strict` peut retenir
+// le cookie. Réglable par COOKIE_SAME_SITE (lax, strict ou none).
+const SAME_SITE = ["lax", "strict", "none"].includes(String(process.env.COOKIE_SAME_SITE).toLowerCase())
+  ? String(process.env.COOKIE_SAME_SITE).toLowerCase()
+  : "lax";
+const ACCESS_COOKIE_OPTIONS = { httpOnly: true, secure: true, sameSite: SAME_SITE };
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: true,
-  sameSite: "strict",
+  sameSite: SAME_SITE,
   path: "/api/auth",
 };
 
@@ -70,8 +78,19 @@ const issueTokens = async (res, user, req) => {
   return { accessToken, refreshToken };
 };
 
+// Outil interne : les comptes sont créés par un administrateur (Utilisateurs)
+// ou par l'activation d'une clé d'accès. L'inscription libre reste ouverte
+// hors production (tests, démonstration), ou si ALLOW_PUBLIC_REGISTRATION=true.
+const publicRegistrationAllowed = () =>
+  process.env.ALLOW_PUBLIC_REGISTRATION === "true" || process.env.NODE_ENV !== "production";
+
 export const register = async (req, res, next) => {
   try {
+    if (!publicRegistrationAllowed()) {
+      return res.status(403).json({
+        message: "Les comptes sont créés par l'administrateur de l'agence. Contactez-le pour obtenir un accès.",
+      });
+    }
     const { fullName, email, password } = req.body;
     const avatar = req.file ? req.file.path : null;
     // SEC-G02 : l'auto-inscription publique ne doit jamais permettre de
@@ -175,10 +194,15 @@ export const login = async (req, res, next) => {
     );
 
     if (isDefaultPassword) {
+      // Le mot de passe par défaut prouve l'identité une seule fois : un
+      // jeton court permet de choisir son propre mot de passe tout de suite,
+      // sans session ouverte d'ici là.
+      const { token } = await issueAuthToken({ idUser: user.idUser, purpose: "PASSWORD_SETUP" });
       return res.status(403).json({
         message:
-          "Vous utilisez le mot de passe par défaut. Veuillez le modifier pour continuer.",
+          "Vous utilisez le mot de passe par défaut. Choisissez votre propre mot de passe pour continuer.",
         requiresPasswordChange: true,
+        setupToken: token,
       });
     }
 
@@ -269,57 +293,42 @@ export const refresh = async (req, res, next) => {
   }
 };
 
+const passwordRule =
+  "Le mot de passe doit contenir au moins 8 caractères, dont une lettre, un chiffre et un symbole.";
+
+const isAcceptablePassword = (password) =>
+  typeof password === "string" && password.length >= 8 && strongPasswd(password);
+
+const frontUrl = () => (FRONT_URL || "https://nbnexpress.org").replace(/\/+$/, "");
+
+/**
+ * « Mot de passe oublié » : la réponse est toujours la même, que l'adresse
+ * existe ou non (aucune énumération des comptes), et le lien ne figure
+ * jamais dans la réponse HTTP. Il part par e-mail (file d'envoi), vaut
+ * 15 minutes, sert une seule fois et remplace tout lien précédent.
+ */
 export const resetPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: "L'email est requis" });
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    if (!email || !valideEmail(email)) {
+      return res.status(400).json({ message: "Entrez une adresse e-mail valide." });
     }
 
     const user = await User.findOne({ where: { email } });
-
-    if (!user) {
-      return res.status(400).json({
-        message:
-          "Cet email n'est attaché à aucun compte! Veuillez vérifier votre email",
+    if (user && user.status !== "INACTIVE") {
+      const { token } = await issueAuthToken({ idUser: user.idUser, purpose: "PASSWORD_RESET" });
+      const link = `${frontUrl()}/auth/reset-password?token=${token}`;
+      const mail = passwordResetEmail({
+        fullName: user.fullName,
+        link,
+        minutes: Number(process.env.PASSWORD_RESET_TTL_MINUTES || 15),
       });
-    }
-    const resetToken = generateToken(user);
-    const mailOptions = {
-      to: email,
-      subject: "Réinitialisation du mot de passe",
-      html: resetPasswordEmailTemplate(
-        user.fullName,
-        email,
-        HOST_URL,
-        resetToken
-      ),
-    };
-
-    // Contrairement au mail de bienvenue, celui-ci EST le livrable : sans
-    // lui l'utilisateur n'a aucun moyen de réinitialiser. On refuse donc
-    // explicitement plutôt que d'annoncer un envoi qui n'a pas eu lieu —
-    // mais avec un message exploitable, pas un « Erreur serveur » opaque.
-    try {
-      await sendMail(mailOptions);
-    } catch (mailError) {
-      console.error(
-        "Erreur lors de l'envoi du mail de réinitialisation :",
-        mailError.message,
-      );
-      return res.status(502).json({
-        message:
-          "Impossible d'envoyer l'email de réinitialisation pour le moment. Veuillez réessayer plus tard.",
-      });
+      await queueEmail({ to: user.email, ...mail });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message:
-        "Un email de réinitialisation vous a été envoyé! Consultez votre boîte mail",
-      dev: {
-        resetUrl: `${HOST_URL}/auth/resetpassword?token=${resetToken}`,
-      },
+        "Si un compte correspond à cette adresse, un lien de réinitialisation valable 15 minutes vient d'y être envoyé.",
     });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
@@ -327,44 +336,104 @@ export const resetPassword = async (req, res, next) => {
   }
 };
 
+/**
+ * Vérifie un lien ou une clé sans le consommer, pour que la page de
+ * définition du mot de passe affiche le compte concerné.
+ */
+export const checkAuthToken = async (req, res, next) => {
+  try {
+    const raw = req.body?.token;
+    const candidates = [String(raw ?? "").trim(), normalizeAccessKey(raw)].filter(Boolean);
+    const token = candidates.length
+      ? await AuthToken.findOne({
+          where: { tokenHash: candidates.map(hashToken) },
+          include: [{ model: User, attributes: ["email", "fullName", "status"] }],
+        })
+      : null;
+    let reason = null;
+    if (!token || !token.user || token.user.status === "INACTIVE") reason = "invalid";
+    else if (token.usedAt) reason = "used";
+    else if (token.revokedAt) reason = "revoked";
+    else if (token.expiresAt.getTime() < Date.now()) reason = "expired";
+    if (reason) return res.status(400).json({ valid: false, reason, message: TOKEN_REFUSAL_MESSAGES[reason] });
+
+    return res.status(200).json({
+      valid: true,
+      purpose: token.purpose,
+      email: token.user.email,
+      fullName: token.user.fullName,
+      expiresAt: token.expiresAt,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+/**
+ * Définit le mot de passe à partir d'un lien ou d'une clé à usage unique.
+ * - Réinitialisation : toutes les sessions sont fermées, l'utilisateur se
+ *   reconnecte ensuite avec son nouveau mot de passe.
+ * - Clé d'accès / premier mot de passe : la clé prouve l'identité, la
+ *   session est ouverte directement pour une première connexion fluide.
+ */
 export const updatePassword = async (req, res, next) => {
   try {
-    const { token } = req.query;
-    const { newPassword } = req.body;
+    const raw = req.body?.token || req.query?.token;
+    const { newPassword } = req.body ?? {};
 
-    if (!token || !newPassword) {
-      return res
-        .status(400)
-        .json({ message: "Token et nouveau mot de passe requis" });
+    if (!raw || !newPassword) {
+      return res.status(400).json({ message: "Le lien et le nouveau mot de passe sont requis." });
+    }
+    if (!isAcceptablePassword(newPassword)) {
+      return res.status(400).json({ message: passwordRule });
+    }
+    if (DEFAULT_PASSWD && newPassword === DEFAULT_PASSWD) {
+      return res.status(400).json({ message: "Choisissez un mot de passe différent du mot de passe par défaut." });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (!decoded || !decoded.email) {
-      return res.status(400).json({ message: "Token invalide ou expiré" });
-    }
-
-    const user = await User.findOne({ where: { email: decoded.email } });
-    if (!user) {
-      return res.status(404).json({ message: "User non trouvé" });
-    }
-
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-    // Un changement de mot de passe invalide toutes les sessions actives.
-    await User.update(
-      {
-        password: hashedPassword,
-        securityVersion: user.securityVersion + 1,
+    const hashedPassword = await bcrypt.hash(newPassword, await bcrypt.genSalt());
+    const outcome = await consumeAuthToken(
+      raw,
+      ["PASSWORD_RESET", "PASSWORD_SETUP", "ACCESS_KEY"],
+      async (token, transaction) => {
+        const user = await User.findByPk(token.idUser, { transaction, lock: transaction.LOCK.UPDATE });
+        if (!user || user.status === "INACTIVE") return null;
+        user.password = hashedPassword;
+        user.securityVersion = user.securityVersion + 1;
+        await user.save({ transaction });
+        // Les autres liens encore valides de ce compte tombent aussi.
+        await AuthToken.update(
+          { revokedAt: new Date() },
+          { where: { idUser: user.idUser, usedAt: null, revokedAt: null }, transaction },
+        );
+        return user;
       },
-      { where: { idUser: user.idUser } }
     );
-    await revokeAllUserSessions(user.idUser, "admin_revoke");
+
+    if (!outcome.ok || !outcome.result) {
+      const reason = outcome.ok ? "invalid" : outcome.reason;
+      return res.status(400).json({ reason, message: TOKEN_REFUSAL_MESSAGES[reason] });
+    }
+
+    const user = outcome.result;
+    await revokeAllUserSessions(user.idUser, "password_changed");
     invalidateSecurityVersion(user.idUser);
 
-    res.status(200).json({
-      message:
-        "Mot de passe réinitialisé avec succès! Connectez-vous maintenant",
+    if (outcome.token.purpose === "PASSWORD_RESET") {
+      return res.status(200).json({
+        message: "Mot de passe réinitialisé. Connectez-vous avec votre nouveau mot de passe.",
+        signedIn: false,
+      });
+    }
+
+    user.lastLoginAt = new Date();
+    await user.save();
+    const { accessToken, refreshToken } = await issueTokens(res, user, req);
+    return res.status(200).json({
+      message: "Mot de passe enregistré. Bienvenue !",
+      signedIn: true,
+      data: { token: accessToken, refreshToken, userInfo: getUserWithoutPassword(user) },
     });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });

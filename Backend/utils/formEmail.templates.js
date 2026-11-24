@@ -28,7 +28,7 @@ export const formatRequestDate = (date) =>
 const civilityOf = (sexe) =>
   sexe === "MASCULIN" ? "Monsieur" : sexe === "FEMININ" ? "Madame" : "Madame, Monsieur";
 
-const layout = (content) => `
+export const layout = (content) => `
 <div style="font-family:Arial,Helvetica,sans-serif;background:${SURFACE};padding:24px">
   <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:10px;overflow:hidden">
     <div style="background:${NAVY};padding:18px 24px">
@@ -55,7 +55,7 @@ const detailRows = (rows) =>
     )
     .join("")}</table>`;
 
-const actionButton = (href, label) => `
+export const actionButton = (href, label) => `
   <p style="text-align:center;margin:24px 0 8px">
     <a href="${escapeHtml(href)}" style="background:${BUTTON};color:#ffffff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:bold">${escapeHtml(label)}</a>
   </p>`;

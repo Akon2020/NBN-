@@ -7,6 +7,7 @@ import {
   register,
   resetPassword,
   updatePassword,
+  checkAuthToken,
 } from "../controllers/auth.controller.js";
 import {
   authMiddlware,
@@ -14,7 +15,12 @@ import {
 } from "../middlewares/auth.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
 import { normalizeUploadPaths } from "../utils/normalizeUploadPaths.js";
-import { authLimiter } from "../middlewares/rateLimit.middleware.js";
+import {
+  authLimiter,
+  loginAccountLimiter,
+  passwordResetLimiter,
+  tokenLimiter,
+} from "../middlewares/rateLimit.middleware.js";
 
 const authRouter = Router();
 
@@ -110,7 +116,7 @@ authRouter.post("/register", authLimiter, upload.single("avatar"), normalizeUplo
  *       401:
  *         description: Email ou mot de passe incorrect
  */
-authRouter.post("/login", authLimiter, login);
+authRouter.post("/login", authLimiter, loginAccountLimiter, login);
 
 /**
  * @swagger
@@ -128,9 +134,13 @@ authRouter.post("/refresh", refresh);
 
 /**
  * @swagger
- * /api/auth/reset-password:
+ * /api/auth/forgot-password:
  *   post:
- *     summary: Demande de réinitialisation de mot de passe
+ *     summary: Envoie un lien de réinitialisation (15 min, usage unique)
+ *     description: >
+ *       Réponse identique que le compte existe ou non (pas d'énumération).
+ *       Le lien n'est jamais renvoyé dans la réponse, uniquement par e-mail.
+ *       Alias historique : POST /api/auth/reset-password.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -138,50 +148,64 @@ authRouter.post("/refresh", refresh);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
+ *             required: [email]
  *             properties:
- *               email:
- *                 type: string
+ *               email: { type: string }
  *     responses:
- *       200:
- *         description: Email de réinitialisation envoyé
- *       400:
- *         description: Email non trouvé ou invalide
+ *       200: { description: Demande prise en compte }
+ *       400: { description: Adresse e-mail invalide }
+ *       429: { description: Trop de demandes }
  */
-authRouter.post("/reset-password", resetPassword);
+authRouter.post("/forgot-password", passwordResetLimiter, resetPassword);
+authRouter.post("/reset-password", passwordResetLimiter, resetPassword);
 
 /**
  * @swagger
- * /api/auth/resetpassword:
+ * /api/auth/token/check:
  *   post:
- *     summary: Met à jour le mot de passe avec le token de réinitialisation
+ *     summary: Vérifie un lien de réinitialisation ou une clé d'accès sans le consommer
  *     tags: [Auth]
- *     parameters:
- *       - in: query
- *         name: token
- *         schema:
- *           type: string
- *         required: true
- *         description: Token de réinitialisation
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - newPassword
+ *             required: [token]
  *             properties:
- *               newPassword:
- *                 type: string
+ *               token: { type: string }
  *     responses:
- *       200:
- *         description: Mot de passe mis à jour avec succès
- *       400:
- *         description: Données invalides ou token manquant
+ *       200: { description: "Valide : usage (PASSWORD_RESET, PASSWORD_SETUP, ACCESS_KEY), e-mail et nom du compte" }
+ *       400: { description: "Invalide, déjà utilisé, remplacé ou expiré (champ reason)" }
  */
-authRouter.post("/resetpassword", updatePassword);
+authRouter.post("/token/check", tokenLimiter, checkAuthToken);
+
+/**
+ * @swagger
+ * /api/auth/reset-password/confirm:
+ *   post:
+ *     summary: Définit un mot de passe à partir d'un lien ou d'une clé à usage unique
+ *     description: >
+ *       Réinitialisation : sessions fermées, reconnexion demandée (signedIn=false).
+ *       Clé d'accès ou premier mot de passe : session ouverte (signedIn=true).
+ *       Alias historique : POST /api/auth/resetpassword.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, newPassword]
+ *             properties:
+ *               token: { type: string }
+ *               newPassword: { type: string, description: "8 caractères minimum, lettre, chiffre et symbole" }
+ *     responses:
+ *       200: { description: Mot de passe enregistré }
+ *       400: { description: "Mot de passe trop faible, ou lien invalide, utilisé, remplacé ou expiré" }
+ */
+authRouter.post("/reset-password/confirm", tokenLimiter, updatePassword);
+authRouter.post("/resetpassword", tokenLimiter, updatePassword);
 
 /**
  * @swagger

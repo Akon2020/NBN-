@@ -16,6 +16,7 @@ import Permission from "./permission.model.js";
 import RolePermission from "./rolePermission.model.js";
 import AccessGrant from "./accessGrant.model.js";
 import Session from "./session.model.js";
+import AuthToken from "./authToken.model.js";
 import Service from "./service.model.js";
 import Poste from "./poste.model.js";
 import Person from "./person.model.js";
@@ -135,6 +136,8 @@ User.hasMany(ActivityLog, { foreignKey: "idUser" });
 User.hasMany(Session, { foreignKey: "idUser" });
 Session.belongsTo(User, { foreignKey: "idUser" });
 Session.belongsTo(Session, { foreignKey: "replacedBySessionId", as: "replacedBy" });
+User.hasMany(AuthToken, { foreignKey: "idUser" });
+AuthToken.belongsTo(User, { foreignKey: "idUser" });
 
 // BACK-G02 — RBAC : Role - Permission (via RolePermission), User - AccessGrant
 Role.belongsToMany(Permission, {
@@ -498,5 +501,6 @@ export {
   InboundEmailReply,
   BailleurMessage,
   BailleurRelance,
+  AuthToken,
   syncModels,
 };
