@@ -18,27 +18,16 @@ import {
   ShieldCheck,
   Truck,
   KeyRound,
+  Plus,
 } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { LandingNav } from "@/components/landing/landing-nav"
 import { LandingExplorer } from "@/components/landing/landing-explorer"
+import { COMPANY, FAQ, LEGAL_LINKS, whatsappHref } from "@/lib/company"
 
 // Polices de marque limitées à cette page (CLAUDE.md §10 : Manrope pour
 // les titres, Inter pour le corps), sans toucher au layout du dashboard.
 const manrope = Manrope({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-display" })
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" })
-
-// Coordonnées de l'agence (clé `company.info` des Paramètres), dupliquées
-// ici : la page est publique et `/api/settings` exige une permission.
-const COMPANY = {
-  name: "Nyumbani Express",
-  phone: "+243 977 103 143",
-  whatsapp: "243977103143",
-  address: "22 Av. Résidence, en face de Gardaworld, Bukavu, Sud-Kivu, RDC",
-  email: "contact@nbnexpress.org",
-}
-
-const whatsappHref = (message: string) => `https://wa.me/${COMPANY.whatsapp}?text=${encodeURIComponent(message)}`
 
 const SERVICES = [
   {
@@ -113,9 +102,11 @@ export default function LandingPage() {
         Aller au contenu
       </a>
 
-      {/* Hero : photo pleine largeur dans un cadre arrondi, navigation vitrée */}
-      <header className="px-2 pt-2 sm:px-3 sm:pt-3 md:px-5 md:pt-5">
-        <div className="relative isolate overflow-hidden rounded-[24px] md:rounded-[32px]">
+      <LandingNav phone={COMPANY.phone} />
+
+      {/* Hero : photo plein écran, d'un bord à l'autre */}
+      <header>
+        <div className="relative isolate flex min-h-[100svh] flex-col justify-center overflow-hidden">
           <Image
             src="/modern-real-estate-property-in-africa.jpg"
             alt=""
@@ -125,16 +116,12 @@ export default function LandingPage() {
             className="-z-20 object-cover"
           />
           <div
-            className="absolute inset-0 -z-10 bg-gradient-to-r from-primary-900/95 via-primary-900/75 to-primary-900/20"
+            className="absolute inset-0 -z-10 bg-gradient-to-b from-primary-900/85 via-primary-900/70 to-primary-900/90 lg:bg-gradient-to-r lg:from-primary-900/95 lg:via-primary-900/75 lg:to-primary-900/20"
             aria-hidden
           />
           <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-primary-900/80 to-transparent" aria-hidden />
 
-          <div className="px-3 pt-3 sm:px-5 sm:pt-5">
-            <LandingNav phone={COMPANY.phone} />
-          </div>
-
-          <div className="mx-auto grid max-w-6xl gap-10 px-5 pb-32 pt-14 sm:pb-36 md:px-6 md:pt-20 lg:grid-cols-[1.25fr_1fr] lg:items-center lg:pb-44">
+          <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 pb-32 pt-28 sm:pb-36 sm:pt-32 md:px-6 lg:grid-cols-[1.25fr_1fr] lg:items-center lg:pb-44">
             <div className="space-y-7">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent-500" aria-hidden />
@@ -179,7 +166,11 @@ export default function LandingPage() {
 
             {/* Carte vitrée flottante */}
             <div className="hidden justify-end lg:flex">
-              <figure className="w-full max-w-sm rounded-3xl border border-white/25 bg-white/15 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
+              <Link
+                href="/demande-location?type=MAISON&commune=IBANDA"
+                className="block w-full max-w-sm rounded-3xl border border-white/25 bg-white/15 p-3 shadow-2xl shadow-black/30 backdrop-blur-xl transition-transform hover:-translate-y-1"
+              >
+              <figure>
                 <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
                   <Image
                     src="/house-bukavu-ibanda.jpg"
@@ -203,16 +194,17 @@ export default function LandingPage() {
                   <span className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-primary-900">Sur demande</span>
                 </figcaption>
               </figure>
+              </Link>
             </div>
           </div>
         </div>
       </header>
 
       <main id="contenu">
-        <LandingExplorer whatsapp={COMPANY.whatsapp} />
+        <LandingExplorer />
 
         {/* Services */}
-        <section id="services" className="scroll-mt-6 bg-neutral-100 py-16 md:py-24 dark:bg-white/[0.03]" aria-labelledby="services-title">
+        <section id="services" className="scroll-mt-24 bg-neutral-100 py-16 md:py-24 dark:bg-white/[0.03]" aria-labelledby="services-title">
           <div className="mx-auto max-w-6xl px-4 md:px-6">
             <div className="mx-auto mb-12 max-w-2xl space-y-3 text-center">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-600 dark:text-accent-500">
@@ -246,7 +238,7 @@ export default function LandingPage() {
         </section>
 
         {/* Comment ça marche */}
-        <section id="etapes" className="scroll-mt-6 py-16 md:py-24" aria-labelledby="etapes-title">
+        <section id="etapes" className="scroll-mt-24 py-16 md:py-24" aria-labelledby="etapes-title">
           <div className="mx-auto max-w-6xl px-4 md:px-6">
             <div className="mb-12 max-w-2xl space-y-3">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-600 dark:text-accent-500">
@@ -283,7 +275,7 @@ export default function LandingPage() {
         </section>
 
         {/* Pourquoi nous */}
-        <section id="apropos" className="scroll-mt-6 pb-16 md:pb-24" aria-labelledby="apropos-title">
+        <section id="apropos" className="scroll-mt-24 pb-16 md:pb-24" aria-labelledby="apropos-title">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 md:px-6 lg:grid-cols-2 lg:items-center">
             <div className="relative aspect-[4/3] overflow-hidden rounded-3xl lg:aspect-[5/6]">
               <Image
@@ -328,8 +320,47 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Questions fréquentes */}
+        <section id="faq" className="scroll-mt-24 bg-neutral-100 py-16 md:py-24 dark:bg-white/[0.03]" aria-labelledby="faq-title">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 md:px-6 lg:grid-cols-[1fr_1.6fr]">
+            <div className="space-y-4">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-600 dark:text-accent-500">
+                Questions fréquentes
+              </span>
+              <h2 id="faq-title" className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight sm:text-4xl">
+                Vous vous posez une question ?
+              </h2>
+              <p className="text-base leading-relaxed text-neutral-600 dark:text-white/70">
+                Les réponses aux questions que l&apos;on nous pose le plus souvent. Pour tout le reste, un conseiller vous
+                répond sur WhatsApp.
+              </p>
+              <a
+                href={whatsappHref("Bonjour, j'ai une question pour Nyumbani Express.")}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-primary-900 px-4 text-sm font-semibold text-primary-900 transition-colors hover:bg-primary-900 hover:text-white dark:border-white/30 dark:text-white dark:hover:bg-white/10"
+              >
+                <MessageCircle className="h-4 w-4" aria-hidden />
+                Poser ma question
+              </a>
+            </div>
+            <div className="divide-y divide-neutral-200 rounded-2xl border border-neutral-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-[#1b2433]">
+              {FAQ.map((item) => (
+                <details key={item.question} className="group px-5 [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600">
+                    {item.question}
+                    <Plus
+                      className="h-5 w-5 shrink-0 text-accent-600 transition-transform group-open:rotate-45 dark:text-accent-500"
+                      aria-hidden
+                    />
+                  </summary>
+                  <p className="pb-5 text-sm leading-relaxed text-neutral-600 dark:text-white/70">{item.answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Appel à l'action */}
-        <section className="px-2 pb-2 sm:px-3 md:px-5" aria-labelledby="cta-title">
+        <section className="px-2 pb-2 pt-16 sm:px-3 md:px-5 md:pt-24" aria-labelledby="cta-title">
           <div className="relative isolate overflow-hidden rounded-[24px] bg-primary-900 px-6 py-14 text-center md:rounded-[32px] md:py-20">
             <div
               className="absolute -right-24 -top-24 -z-10 h-72 w-72 rounded-full bg-accent-500/20 blur-3xl"
@@ -365,7 +396,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer id="contact" className="scroll-mt-6 py-14" aria-labelledby="contact-title">
+      <footer id="contact" className="scroll-mt-24 py-14" aria-labelledby="contact-title">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.4fr]">
             <div className="space-y-4">
@@ -376,7 +407,6 @@ export default function LandingPage() {
               <p className="text-sm leading-relaxed text-neutral-600 dark:text-white/70">
                 Agence immobilière : location, vente, conseil et accompagnement à Bukavu, Sud-Kivu, RDC.
               </p>
-              <ThemeToggle />
             </div>
             <nav aria-label="Services" className="space-y-3">
               <h3 className="text-sm font-semibold">Services</h3>
@@ -407,6 +437,11 @@ export default function LandingPage() {
                   <Link href="/collecte-bien" className="hover:text-accent-600">
                     Confier un bien
                   </Link>
+                </li>
+                <li>
+                  <a href="#faq" className="hover:text-accent-600">
+                    Questions fréquentes
+                  </a>
                 </li>
                 <li>
                   <Link href="/auth/login" className="hover:text-accent-600">
@@ -448,9 +483,22 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-          <p className="mt-12 border-t border-neutral-200 pt-6 text-center text-sm text-neutral-600 dark:border-white/10 dark:text-white/60">
-            &copy; {new Date().getFullYear()} {COMPANY.name}. Tous droits réservés.
-          </p>
+          <div className="mt-12 flex flex-col gap-4 border-t border-neutral-200 pt-6 text-sm text-neutral-600 sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:text-white/60">
+            <p>
+              &copy; {new Date().getFullYear()} {COMPANY.name}. Tous droits réservés.
+            </p>
+            <nav aria-label="Informations légales">
+              <ul className="flex flex-wrap gap-x-5 gap-y-2">
+                {LEGAL_LINKS.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="hover:text-accent-600">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
         </div>
       </footer>
     </div>

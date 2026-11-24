@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle2, EyeOff, FileCheck2, Lock, Paperclip } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { BackButton } from "@/components/back-button"
 import { FormWizard, useFormDraft, type WizardStep } from "@/components/forms/form-wizard"
 import {
   ChoiceChips,
@@ -729,10 +730,13 @@ export default function CollecteBienPage() {
   return (
     <div className={`${manrope.variable} ${inter.variable} min-h-screen bg-muted/30 font-[family-name:var(--font-body)]`}>
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/nyumbani-logo.png" alt="Nyumbani Express" width={120} height={40} className="h-10 w-auto" />
-          </Link>
+        <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 md:px-6">
+          <div className="flex items-center gap-2">
+            <BackButton fallback="/" />
+            <Link href="/" className="flex items-center gap-3" aria-label="Nyumbani Express, accueil">
+              <Image src="/nyumbani-logo.png" alt="" width={120} height={40} className="h-10 w-auto" />
+            </Link>
+          </div>
           <ThemeToggle />
         </div>
       </header>

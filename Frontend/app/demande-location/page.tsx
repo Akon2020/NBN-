@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { CheckCircle2, ShieldCheck } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { BackButton } from "@/components/back-button"
+import { RENTAL_CONDITIONS } from "@/lib/company"
 import { FormWizard, useFormDraft, type WizardStep } from "@/components/forms/form-wizard"
 import {
   ChoiceChips,
@@ -55,40 +57,7 @@ import { toast } from "sonner"
 const manrope = Manrope({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" })
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" })
 
-const CONDITIONS = [
-  {
-    title: "Informations fournies",
-    body: "Je m'engage à fournir des informations exactes et sincères. Toute fausse déclaration peut entraîner le rejet de ma demande.",
-  },
-  {
-    title: "Rôle de l'agence",
-    body: "Je comprends que Nyumbani Express agit comme intermédiaire entre moi et les propriétaires, et que les biens proposés sont issus de son réseau.",
-  },
-  {
-    title: "Mise en relation officielle",
-    body: "Je reconnais que tout bien présenté par l'agence constitue une mise en relation officielle.",
-  },
-  {
-    title: "Engagement de non-contournement",
-    body: "Je m'engage à ne pas contacter directement le propriétaire d'un bien présenté par l'agence, à ne pas chercher à conclure une transaction sans passer par l'agence, et à ne pas utiliser les informations reçues pour la contourner. Cet engagement reste valable pendant toute la recherche et jusqu'à 12 mois après.",
-  },
-  {
-    title: "Confidentialité",
-    body: "Je m'engage à ne pas partager les contacts des propriétaires, les informations sur les biens, ni les détails reçus via l'agence.",
-  },
-  {
-    title: "Frais de service",
-    body: "Je comprends que certains services peuvent être payants (visites, mise en relation, accompagnement) et que les conditions me seront expliquées avant toute transaction.",
-  },
-  {
-    title: "Respect de la collaboration",
-    body: "Je m'engage à collaborer de manière sérieuse et respectueuse avec l'équipe.",
-  },
-  {
-    title: "En cas de non-respect",
-    body: "Je comprends que tout contournement ou comportement frauduleux peut entraîner l'annulation du service, des pénalités, ou des actions conformément aux règles en vigueur.",
-  },
-]
+const CONDITIONS = RENTAL_CONDITIONS
 
 const EMPTY_LOCATION: LocationValue = { commune: "", quartier: "", avenues: [], avenueAutre: "" }
 
@@ -604,7 +573,7 @@ export default function DemandeLocationPage() {
     },
     {
       id: "conditions",
-      title: "Conditions & engagement",
+      title: "Conditions et engagement",
       subtitle: "Dernière étape - merci de lire et d'accepter avant d'envoyer.",
       validate: () => (conditionsAccepted ? null : "Vous devez accepter les conditions pour envoyer votre demande."),
       content: (
@@ -633,6 +602,13 @@ export default function DemandeLocationPage() {
               J&apos;ai lu et j&apos;accepte les conditions ci-dessus.
             </Label>
           </label>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Vos informations servent uniquement à traiter votre demande. Voir notre{" "}
+            <Link href="/confidentialite" target="_blank" className="font-medium text-foreground underline">
+              politique de confidentialité
+            </Link>
+            .
+          </p>
         </div>
       ),
     },
@@ -641,10 +617,13 @@ export default function DemandeLocationPage() {
   return (
     <div className={`${manrope.variable} ${inter.variable} min-h-screen bg-muted/30 font-[family-name:var(--font-body)]`}>
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/nyumbani-logo.png" alt="Nyumbani Express" width={120} height={40} className="h-10 w-auto" />
-          </Link>
+        <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 md:px-6">
+          <div className="flex items-center gap-2">
+            <BackButton fallback="/" />
+            <Link href="/" className="flex items-center gap-3" aria-label="Nyumbani Express, accueil">
+              <Image src="/nyumbani-logo.png" alt="" width={120} height={40} className="h-10 w-auto" />
+            </Link>
+          </div>
           <ThemeToggle />
         </div>
       </header>
