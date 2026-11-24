@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // GOAL 15 — la timeline générique (GOAL 3, étendue à MISSION en GOAL 14)
+    // GOAL 15 - la timeline générique (GOAL 3, étendue à MISSION en GOAL 14)
     // couvrait déjà quatre entités métier ; les tâches en avaient besoin
     // aussi (création, changement de statut, réassignation, commentaires).
     await queryInterface.changeColumn("timelineEvents", "entityType", {
@@ -11,7 +11,7 @@ module.exports = {
       allowNull: false,
     });
 
-    // GOAL 15 — fil de discussion simple par tâche, jamais éditable après
+    // GOAL 15 - fil de discussion simple par tâche, jamais éditable après
     // publication (append-only, cohérent avec le reste du système) ;
     // seule la suppression par l'auteur ou un titulaire de tasks:manage
     // est permise (modération), pas d'édition silencieuse.

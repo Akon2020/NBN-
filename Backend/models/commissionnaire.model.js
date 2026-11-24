@@ -1,11 +1,11 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CDC §7 "Pilotage des commissionnaires" — fiche digitale dynamique
+// CDC §7 "Pilotage des commissionnaires" - fiche digitale dynamique
 // rattachée à une Person (peut ou non avoir un User, CLAUDE.md §4).
 //
 // Score global /100 = somme de 4 sous-scores /25 chacun (performance,
-// qualité, discipline, engagement) — le CDC ne donne pas de pondération
+// qualité, discipline, engagement) - le CDC ne donne pas de pondération
 // précise entre les 4 dimensions au-delà de "score global sur 100 points",
 // la répartition égale (25 chacun) est l'interprétation la plus neutre.
 // Le classement (Élite/Très performant/Moyen/Risque) est dérivé du score,

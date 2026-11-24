@@ -47,12 +47,12 @@ import bailleurRelanceRouter from "./routes/bailleurRelance.route.js";
 import { registerEventListeners } from "./shared/eventListeners.js";
 import { registerRealtimeListeners } from "./shared/socketGateway.js";
 
-// BACK-G17/G18 — enregistré ici (pas server.js) pour que les tests qui
+// BACK-G17/G18 - enregistré ici (pas server.js) pour que les tests qui
 // importent `app.js` directement (supertest, jamais via un vrai
 // `listen()`) exercent aussi la conséquence réelle des événements
 // métier, pas seulement la route HTTP isolée. `registerRealtimeListeners`
 // est sans effet tant que `initSocketGateway` (server.js uniquement) n'a
-// pas initialisé `io` — les émissions restent des no-op silencieux.
+// pas initialisé `io` - les émissions restent des no-op silencieux.
 registerEventListeners();
 registerRealtimeListeners();
 
@@ -88,7 +88,7 @@ const PROD_ORIGINS = (CORS_ORIGINS || "")
 const ALLOWED_ORIGINS = PROD_ORIGINS.length ? PROD_ORIGINS : DEFAULT_PROD_ORIGINS;
 
 // Expo Metro choisit un port différent à chaque redémarrage si le port par
-// défaut (8081) est occupé — whitelister chaque port un par un n'est pas
+// défaut (8081) est occupé - whitelister chaque port un par un n'est pas
 // praticable en développement. N'importe quel localhost/127.0.0.1 est donc
 // accepté en dev, ainsi que les plages LAN privées (192.168.x.x, 10.x.x.x,
 // 172.16-31.x.x) : un appareil physique testé via Expo Go sur le même
@@ -132,7 +132,7 @@ app.use(
   }),
 );
 
-// SEC-G06 (complément) — les fichiers uploadés (multer, `file.path` =
+// SEC-G06 (complément) - les fichiers uploadés (multer, `file.path` =
 // "uploads/images/xxx.jpg") n'étaient jamais servis statiquement : la
 // route existait en théorie via PropertyImage.image mais aucune requête
 // HTTP ne pouvait jamais les atteindre. `Cross-Origin-Resource-Policy`

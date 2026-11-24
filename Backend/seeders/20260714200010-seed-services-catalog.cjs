@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G04 — catalogue des services organisationnels (CLAUDE.md §3 / CDC).
+// BACK-G04 - catalogue des services organisationnels (CLAUDE.md §3 / CDC).
 const SERVICES = [
   "Communication",
   "Commercial",

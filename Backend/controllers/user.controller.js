@@ -27,7 +27,7 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
-// GOAL 11 — annuaire minimal (nom/rôle uniquement, jamais email/statut/
+// GOAL 11 - annuaire minimal (nom/rôle uniquement, jamais email/statut/
 // avatar) pour les sélecteurs d'assignation (participants de calendrier,
 // etc.) : n'importe quel utilisateur authentifié peut voir les noms de ses
 // collègues, contrairement à `getAllUsers` (données complètes, réservé à
@@ -199,12 +199,12 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
-// GOAL 16 — l'ancien mot de passe requis en fait de facto un changement en
+// GOAL 16 - l'ancien mot de passe requis en fait de facto un changement en
 // libre-service (jamais un reset admin) ; l'absence de vérification
 // explicite d'identité laissait n'importe quel titulaire de JWT valide
 // tenter ce endpoint sur l'idUser d'un tiers (seule la connaissance de
 // l'ancien mot de passe de la cible protégeait réellement). Corrigé en
-// n'autorisant que le propriétaire du compte — un admin qui veut réinitialiser
+// n'autorisant que le propriétaire du compte - un admin qui veut réinitialiser
 // le mot de passe d'un tiers utilise `resetUserPassword` ci-dessous, qui ne
 // requiert pas l'ancien mot de passe et journalise l'action différemment.
 export const updateUserPassword = async (req, res, next) => {
@@ -257,7 +257,7 @@ export const updateUserPassword = async (req, res, next) => {
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // CLAUDE.md §5 — un changement de mot de passe est un événement de
+    // CLAUDE.md §5 - un changement de mot de passe est un événement de
     // révocation au même titre qu'une suspension : double mécanisme
     // (sessions révoquées + securityVersion incrémenté), toutes les
     // sessions actives (y compris l'appareil courant) devront se
@@ -278,7 +278,7 @@ export const updateUserPassword = async (req, res, next) => {
   }
 };
 
-// GOAL 16 — réinitialisation par un administrateur (users:manage) : ne
+// GOAL 16 - réinitialisation par un administrateur (users:manage) : ne
 // requiert pas l'ancien mot de passe, contrairement à `updateUserPassword`
 // ci-dessus qui reste strictement un changement en libre-service.
 export const resetUserPassword = async (req, res, next) => {
@@ -321,7 +321,7 @@ export const resetUserPassword = async (req, res, next) => {
   }
 };
 
-// GOAL 16 — visibilité admin sur les sessions actives d'un utilisateur
+// GOAL 16 - visibilité admin sur les sessions actives d'un utilisateur
 // (CLAUDE.md §5 décrit l'entité Session à cette fin, jamais consommée
 // jusqu'ici par une route dédiée). Ne renvoie jamais `refreshTokenHash`.
 export const getUserSessions = async (req, res, next) => {
@@ -352,7 +352,7 @@ export const getUserSessions = async (req, res, next) => {
   }
 };
 
-// GOAL 16 — "déconnecter toutes les sessions" côté admin, même mécanisme
+// GOAL 16 - "déconnecter toutes les sessions" côté admin, même mécanisme
 // que la suspension et que `logout-all` en libre-service, mais déclenché
 // sur un tiers (raison d'audit distincte : "admin_revoke").
 export const revokeUserSessions = async (req, res, next) => {

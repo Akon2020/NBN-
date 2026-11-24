@@ -47,7 +47,7 @@ marginSettingRouter.get(
  * @swagger
  * /api/margin-settings/{propertyType}:
  *   patch:
- *     summary: Change le pourcentage de marge par défaut d'un type de bien pour un type de séjour donné (GOAL 9, GOAL 12) — recalcule tous les biens concernés sans override
+ *     summary: Change le pourcentage de marge par défaut d'un type de bien pour un type de séjour donné (GOAL 9, GOAL 12) - recalcule tous les biens concernés sans override
  *     tags: [MarginSettings]
  *     parameters:
  *       - in: path

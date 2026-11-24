@@ -70,7 +70,7 @@ import BailleurRelance from "./bailleurRelance.model.js";
 import MarginHistory from "./marginHistory.model.js";
 
 // User - Property
-// NB : corrigé en M2 (BACK-G05) — la FK réelle sur Property est
+// NB : corrigé en M2 (BACK-G05) - la FK réelle sur Property est
 // `createdBy`, pas `idUserCreator` (bug préexistant, l'association était
 // silencieusement cassée).
 Property.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
@@ -80,7 +80,7 @@ Property.belongsTo(User, { foreignKey: "assignedTo", as: "assignee" });
 User.hasMany(Property, { foreignKey: "assignedTo", as: "assignedProperties" });
 
 // Property - Rental / Sale
-// NB : alias explicites — sans `as`, Sequelize dérive un nom en minuscule
+// NB : alias explicites - sans `as`, Sequelize dérive un nom en minuscule
 // (singularisation automatique du modèle) peu prévisible pour l'API.
 Property.hasOne(RentalProperty, { foreignKey: "idProperty", as: "rentalDetails" });
 RentalProperty.belongsTo(Property, { foreignKey: "idProperty" });
@@ -113,7 +113,7 @@ Property.belongsToMany(User, {
   as: "likedBy",
 });
 
-// Association directe sur le modèle de jointure lui-même — nécessaire pour
+// Association directe sur le modèle de jointure lui-même - nécessaire pour
 // pouvoir faire `Favorite.findAll({ include: Property })` (le
 // belongsToMany ci-dessus ne crée des accesseurs que sur User/Property,
 // pas sur Favorite).
@@ -132,14 +132,14 @@ PropertyScore.belongsTo(Property, { foreignKey: "idProperty" });
 ActivityLog.belongsTo(User, { foreignKey: "idUser" });
 User.hasMany(ActivityLog, { foreignKey: "idUser" });
 
-// BACK-G01 — User - Session
+// BACK-G01 - User - Session
 User.hasMany(Session, { foreignKey: "idUser" });
 Session.belongsTo(User, { foreignKey: "idUser" });
 Session.belongsTo(Session, { foreignKey: "replacedBySessionId", as: "replacedBy" });
 User.hasMany(AuthToken, { foreignKey: "idUser" });
 AuthToken.belongsTo(User, { foreignKey: "idUser" });
 
-// BACK-G02 — RBAC : Role - Permission (via RolePermission), User - AccessGrant
+// BACK-G02 - RBAC : Role - Permission (via RolePermission), User - AccessGrant
 Role.belongsToMany(Permission, {
   through: RolePermission,
   foreignKey: "idRole",
@@ -157,7 +157,7 @@ User.hasMany(AccessGrant, { foreignKey: "idUser" });
 AccessGrant.belongsTo(User, { foreignKey: "idUser" });
 AccessGrant.belongsTo(User, { foreignKey: "grantedBy", as: "grantedByUser" });
 
-// BACK-G04 — Organization : Person - User (0-1), Person - EmployeeProfile (0-1)
+// BACK-G04 - Organization : Person - User (0-1), Person - EmployeeProfile (0-1)
 Person.belongsTo(User, { foreignKey: "idUser" });
 User.hasOne(Person, { foreignKey: "idUser" });
 
@@ -178,7 +178,7 @@ EmployeeProfile.belongsTo(EmployeeProfile, {
   as: "responsable",
 });
 
-// BACK-G06 — CRM : Client/Bailleur rattachés à Person (une même Person
+// BACK-G06 - CRM : Client/Bailleur rattachés à Person (une même Person
 // peut être Client ET Bailleur, CLAUDE.md §4).
 Person.hasOne(Client, { foreignKey: "idPerson" });
 Client.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
@@ -188,7 +188,7 @@ RentalRequest.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 Client.hasMany(RentalRequest, { foreignKey: "idClient", as: "rentalRequests" });
 RentalRequest.belongsTo(User, { foreignKey: "deletedBy", as: "deleter" });
 
-// GOAL 4 — le code commissionnaire est la référence métier (jamais un
+// GOAL 4 - le code commissionnaire est la référence métier (jamais un
 // idCommissionnaire interne saisi/affiché) ; association basée sur cette
 // colonne unique plutôt qu'une simple jointure manuelle côté contrôleur,
 // pour bénéficier du même mécanisme d'`include` que le reste du modèle.
@@ -202,17 +202,17 @@ Client.belongsTo(Commissionnaire, {
 Person.hasOne(Bailleur, { foreignKey: "idPerson" });
 Bailleur.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
 
-// Biens associés à un bailleur (CDC §3 — lien direct avec le module biens).
+// Biens associés à un bailleur (CDC §3 - lien direct avec le module biens).
 Bailleur.hasMany(Property, { foreignKey: "idBailleur" });
 Property.belongsTo(Bailleur, { foreignKey: "idBailleur" });
 
-// BACK-G07 — une proposition envoyée à un Client réel (remplace les
+// BACK-G07 - une proposition envoyée à un Client réel (remplace les
 // champs clientName/clientPhone jamais activés).
 Client.hasMany(Proposal, { foreignKey: "idClient" });
 Proposal.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 Proposal.belongsTo(User, { foreignKey: "sentBy", as: "sender" });
 
-// BACK-G08 — Matching : 1 client ↔ plusieurs biens.
+// BACK-G08 - Matching : 1 client ↔ plusieurs biens.
 Client.belongsToMany(Property, {
   through: Matching,
   foreignKey: "idClient",
@@ -226,13 +226,13 @@ Property.belongsToMany(Client, {
   as: "matchedClients",
 });
 
-// Association directe sur le modèle de jointure lui-même — même raison que
+// Association directe sur le modèle de jointure lui-même - même raison que
 // pour Favorite ci-dessus : le belongsToMany seul ne permet pas
 // `Matching.findAll({ include: Property })`.
 Matching.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
 Matching.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 
-// BACK-G09 — Commissionnaire rattaché à Person (peut ou non avoir un User,
+// BACK-G09 - Commissionnaire rattaché à Person (peut ou non avoir un User,
 // CLAUDE.md §4), fiche digitale (CDC §7).
 Person.hasOne(Commissionnaire, { foreignKey: "idPerson" });
 Commissionnaire.belongsTo(Person, { foreignKey: "idPerson", as: "person" });
@@ -245,14 +245,14 @@ Commissionnaire.hasMany(CommissionnaireIncident, {
 CommissionnaireIncident.belongsTo(Commissionnaire, { foreignKey: "idCommissionnaire" });
 CommissionnaireIncident.belongsTo(User, { foreignKey: "createdBy", as: "reporter" });
 
-// BACK-G10 — Missions terrain (collecte de bien, apport client, suivi).
+// BACK-G10 - Missions terrain (collecte de bien, apport client, suivi).
 Commissionnaire.hasMany(Mission, { foreignKey: "idCommissionnaire", as: "missions" });
 Mission.belongsTo(Commissionnaire, { foreignKey: "idCommissionnaire", as: "commissionnaire" });
 Mission.belongsTo(Property, { foreignKey: "idProperty" });
 Mission.belongsTo(Client, { foreignKey: "idClient" });
 Mission.belongsTo(User, { foreignKey: "validatedBy", as: "validator" });
 
-// BACK-G12 — Caisses multiples et devises (CLAUDE.md §4). Un solde par
+// BACK-G12 - Caisses multiples et devises (CLAUDE.md §4). Un solde par
 // devise et par caisse (CaisseBalance), jamais mélangés ; ExchangeRate sert
 // uniquement au reporting consolidé.
 Caisse.belongsTo(User, { foreignKey: "responsableUserId", as: "responsable" });
@@ -268,14 +268,14 @@ ExchangeRate.belongsTo(Currency, { foreignKey: "fromCurrency", as: "from" });
 ExchangeRate.belongsTo(Currency, { foreignKey: "toCurrency", as: "to" });
 ExchangeRate.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
-// BACK-G13 — Réquisitions (info.md §6 : Saisie → Vérification →
+// BACK-G13 - Réquisitions (info.md §6 : Saisie → Vérification →
 // Approbation → Génération → Archivage).
 Requisition.belongsTo(User, { foreignKey: "demandeurId", as: "demandeur" });
 Requisition.belongsTo(User, { foreignKey: "decidedBy", as: "decideur" });
 Requisition.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
 Requisition.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
 
-// BACK-G14 — Payment → CashMovement → LedgerEntry (CLAUDE.md §4, append-only).
+// BACK-G14 - Payment → CashMovement → LedgerEntry (CLAUDE.md §4, append-only).
 Payment.belongsTo(Caisse, { foreignKey: "idCaisse", as: "caisse" });
 Payment.belongsTo(Currency, { foreignKey: "currencyCode", as: "currency" });
 Payment.belongsTo(PaymentMethod, { foreignKey: "idPaymentMethod", as: "paymentMethod" });
@@ -296,14 +296,14 @@ LedgerEntry.belongsTo(CashMovement, { foreignKey: "idCashMovement", as: "cashMov
 LedgerEntry.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 CashMovement.hasOne(LedgerEntry, { foreignKey: "idCashMovement", as: "ledgerEntry" });
 
-// GOAL 10 — virements entre caisses.
+// GOAL 10 - virements entre caisses.
 CaisseTransfer.belongsTo(Caisse, { foreignKey: "idCaisseSource", as: "caisseSource" });
 CaisseTransfer.belongsTo(Caisse, { foreignKey: "idCaisseDestination", as: "caisseDestination" });
 CaisseTransfer.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 CashMovement.belongsTo(CaisseTransfer, { foreignKey: "idCaisseTransfer", as: "transfer" });
 CaisseTransfer.hasMany(CashMovement, { foreignKey: "idCaisseTransfer", as: "movements" });
 
-// BACK-G15 — Commission calculée à partir d'une transaction conclue (CDC),
+// BACK-G15 - Commission calculée à partir d'une transaction conclue (CDC),
 // éligible à un Payment une fois marquée DUE (même circuit que Requisition).
 Commission.belongsTo(Client, { foreignKey: "idClient", as: "client" });
 Commission.belongsTo(Property, { foreignKey: "idProperty", as: "property" });
@@ -316,7 +316,7 @@ Commission.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 Payment.belongsTo(Commission, { foreignKey: "idCommission", as: "commission" });
 Commission.hasOne(Payment, { foreignKey: "idCommission", as: "payment" });
 
-// BACK-G16 — module Tasks générique (Kanban). Tables de liaison explicites
+// BACK-G16 - module Tasks générique (Kanban). Tables de liaison explicites
 // par type (CLAUDE.md §4), jamais de relation polymorphe. Le statut d'une
 // Task ne pilote jamais l'état métier d'une ressource liée.
 Task.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
@@ -344,12 +344,12 @@ TaskCommissionnaireLink.belongsTo(Commissionnaire, {
   as: "commissionnaire",
 });
 
-// GOAL 15 — fil de commentaires par tâche.
+// GOAL 15 - fil de commentaires par tâche.
 Task.hasMany(TaskComment, { foreignKey: "idTask", as: "comments" });
 TaskComment.belongsTo(Task, { foreignKey: "idTask" });
 TaskComment.belongsTo(User, { foreignKey: "authorId", as: "author" });
 
-// BACK-G17 — Notifications/Alerts/Reminders (CLAUDE.md §4/§7).
+// BACK-G17 - Notifications/Alerts/Reminders (CLAUDE.md §4/§7).
 Notification.belongsTo(User, { foreignKey: "idUser", as: "user" });
 User.hasMany(Notification, { foreignKey: "idUser" });
 
@@ -360,19 +360,19 @@ Alert.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
 Reminder.belongsTo(User, { foreignKey: "idUser", as: "user" });
 Reminder.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
-// BACK-G19 — Calendrier agrégé (vue seulement ; CalendarEvent propre
+// BACK-G19 - Calendrier agrégé (vue seulement ; CalendarEvent propre
 // uniquement pour un rendez-vous sans source ailleurs, CLAUDE.md §4).
 CalendarEvent.belongsTo(User, { foreignKey: "idUser", as: "owner" });
 CalendarEvent.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 
-// GOAL 11 — assignation multi-personnes d'un rendez-vous.
+// GOAL 11 - assignation multi-personnes d'un rendez-vous.
 CalendarEvent.hasMany(CalendarEventParticipant, { foreignKey: "idCalendarEvent", as: "participants" });
 CalendarEventParticipant.belongsTo(CalendarEvent, { foreignKey: "idCalendarEvent" });
 CalendarEventParticipant.belongsTo(User, { foreignKey: "idUser", as: "user" });
 
-// BACK-G22 — RH avancé (évaluations, objectifs, compétences, formations),
+// BACK-G22 - RH avancé (évaluations, objectifs, compétences, formations),
 // tout rattaché à EmployeeProfile (jamais à User directement, CLAUDE.md §4
-// — un employé peut ne pas avoir de compte de connexion).
+// - un employé peut ne pas avoir de compte de connexion).
 Evaluation.belongsTo(EmployeeProfile, { foreignKey: "idEmployeeProfile", as: "employeeProfile" });
 EmployeeProfile.hasMany(Evaluation, { foreignKey: "idEmployeeProfile" });
 Evaluation.belongsTo(User, { foreignKey: "evaluatorUserId", as: "evaluator" });
@@ -391,20 +391,20 @@ EmployeeProfile.hasMany(EmployeeTraining, { foreignKey: "idEmployeeProfile", as:
 EmployeeTraining.belongsTo(Training, { foreignKey: "idTraining", as: "training" });
 Training.hasMany(EmployeeTraining, { foreignKey: "idTraining" });
 
-// GOAL 3 — Timeline (soft reference volontaire vers entityType/entityId,
+// GOAL 3 - Timeline (soft reference volontaire vers entityType/entityId,
 // voir le commentaire du modèle).
 TimelineEvent.belongsTo(User, { foreignKey: "actorUserId", as: "actor" });
 
-// GOAL 8 — plaintes client.
+// GOAL 8 - plaintes client.
 Client.hasMany(ClientComplaint, { foreignKey: "idClient", as: "complaints" });
 ClientComplaint.belongsTo(Client, { foreignKey: "idClient" });
 ClientComplaint.belongsTo(User, { foreignKey: "createdBy", as: "creator" });
 ClientComplaint.belongsTo(User, { foreignKey: "resolvedBy", as: "resolver" });
 
-// GOAL 9 — gestion automatique des marges.
+// GOAL 9 - gestion automatique des marges.
 MarginSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
 
-// GOAL 13 — centre de configuration générique.
+// GOAL 13 - centre de configuration générique.
 AppSetting.belongsTo(User, { foreignKey: "updatedBy", as: "updater" });
 
 // Messages reçus sur les boîtes professionnelles et réponses envoyées.

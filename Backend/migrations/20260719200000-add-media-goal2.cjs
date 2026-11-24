@@ -1,7 +1,7 @@
 "use strict";
 
 /** @type {import('sequelize-cli').Migration} */
-// GOAL 2 — upload de médias (images + vidéos) : ordre de galerie sur les
+// GOAL 2 - upload de médias (images + vidéos) : ordre de galerie sur les
 // images existantes, nouvelle table pour les vidéos (jamais une colonne
 // polymorphe partagée avec propertyImages, cf. commentaire du modèle).
 module.exports = {

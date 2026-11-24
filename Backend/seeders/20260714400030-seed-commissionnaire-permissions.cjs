@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G09/G10 — catalogue RBAC étendu pour le pilotage des commissionnaires
+// BACK-G09/G10 - catalogue RBAC étendu pour le pilotage des commissionnaires
 // et la validation des missions terrain (CDC §7).
 const NEW_PERMISSIONS = [
   { key: "commissionnaires:read", description: "Consulter les fiches commissionnaire" },
@@ -19,7 +19,7 @@ const NEW_PERMISSIONS = [
 // CDC §7 : le pilotage des commissionnaires (fiche, score, statut) reste une
 // fonction opérationnelle ; le commissionnaire lui-même ne fait que
 // soumettre ses missions et consulter sa propre fiche (le cloisonnement par
-// propriétaire reste inerte en V1, CLAUDE.md §5 — même principe que les
+// propriétaire reste inerte en V1, CLAUDE.md §5 - même principe que les
 // autres modules CRM).
 const ROLE_PERMISSIONS = {
   operations: ["commissionnaires:read", "commissionnaires:manage", "missions:read", "missions:validate"],

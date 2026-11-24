@@ -1,9 +1,9 @@
 "use strict";
 
 /** @type {import('sequelize-cli').Migration} */
-// BACK-G22 — RH avancé (V1 minimale) : évaluations, objectifs, compétences,
+// BACK-G22 - RH avancé (V1 minimale) : évaluations, objectifs, compétences,
 // formations, tous rattachés à `employeeProfiles` (jamais à `users`
-// directement, CLAUDE.md §4 — un employé peut ne pas avoir de compte).
+// directement, CLAUDE.md §4 - un employé peut ne pas avoir de compte).
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable("evaluations", {

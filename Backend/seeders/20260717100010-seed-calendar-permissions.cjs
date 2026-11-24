@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G19 — catalogue RBAC pour la vue calendrier agrégée.
+// BACK-G19 - catalogue RBAC pour la vue calendrier agrégée.
 const NEW_PERMISSIONS = [
   { key: "calendar:read", description: "Consulter la vue calendrier agrégée" },
   { key: "calendar:manage", description: "Créer/supprimer un rendez-vous ponctuel" },

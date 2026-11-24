@@ -1,9 +1,9 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
-// info.md §6, étape "Génération" — document de Réquisition de Fonds avec
+// info.md §6, étape "Génération" - document de Réquisition de Fonds avec
 // code de validation unique. Généré à la demande (pas stocké sur disque,
 // contrainte cPanel/portabilité CLAUDE.md §12) à partir des données déjà
-// figées à l'Approbation (`validationCode`, `decidedAt`) — le document est
+// figées à l'Approbation (`validationCode`, `decidedAt`) - le document est
 // donc reproductible à l'identique à chaque téléchargement, jamais recalculé.
 export const generateRequisitionPdf = async (requisition) => {
   const pdfDoc = await PDFDocument.create();
@@ -20,13 +20,13 @@ export const generateRequisitionPdf = async (requisition) => {
   };
   const drawLine = (label, value) => {
     page.drawText(`${label} :`, { x: left, y, size: 11, font: bold });
-    page.drawText(String(value ?? "—"), { x: left + 160, y, size: 11, font });
+    page.drawText(String(value ?? "-"), { x: left + 160, y, size: 11, font });
     y -= 20;
   };
 
-  drawTitle("Réquisition de Fonds — NBN Express Plus");
+  drawTitle("Réquisition de Fonds - NBN Express Plus");
 
-  page.drawText("Nyumbani Express — document généré automatiquement", {
+  page.drawText("Nyumbani Express - document généré automatiquement", {
     x: left,
     y,
     size: 9,
@@ -49,7 +49,7 @@ export const generateRequisitionPdf = async (requisition) => {
   drawLine("Approuvé par", requisition.decideur?.fullName);
   drawLine(
     "Date d'approbation",
-    requisition.decidedAt ? new Date(requisition.decidedAt).toLocaleString("fr-FR") : "—"
+    requisition.decidedAt ? new Date(requisition.decidedAt).toLocaleString("fr-FR") : "-"
   );
 
   y -= 20;

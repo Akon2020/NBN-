@@ -1,6 +1,6 @@
 import { Currency } from "../models/index.model.js";
 
-// CLAUDE.md §4 — table de référence configurable (USD/CDF pré-remplies par
+// CLAUDE.md §4 - table de référence configurable (USD/CDF pré-remplies par
 // seeder). Une devise n'est jamais supprimée une fois créée (elle peut déjà
 // être référencée par des CaisseBalance/ExchangeRate historiques) : on la
 // désactive via `isActive` à la place.

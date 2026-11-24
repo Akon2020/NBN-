@@ -1,7 +1,7 @@
 import { Notification } from "../models/index.model.js";
 import { markNotificationRead } from "../services/notification.service.js";
 
-// Une Notification n'appartient qu'à son destinataire — pas de permission
+// Une Notification n'appartient qu'à son destinataire - pas de permission
 // RBAC ici, la portée est déjà l'utilisateur connecté (`req.user.idUser`),
 // jamais une liste globale.
 export const getMyNotifications = async (req, res, next) => {
@@ -34,7 +34,7 @@ export const markAsRead = async (req, res, next) => {
   }
 };
 
-// GOAL 20 — utile dès qu'une vraie page d'historique existe (au-delà de la
+// GOAL 20 - utile dès qu'une vraie page d'historique existe (au-delà de la
 // cloche, plafonnée) ; portée toujours strictement l'utilisateur connecté,
 // jamais un idUser arbitraire.
 export const markAllAsRead = async (req, res, next) => {

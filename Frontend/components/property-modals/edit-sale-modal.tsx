@@ -243,7 +243,7 @@ export function EditSaleModal({
               onChange={(e) => setPrice(e.target.value)}
               required
             />
-            {/* GOAL 9 — la marge est calculée automatiquement (pourcentage
+            {/* GOAL 9 - la marge est calculée automatiquement (pourcentage
                 du type ou override du bien), plus de saisie manuelle ici. */}
           </div>
 

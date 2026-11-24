@@ -114,7 +114,7 @@ export function WhatsAppProposalDialog({
       setIsSaving(true)
       try {
         const result = await sendProposals({ idClient: target.idClient, idProperties: sentIds, channel: "WHATSAPP" })
-        toast.success(`${result.created} bien(s) proposé(s) à ${target.fullName} — ${result.total} proposition(s) au total`)
+        toast.success(`${result.created} bien(s) proposé(s) à ${target.fullName} - ${result.total} proposition(s) au total`)
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Erreur inconnue")
         setIsSaving(false)
@@ -153,7 +153,7 @@ export function WhatsAppProposalDialog({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
                       {index + 1}. {PROPERTY_TYPE_LABELS[property.propertyType]}
-                      {property.quartier ? ` — ${property.quartier}` : ""}
+                      {property.quartier ? ` - ${property.quartier}` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">{formatPropertyPrice(property)}</p>
                   </div>

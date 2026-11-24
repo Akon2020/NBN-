@@ -54,7 +54,7 @@ const COUNT_FIELDS = {
   depots: "dépôts",
 };
 
-// Relevés d'état/accès restés facultatifs, repris tels quels — liste
+// Relevés d'état/accès restés facultatifs, repris tels quels - liste
 // explicite, jamais `req.body` propagé : ce formulaire est atteignable sans
 // authentification, aucun champ non prévu ne doit pouvoir être écrit (ni
 // `margin`, ni `statut`, ni `assignedTo`).
@@ -166,7 +166,7 @@ const validateCollection = async (body, file) => {
     responsableEmail = emailCheck.email;
   } else if (parResponsable) {
     // Le responsable qui remplit lui-même doit pouvoir être recontacté
-    // par écrit — c'est aussi là qu'il recevra la confirmation.
+    // par écrit - c'est aussi là qu'il recevra la confirmation.
     return fail("Votre adresse e-mail est requise.");
   }
 
@@ -221,7 +221,7 @@ const validateCollection = async (body, file) => {
 
 // Route accessible sans compte (un commissionnaire terrain ou un bailleur
 // n'en a pas toujours, CLAUDE.md §4) mais jamais indexée côté client. Elle
-// crée réellement le bien et son bailleur — et, quand un commissionnaire
+// crée réellement le bien et son bailleur - et, quand un commissionnaire
 // connu l'a collecté, une Mission SOUMISE qui laisse à l'agence la trace et
 // le contrôle de ce qui est entré par ce canal.
 export const createPropertyCollection = async (req, res, next) => {
@@ -363,7 +363,7 @@ export const createPropertyCollection = async (req, res, next) => {
 
     // --- Mission de traçabilité ---
     // Rattachée au commissionnaire dont le code est fourni, s'il existe
-    // réellement — un code inconnu n'invalide jamais la collecte (le bien
+    // réellement - un code inconnu n'invalide jamais la collecte (le bien
     // est déjà en base). Les codes enregistrés avant la normalisation CCM
     // restent retrouvables par leur saisie d'origine.
     let mission = null;
@@ -383,7 +383,7 @@ export const createPropertyCollection = async (req, res, next) => {
           idCommissionnaire: commissionnaire.idCommissionnaire,
           type: typeMission,
           idProperty: property.idProperty,
-          notes: [values.collecteurNom, values.collecteurPhone].filter(Boolean).join(" — ") || null,
+          notes: [values.collecteurNom, values.collecteurPhone].filter(Boolean).join(" - ") || null,
         },
         { transaction }
       );
@@ -406,7 +406,7 @@ export const createPropertyCollection = async (req, res, next) => {
       entityId: property.idProperty,
       eventType: "CREATED",
       title: `Bien collecté (${typeOperation === "RENT" ? "à louer" : "à vendre"})`,
-      description: [propertyType, commune, values.quartier].filter(Boolean).join(" — "),
+      description: [propertyType, commune, values.quartier].filter(Boolean).join(" - "),
       actorUserId: req.user?.idUser ?? null,
       metadata: {
         remplisseur: req.body.remplisseur,
@@ -417,7 +417,7 @@ export const createPropertyCollection = async (req, res, next) => {
 
     await createAlert({
       type: "property_collection:new",
-      title: `Nouveau bien collecté — ${propertyType} à ${commune}`,
+      title: `Nouveau bien collecté - ${propertyType} à ${commune}`,
       description: source,
       severite: "INFO",
       relatedEntityType: "Property",

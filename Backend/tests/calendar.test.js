@@ -103,7 +103,7 @@ describe("BACK-G19 - Calendrier agrégé", () => {
     });
     createdClientIds.push(client.idClient);
 
-    // Tâche hors période — ne doit jamais apparaître dans le résultat.
+    // Tâche hors période - ne doit jamais apparaître dans le résultat.
     const outOfRangeTask = await Task.create({
       title: `Tâche hors période ${suffix}`,
       dateEcheance: outOfRangeDate(),

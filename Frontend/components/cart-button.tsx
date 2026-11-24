@@ -19,7 +19,7 @@ import { PROPERTY_TYPE_LABELS } from "@/lib/types"
 import { whatsAppNumberOf } from "@/lib/clientContact"
 import { formatPropertyPrice } from "@/lib/whatsappProposal"
 
-// GOAL 5 — point d'entrée du panier depuis n'importe quelle page du
+// GOAL 5 - point d'entrée du panier depuis n'importe quelle page du
 // dashboard (monté une seule fois dans le layout, cf. dashboard/layout.tsx).
 // L'envoi part bien par bien, chacun avec sa photo (WhatsAppProposalDialog) ;
 // quand la sélection est préparée pour un client (« Proposer des biens »),
@@ -101,7 +101,7 @@ export function CartButton() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">
-                      {PROPERTY_TYPE_LABELS[property.propertyType]} — {property.quartier}
+                      {PROPERTY_TYPE_LABELS[property.propertyType]} - {property.quartier}
                     </p>
                     <p className="text-xs text-muted-foreground">{formatPropertyPrice(property)}</p>
                   </div>

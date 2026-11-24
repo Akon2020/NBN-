@@ -1,6 +1,6 @@
 "use strict";
 
-// GOAL 1 — cycle de vie des biens. L'ancien ENUM (DISPONIBLE/RESERVE/
+// GOAL 1 - cycle de vie des biens. L'ancien ENUM (DISPONIBLE/RESERVE/
 // LOUE_VENDU) conflatait location et vente dans un même état terminal
 // ("LOUE_VENDU"), déjà signalé comme incohérent lors de l'audit initial
 // (SEC-G04/BACK-G05). Nouveau cycle de vie, cohérent avec `category` :
@@ -11,7 +11,7 @@
 //   - EN_MAINTENANCE        : temporairement indisponible
 //   - VENDU                 : uniquement pour category=SALE, état terminal
 // "RESERVE" n'a pas d'équivalent direct au sens strict du cycle de vie du
-// bien — le suivi d'un intérêt en cours (client "PROPOSE" côté Matching)
+// bien - le suivi d'un intérêt en cours (client "PROPOSE" côté Matching)
 // reste au niveau du pipeline commercial, pas un état propre du bien.
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {

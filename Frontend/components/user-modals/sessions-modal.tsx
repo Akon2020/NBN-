@@ -16,7 +16,7 @@ interface SessionsModalProps {
   user: User | null
 }
 
-// GOAL 16 — visibilité admin sur les sessions actives d'un utilisateur
+// GOAL 16 - visibilité admin sur les sessions actives d'un utilisateur
 // (CLAUDE.md §5) : jusqu'ici l'entité Session n'avait aucune surface
 // d'administration, seule l'auto-déconnexion multi-appareils existait.
 export function SessionsModal({ open, onOpenChange, user }: SessionsModalProps) {

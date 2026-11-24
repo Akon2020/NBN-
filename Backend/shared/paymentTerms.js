@@ -1,4 +1,4 @@
-// Modalités de paiement d'une location — mêmes valeurs pour la demande
+// Modalités de paiement d'une location - mêmes valeurs pour la demande
 // du client et pour la collecte du bien : c'est ce qui permet de rapprocher
 // une demande d'un bien sans traduire d'un vocabulaire à l'autre.
 export const MODALITES_PAIEMENT = [

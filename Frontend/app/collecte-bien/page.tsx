@@ -131,7 +131,7 @@ export default function CollecteBienPage() {
   const isRent = form.typeOperation === "RENT"
   const countOf = (key: CountKey) => resolveCount(form[key], form[`${key}Autre`])
 
-  // Préremplissage du commissionnaire quand la personne est connectée — la
+  // Préremplissage du commissionnaire quand la personne est connectée - la
   // saisie manuelle reste possible et prioritaire (un champ déjà rempli
   // par le brouillon n'est jamais écrasé).
   useEffect(() => {
@@ -217,7 +217,7 @@ export default function CollecteBienPage() {
   const mediaNote = (
     <p className="rounded-md bg-muted/60 px-3 py-2.5 text-xs text-muted-foreground leading-relaxed">
       Les photos et vidéos du bien s&apos;ajoutent depuis la fiche du bien une fois cette collecte
-      enregistrée — pas besoin de les avoir sous la main maintenant.
+      enregistrée - pas besoin de les avoir sous la main maintenant.
     </p>
   )
 
@@ -623,13 +623,13 @@ export default function CollecteBienPage() {
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary-900/10 px-3 py-1.5 text-xs font-medium text-primary-900 dark:bg-white/10 dark:text-white">
                 <Lock className="h-3.5 w-3.5" />
-                Usage interne — équipe, commissionnaires et responsables de biens
+                Usage interne - équipe, commissionnaires et responsables de biens
               </div>
               <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                 Collecte de bien
               </h1>
               <p className="text-muted-foreground leading-relaxed">
-                Enregistrez un bien. Vos réponses sont sauvegardées au fur et à mesure — vous pouvez
+                Enregistrez un bien. Vos réponses sont sauvegardées au fur et à mesure - vous pouvez
                 interrompre et reprendre plus tard.
               </p>
             </div>

@@ -1,12 +1,12 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// GOAL 3 — historique chronologique réel pour les quatre entités centrales
+// GOAL 3 - historique chronologique réel pour les quatre entités centrales
 // (bien, client, commissionnaire, bailleur). `entityType`/`entityId` est un
 // **soft reference** volontaire (CLAUDE.md §4) : contrairement aux tables
 // de liaison explicites (TaskPropertyLink et consorts, qui portent une
 // vraie intégrité référentielle Sequelize), un événement de timeline est un
-// journal append-only, jamais une relation métier vivante — le nombre de
+// journal append-only, jamais une relation métier vivante - le nombre de
 // types d'entités journalisées est borné (4) et connu, mais la timeline
 // elle-même n'a jamais besoin d'un JOIN garanti par une FK (même précédent
 // que Notification/Alert/Reminder/CalendarEvent, déjà documenté).

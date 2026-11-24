@@ -4,10 +4,10 @@ import { OutboxEvent } from "../models/index.model.js";
 import { deliverNotificationPush } from "./notification.service.js";
 import { deliverQueuedEmail } from "./email.service.js";
 
-// CLAUDE.md §7 — outbox pattern : ce worker retente les tentatives de
+// CLAUDE.md §7 - outbox pattern : ce worker retente les tentatives de
 // push en attente/échouées, garantissant qu'un push raté n'est jamais
 // silencieusement perdu. La Notification (source de vérité) existe déjà
-// en base indépendamment du sort de cette tentative — un push qui échoue
+// en base indépendamment du sort de cette tentative - un push qui échoue
 // définitivement ne fait jamais disparaître l'information, seulement le
 // canal de diffusion immédiat.
 const MAX_ATTEMPTS = 5;
@@ -81,7 +81,7 @@ export const processOutboxEvents = async ({ ids } = {}) => {
 
 let cronStarted = false;
 
-// Idempotent — un seul cron actif même si appelé plusieurs fois (utile en
+// Idempotent - un seul cron actif même si appelé plusieurs fois (utile en
 // tests, où l'app peut être importée dans plusieurs fichiers).
 export const startOutboxCron = () => {
   if (cronStarted) return;

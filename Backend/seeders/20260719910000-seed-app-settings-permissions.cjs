@@ -1,6 +1,6 @@
 "use strict";
 
-// GOAL 13 — centre de configuration transverse (panier, coordonnées de
+// GOAL 13 - centre de configuration transverse (panier, coordonnées de
 // l'agence, interrupteurs métier). Lecture largement ouverte (tout le
 // personnel interne peut voir la configuration active, ex. le panier
 // WhatsApp qui les concerne tous) ; écriture réservée à l'administration

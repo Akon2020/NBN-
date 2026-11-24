@@ -3,12 +3,12 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Formulaire public de demande de location — enregistrement intégral et
+    // Formulaire public de demande de location - enregistrement intégral et
     // immuable de ce que le client a réellement déclaré (y compris
     // l'acceptation des conditions, qui a une valeur d'engagement).
     // Distinct de `clients` : le Client est l'entité CRM vivante qui avance
     // sur le pipeline commercial, la RentalRequest est la trace figée de la
-    // demande d'origine — jamais l'un écrasé par l'autre.
+    // demande d'origine - jamais l'un écrasé par l'autre.
     await queryInterface.createTable("rentalRequests", {
       idRentalRequest: { type: Sequelize.BIGINT, primaryKey: true, autoIncrement: true },
 
@@ -87,7 +87,7 @@ module.exports = {
       codeCommissionnaire: { type: Sequelize.STRING(50), allowNull: true },
       autresInfos: { type: Sequelize.TEXT, allowNull: true },
 
-      // Engagement — le formulaire ne peut pas être soumis sans acceptation
+      // Engagement - le formulaire ne peut pas être soumis sans acceptation
       // (contrôlé côté contrôleur) ; l'horodatage est la preuve conservée.
       conditionsAcceptedAt: { type: Sequelize.DATE, allowNull: false },
 

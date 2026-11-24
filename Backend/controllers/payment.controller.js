@@ -23,11 +23,11 @@ const PAYMENT_INCLUDES = [
   { model: User, as: "recorder", attributes: ["idUser", "fullName"] },
 ];
 
-// CLAUDE.md §4 — Requisition (demande+approbation) → Payment (décaissement)
+// CLAUDE.md §4 - Requisition (demande+approbation) → Payment (décaissement)
 // → CashMovement dans une caisse précise → LedgerEntry append-only. Les
 // quatre écritures (Payment, CashMovement, mise à jour du CaisseBalance,
 // LedgerEntry) sont créées dans une seule transaction : soit tout réussit,
-// soit rien n'est comptabilisé — jamais un état intermédiaire incohérent.
+// soit rien n'est comptabilisé - jamais un état intermédiaire incohérent.
 export const recordPayment = async (req, res, next) => {
   const t = await db.transaction();
   try {
@@ -189,7 +189,7 @@ export const recordPayment = async (req, res, next) => {
 
     await t.commit();
 
-    // GOAL 3 — un paiement lié à une commission concerne un client précis
+    // GOAL 3 - un paiement lié à une commission concerne un client précis
     // (Commission.idClient) ; les décaissements liés à une réquisition ne
     // sont rattachés à aucune des quatre entités suivies par la timeline.
     if (commission) {
@@ -231,7 +231,7 @@ export const getAllPayments = async (req, res, next) => {
   }
 };
 
-// CLAUDE.md §4 — "corrections uniquement par annulation/contre-écriture/
+// CLAUDE.md §4 - "corrections uniquement par annulation/contre-écriture/
 // ajustement, jamais par modification silencieuse". Annuler un paiement ne
 // touche jamais son CashMovement/LedgerEntry d'origine : ça crée un nouveau
 // Payment de sens opposé qui traverse le même circuit, et marque
@@ -306,7 +306,7 @@ export const cancelPayment = async (req, res, next) => {
         type: movementType,
         balanceAfter: newBalance,
         idCashMovement: cashMovement.idCashMovement,
-        description: `Contre-écriture — annulation du paiement #${original.idPayment}`,
+        description: `Contre-écriture - annulation du paiement #${original.idPayment}`,
         createdBy: req.user.idUser,
       },
       { transaction: t }

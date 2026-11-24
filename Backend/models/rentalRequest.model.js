@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
 // Demande de location soumise via le formulaire public (landing page).
-// Trace figée de la demande telle que le client l'a exprimée — le suivi
+// Trace figée de la demande telle que le client l'a exprimée - le suivi
 // commercial vit sur le `Client` créé à partir d'elle (statutPipeline),
 // jamais sur cette table : une demande n'est pas un dossier en cours,
 // c'est son point de départ.

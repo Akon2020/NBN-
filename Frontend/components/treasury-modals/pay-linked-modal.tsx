@@ -94,7 +94,7 @@ export function PayLinkedModal({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {amount.toLocaleString("fr-FR")} {currencyCode} — génère un CashMovement et une
+            {amount.toLocaleString("fr-FR")} {currencyCode} - génère un CashMovement et une
             LedgerEntry.
           </DialogDescription>
         </DialogHeader>

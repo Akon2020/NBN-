@@ -42,7 +42,7 @@ interface PropertyStatutControlProps {
   onChanged: (updated: Property) => void
 }
 
-// GOAL 1 — contrôle réutilisable (fiches location/vente) pour le seul
+// GOAL 1 - contrôle réutilisable (fiches location/vente) pour le seul
 // point d'entrée de changement de statut (PATCH /:id/statut, jamais via
 // la modale d'édition générique).
 export function PropertyStatutControl({ property, onChanged }: PropertyStatutControlProps) {

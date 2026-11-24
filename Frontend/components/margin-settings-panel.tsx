@@ -18,9 +18,9 @@ import { getMarginSettings, updateMarginSetting } from "@/actions/marginSettings
 
 const draftKey = (propertyType: PropertyType, stayType: StayType) => `${propertyType}:${stayType}`
 
-// GOAL 9/12 — centre de configuration des marges (préfigure GOAL 13). Ce
+// GOAL 9/12 - centre de configuration des marges (préfigure GOAL 13). Ce
 // panneau n'apparaît que si le Backend a effectivement renvoyé des
-// données (property:margin:read) — jamais de vérification de permission
+// données (property:margin:read) - jamais de vérification de permission
 // côté Frontend, uniquement une réaction à ce que l'API a déjà décidé.
 // Chaque type de bien a deux pourcentages indépendants : longue durée
 // (location classique/vente) et courte durée (location à la journée).

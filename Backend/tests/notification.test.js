@@ -152,7 +152,7 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
     expect(notification.relatedEntityId).toBe(create.body.data.idRequisition);
 
     // Une OutboxEvent doit avoir été mise en file pour la tentative de push
-    // — matché par payload (idNotification), jamais par "le plus récent"
+    // - matché par payload (idNotification), jamais par "le plus récent"
     // (la résolution de `createdAt` en secondes peut créer des ex æquo
     // entre tests qui s'exécutent dans la même seconde).
     const outboxEntry = await OutboxEvent.findOne({
@@ -201,7 +201,7 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
   it("le worker outbox marque FAILED et conserve la Notification si l'envoi échoue", async () => {
     // Passage restreint à l'événement de ce test (voir le test précédent).
     // `pushProvider.js` appelle le `fetch` global directement (pas de SDK
-    // serveur) — `vi.stubGlobal` est l'API Vitest dédiée à ce cas (une
+    // serveur) - `vi.stubGlobal` est l'API Vitest dédiée à ce cas (une
     // simple réaffectation de `global.fetch` ne traverse pas de façon
     // fiable l'isolation de module de Vitest).
     vi.stubGlobal(
@@ -236,7 +236,7 @@ describe("BACK-G17 - Notifications/Alerts/Reminders + event bus", () => {
     const refreshedNotification = await Notification.findByPk(notification.idNotification);
     expect(refreshedNotification.pushStatus).toBe("FAILED");
     // La Notification (source de vérité) existe toujours en base malgré
-    // l'échec du push — jamais perdue.
+    // l'échec du push - jamais perdue.
     expect(refreshedNotification).not.toBeNull();
 
     const refreshedOutbox = await OutboxEvent.findByPk(outbox.idOutboxEvent);

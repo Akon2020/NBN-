@@ -1,4 +1,4 @@
-// BACK-G21 — Archivage métier (CLAUDE.md §11), factorisé une seule fois car
+// BACK-G21 - Archivage métier (CLAUDE.md §11), factorisé une seule fois car
 // la forme est identique pour les quatre ressources concernées (biens,
 // clients, réquisitions, missions) : marquer/démarquer `archivedAt` +
 // `archiveReason`, jamais un `deletedAt` (soft delete Sequelize paranoid,

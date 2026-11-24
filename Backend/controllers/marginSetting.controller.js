@@ -24,7 +24,7 @@ export const getMarginSettings = async (req, res, next) => {
   }
 };
 
-// GOAL 12 — un bien correspond à COURT_SEJOUR uniquement s'il est loué à
+// GOAL 12 - un bien correspond à COURT_SEJOUR uniquement s'il est loué à
 // la journée (RentalProperty.unit=DAY) ; sinon (MONTH/YEAR, ou une vente
 // sans RentalProperty) il relève de LONGUE_DUREE. Résolu ici via l'ensemble
 // des idProperty en location journalière plutôt qu'un appel par bien
@@ -50,12 +50,12 @@ const findAffectedProperties = async (propertyType, stayType) => {
   });
 };
 
-// GOAL 9 — seul point d'entrée pour changer le pourcentage global d'un
+// GOAL 9 - seul point d'entrée pour changer le pourcentage global d'un
 // type de bien. Recalcule immédiatement `margin` sur tous les biens de ce
 // type/type de séjour qui n'ont PAS d'override (marginOverridePercentage
-// IS NULL) — les biens avec un override restent strictement inchangés,
+// IS NULL) - les biens avec un override restent strictement inchangés,
 // jamais affectés par ce changement global.
-// GOAL 12 — `stayType` (LONGUE_DUREE/COURT_SEJOUR) est désormais requis :
+// GOAL 12 - `stayType` (LONGUE_DUREE/COURT_SEJOUR) est désormais requis :
 // chaque combinaison type de bien × type de séjour a son propre
 // pourcentage configurable indépendamment.
 export const updateMarginSetting = async (req, res, next) => {

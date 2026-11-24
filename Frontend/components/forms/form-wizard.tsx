@@ -166,7 +166,7 @@ export function FormWizard({
   )
 }
 
-// Persistance locale du brouillon — volontairement dans le navigateur
+// Persistance locale du brouillon - volontairement dans le navigateur
 // uniquement : une demande incomplète n'a rien à faire côté serveur tant
 // que le client ne l'a pas soumise (et les conditions pas acceptées).
 export function useFormDraft<T>(key: string, initial: T) {

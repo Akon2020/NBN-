@@ -17,7 +17,7 @@ const axiosErrorWith = (status?: number, data?: unknown) => {
   return new AxiosError("Request failed", "ERR", config, {}, response);
 };
 
-describe("login — message affiché en cas d'échec", () => {
+describe("login - message affiché en cas d'échec", () => {
   beforeEach(() => {
     vi.mocked(api.post).mockReset();
   });

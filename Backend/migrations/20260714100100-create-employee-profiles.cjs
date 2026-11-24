@@ -27,7 +27,7 @@ module.exports = {
         references: { model: "postes", key: "idPoste" },
       },
       idResponsable: {
-        // lien hiérarchique — self-référence vers un autre EmployeeProfile
+        // lien hiérarchique - self-référence vers un autre EmployeeProfile
         type: Sequelize.BIGINT,
         allowNull: true,
         references: { model: "employeeProfiles", key: "idEmployeeProfile" },

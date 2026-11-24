@@ -57,7 +57,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Restaure l'état par défaut du paramètre global partagé — d'autres
+  // Restaure l'état par défaut du paramètre global partagé - d'autres
   // fichiers de test (commissionnaire.test.js) supposent le comportement
   // par défaut (scoring activé).
   await AppSetting.update(

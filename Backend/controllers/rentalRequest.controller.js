@@ -12,7 +12,7 @@ import {
   normalizePhone,
 } from "../utils/contactValidation.js";
 
-// Champs repris tels quels depuis le formulaire public — liste explicite
+// Champs repris tels quels depuis le formulaire public - liste explicite
 // (jamais un `req.body` propagé en bloc) : une demande publique non
 // authentifiée ne doit jamais pouvoir écrire un champ non prévu.
 const REQUEST_FIELDS = [
@@ -57,7 +57,7 @@ const REQUEST_FIELDS = [
   "autresInfos",
 ];
 
-// Correspondances vers le vocabulaire CRM déjà en place sur `Client` —
+// Correspondances vers le vocabulaire CRM déjà en place sur `Client` -
 // les deux modèles ont volontairement des libellés distincts (le
 // formulaire parle la langue du client, le CRM celle de l'agence).
 const SOUS_TYPE_BY_TYPE_CLIENT = {
@@ -84,7 +84,7 @@ const BESOIN_USAGE_BY_USAGE = {
 const CLIENT_URGENCES = ["IMMEDIAT", "1_2_SEMAINES", "1_MOIS", "FLEXIBLE"];
 
 const buildLocalisation = ({ commune, quartier, avenues }) =>
-  [commune, quartier, avenues].filter(Boolean).join(" — ") || null;
+  [commune, quartier, avenues].filter(Boolean).join(" - ") || null;
 
 const TYPES_OCCUPANTS = ["FAMILLE_NOMBREUSE", "FAMILLE_PEU_NOMBREUSE", "COUPLE", "AUTRE"];
 const URGENCES = [...CLIENT_URGENCES, "AUTRE"];
@@ -230,7 +230,7 @@ export const createRentalRequest = async (req, res, next) => {
     }
 
     // Un client actif déjà rattaché à cette personne est réutilisé plutôt
-    // que dupliqué — sa position dans le pipeline est conservée telle
+    // que dupliqué - sa position dans le pipeline est conservée telle
     // quelle (une nouvelle demande ne fait jamais reculer un dossier déjà
     // en négociation).
     let client = await Client.findOne({
@@ -300,7 +300,7 @@ export const createRentalRequest = async (req, res, next) => {
     // métier, GOAL 14/20).
     await createAlert({
       type: "rental_request:new",
-      title: `Nouvelle demande de location — ${fullName}`,
+      title: `Nouvelle demande de location - ${fullName}`,
       description: localisation,
       severite: "INFO",
       relatedEntityType: "Client",
@@ -388,7 +388,7 @@ const MAX_DELETION_REASON = 1000;
 
 // « Supprimer la fiche » : suppression logique, commentaire obligatoire.
 // La demande disparaît de « Demandes reçues » mais reste dans le rapport
-// des demandes avec son motif — et le client, lui, reste sur le pipeline :
+// des demandes avec son motif - et le client, lui, reste sur le pipeline :
 // on supprime une fiche de demande, pas une relation commerciale.
 export const deleteRentalRequest = async (req, res, next) => {
   try {

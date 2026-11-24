@@ -60,7 +60,7 @@ export function EditBailleurModal({ open, onOpenChange, bailleur, onEdit }: Edit
   const [notes, setNotes] = useState("")
 
   // Le champ marge n'est affiché que si le Backend l'a réellement renvoyé
-  // (field-level authorization, bailleur:marge:read) — jamais présumer un
+  // (field-level authorization, bailleur:marge:read) - jamais présumer un
   // droit d'édition à partir d'un champ absent.
   const canSeeMarge = bailleur?.margeAgence !== undefined
 

@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
-// CLAUDE.md §7/§10 — "état de caisse" stylisé, un des rapports officiels
-// explicitement cités. Généré à la demande (V1), jamais stocké — même
+// CLAUDE.md §7/§10 - "état de caisse" stylisé, un des rapports officiels
+// explicitement cités. Généré à la demande (V1), jamais stocké - même
 // principe que utils/requisitionPdf.js.
 export const generateCaisseStatementPdf = async (caisse, ledgerEntries, { from, to }) => {
   const pdfDoc = await PDFDocument.create();
@@ -21,8 +21,8 @@ export const generateCaisseStatementPdf = async (caisse, ledgerEntries, { from, 
     y -= size + 8;
   };
 
-  drawTitle(`État de caisse — ${caisse.label}`);
-  drawText(`Période : ${from.toLocaleDateString("fr-FR")} — ${to.toLocaleDateString("fr-FR")}`, 10, rgb(0.4, 0.4, 0.4));
+  drawTitle(`État de caisse - ${caisse.label}`);
+  drawText(`Période : ${from.toLocaleDateString("fr-FR")} - ${to.toLocaleDateString("fr-FR")}`, 10, rgb(0.4, 0.4, 0.4));
   drawText(`Statut : ${caisse.statut}`, 10, rgb(0.4, 0.4, 0.4));
   y -= 10;
 

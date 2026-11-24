@@ -14,7 +14,7 @@ import {
 import { createArchiveHandlers } from "../utils/archivable.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 
-// GOAL 4 — le commissionnaire source est résolu par la même association
+// GOAL 4 - le commissionnaire source est résolu par la même association
 // que le reste du modèle (jamais une jointure manuelle refaite à chaque
 // endpoint), attributs limités au strict nécessaire pour l'affichage.
 const CLIENT_INCLUDES = [
@@ -27,12 +27,12 @@ const CLIENT_INCLUDES = [
   },
 ];
 
-// BACK-G21 — clients archivés désencombrés des listes actives par défaut,
+// BACK-G21 - clients archivés désencombrés des listes actives par défaut,
 // réintégrables via `?includeArchived=true` (voir property.controller.js).
 export const getAllClients = async (req, res, next) => {
   try {
     const where = req.query.includeArchived === "true" ? {} : { archivedAt: null };
-    // GOAL 6 — recherche directe par numéro de dossier (référence lisible,
+    // GOAL 6 - recherche directe par numéro de dossier (référence lisible,
     // jamais par idClient interne).
     if (req.query.dossierNumber) {
       where.dossierNumber = { [Op.like]: `%${req.query.dossierNumber}%` };
@@ -63,7 +63,7 @@ export const getSingleClient = async (req, res, next) => {
   }
 };
 
-// GOAL 4 — le code commissionnaire est la référence métier de la relation
+// GOAL 4 - le code commissionnaire est la référence métier de la relation
 // (jamais un idCommissionnaire interne exposé/saisi) ; on vérifie qu'il
 // existe réellement avant de l'attribuer, plutôt que de ne le découvrir
 // que bien plus tard au moment du calcul d'une commission.
@@ -115,7 +115,7 @@ export const createClient = async (req, res, next) => {
       createdBy: req.user.idUser,
     });
 
-    // GOAL 6 — dérivé de idClient une fois connu (voir le modèle) :
+    // GOAL 6 - dérivé de idClient une fois connu (voir le modèle) :
     // aucune séquence externe à maintenir, unicité garantie par construction.
     await client.update({
       dossierNumber: `CLI-${new Date().getFullYear()}-${String(client.idClient).padStart(6, "0")}`,
@@ -227,7 +227,7 @@ export const updateClient = async (req, res, next) => {
         actorUserId: req.user.idUser,
       });
 
-      // GOAL 1 — une transaction conclue occupe/vend automatiquement le
+      // GOAL 1 - une transaction conclue occupe/vend automatiquement le
       // bien validé par le Matching (jamais de transition automatique
       // inverse : une correction manuelle reste possible via le PATCH
       // dédié du cycle de vie, cf. property.controller.js).
@@ -247,12 +247,12 @@ export const updateClient = async (req, res, next) => {
             entityId: property.idProperty,
             eventType: "STATUS_CHANGED",
             title: `Statut : ${previousPropertyStatut} → ${nextStatut}`,
-            description: "Transition automatique — transaction client conclue",
+            description: "Transition automatique - transaction client conclue",
             metadata: { automatic: true, idClient: client.idClient },
             actorUserId: req.user.idUser,
           });
 
-          // GOAL 8 — "entrée" côté client (vue 360), symétrique de la
+          // GOAL 8 - "entrée" côté client (vue 360), symétrique de la
           // "sortie" journalisée dans updatePropertyStatut lorsqu'un bien
           // occupé redevient disponible.
           if (nextStatut === "OCCUPE_CLIENT_NBN") {
@@ -260,7 +260,7 @@ export const updateClient = async (req, res, next) => {
               entityType: "CLIENT",
               entityId: client.idClient,
               eventType: "ENTREE",
-              title: `Entrée dans le bien — ${[property.avenue, property.quartier].filter(Boolean).join(", ")}`,
+              title: `Entrée dans le bien - ${[property.avenue, property.quartier].filter(Boolean).join(", ")}`,
               metadata: { idProperty: property.idProperty },
               actorUserId: req.user.idUser,
             });
@@ -302,7 +302,7 @@ export const updateClient = async (req, res, next) => {
   }
 };
 
-// BACK-G21 — `client.destroy()` est désormais un soft delete (paranoid) :
+// BACK-G21 - `client.destroy()` est désormais un soft delete (paranoid) :
 // réversible via `restoreClient`, invisible en usage normal.
 export const deleteClient = async (req, res, next) => {
   try {
@@ -340,7 +340,7 @@ export const restoreClient = async (req, res, next) => {
 export const { archiveResource: archiveClient, unarchiveResource: unarchiveClient } =
   createArchiveHandlers(Client, "idClient", "Client non trouvé");
 
-// --- GOAL 8 — Plaintes client ---
+// --- GOAL 8 - Plaintes client ---
 
 export const getClientComplaints = async (req, res, next) => {
   try {
@@ -429,9 +429,9 @@ export const resolveComplaint = async (req, res, next) => {
   }
 };
 
-// GOAL 8 — vue 360 : agrège en un seul appel tout ce que la fiche client
+// GOAL 8 - vue 360 : agrège en un seul appel tout ce que la fiche client
 // doit afficher (biens occupés/matchés, propositions, commissions liées
-// aux paiements, plaintes) — la timeline reste consultée séparément via
+// aux paiements, plaintes) - la timeline reste consultée séparément via
 // /api/timeline/CLIENT/:id (déjà générique aux 4 entités, pas dupliqué ici).
 export const getClientDossier = async (req, res, next) => {
   try {

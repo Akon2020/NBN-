@@ -1,9 +1,9 @@
 "use strict";
 
-// BACK-G02 — Catalogue RBAC initial (CLAUDE.md §5 et §3 du cahier des
+// BACK-G02 - Catalogue RBAC initial (CLAUDE.md §5 et §3 du cahier des
 // charges). "admin" a un accès total géré en application (voir
 // utils/rbac.js), pas via des lignes RolePermission à maintenir.
-// "consultant" naît volontairement sans aucune permission de base — tout
+// "consultant" naît volontairement sans aucune permission de base - tout
 // son accès passe par AccessGrant.
 const ROLES = [
   { name: "admin", label: "Administrateur" },

@@ -86,7 +86,7 @@ describe("BACK-G03 - field-level authorization (property:margin:read)", () => {
   it("tresorerie a la permission property:margin:read", async () => {
     const cookies = await login(users.tresorerie.email);
     // On vérifie la permission effective plutôt que l'API properties
-    // (pas encore montée — BACK-G07 en M2) : test direct de la couche RBAC.
+    // (pas encore montée - BACK-G07 en M2) : test direct de la couche RBAC.
     const { hasPermission } = await import("../utils/rbac.js");
     const allowed = await hasPermission(
       users.tresorerie.user,

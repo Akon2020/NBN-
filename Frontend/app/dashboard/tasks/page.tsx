@@ -55,10 +55,10 @@ const PRIORITE_BADGE_CLASS: Record<TaskPriorite, string> = {
   URGENTE: "bg-destructive text-destructive-foreground",
 }
 
-// GOAL 15 — Kanban générique des tâches, même patron que le pipeline
+// GOAL 15 - Kanban générique des tâches, même patron que le pipeline
 // commercial (GOAL 7) : glisser une carte appelle directement
 // PATCH /api/tasks/:id/statut, aucune règle de transition côté Frontend
-// (CLAUDE.md §4 — le statut d'une tâche ne pilote jamais une ressource liée).
+// (CLAUDE.md §4 - le statut d'une tâche ne pilote jamais une ressource liée).
 
 function TaskCard({ task }: { task: Task }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({

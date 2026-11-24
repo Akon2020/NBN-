@@ -48,12 +48,12 @@ const propertyLabel = (property?: {
     ? PROPERTY_TYPE_LABELS[property.propertyType as keyof typeof PROPERTY_TYPE_LABELS]
     : ""
   const location = [property.avenue, property.quartier].filter(Boolean).join(", ")
-  return [typeLabel, location].filter(Boolean).join(" — ") || `Bien`
+  return [typeLabel, location].filter(Boolean).join(" - ") || `Bien`
 }
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString("fr-FR")
 
-// GOAL 8 — vue 360 : référence centrale d'un client (biens occupés,
+// GOAL 8 - vue 360 : référence centrale d'un client (biens occupés,
 // propositions envoyées, commissions/paiements liés, plaintes). La
 // timeline reste un composant séparé et réutilisé (EntityTimeline),
 // jamais dupliquée ici.

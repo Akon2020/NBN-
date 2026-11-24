@@ -13,7 +13,7 @@ interface CalendarParticipantPickerProps {
   onChange: (userIds: number[]) => void
 }
 
-// GOAL 11 — sélection des personnes concernées par un rendez-vous, chacune
+// GOAL 11 - sélection des personnes concernées par un rendez-vous, chacune
 // notifiée automatiquement côté Backend à la création/modification.
 export function CalendarParticipantPicker({
   selectedUserIds,

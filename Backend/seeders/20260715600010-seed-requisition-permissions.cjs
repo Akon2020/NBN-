@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G13 — catalogue RBAC pour le workflow de réquisition de fonds
+// BACK-G13 - catalogue RBAC pour le workflow de réquisition de fonds
 // (info.md §6). "requisitions:create" est large (tout service qui peut
 // avoir besoin de matériel/fonds) ; "requisitions:validate" reste réservé
 // à la trésorerie, seule autorité d'approbation du circuit.

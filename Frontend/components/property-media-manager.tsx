@@ -41,9 +41,9 @@ interface PropertyMediaManagerProps {
   onChanged: (updated: Property) => void
 }
 
-// GOAL 2 — galerie photo/vidéo : prévisualisation avant envoi, validation
+// GOAL 2 - galerie photo/vidéo : prévisualisation avant envoi, validation
 // client (format/taille, en plus de la validation Backend faisant foi),
-// suppression et réorganisation (flèches — pas de drag-and-drop pour
+// suppression et réorganisation (flèches - pas de drag-and-drop pour
 // éviter une dépendance supplémentaire uniquement pour ce module).
 export function PropertyMediaManager({ property, onChanged }: PropertyMediaManagerProps) {
   const [pendingImages, setPendingImages] = useState<PendingFile[]>([])

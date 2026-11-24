@@ -49,7 +49,7 @@ export default function FavoritesPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-balance">Mes Favoris</h1>
         <p className="text-muted-foreground mt-2">
-          Biens sauvegardés pour référence rapide — ajoutez-les au panier (icône en haut) pour
+          Biens sauvegardés pour référence rapide - ajoutez-les au panier (icône en haut) pour
           préparer une proposition groupée via WhatsApp
         </p>
       </div>

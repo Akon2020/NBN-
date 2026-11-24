@@ -6,7 +6,7 @@ const handleError = (error: unknown, fallback: string): never => {
   throw new Error(apiErrorMessage(error, fallback));
 };
 
-// Route publique (aucune authentification) — appelée depuis la page
+// Route publique (aucune authentification) - appelée depuis la page
 // `/demande-location`, accessible sans compte.
 export const submitRentalRequest = async (
   payload: RentalRequestPayload

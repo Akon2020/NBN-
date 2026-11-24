@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G05 — complète Property : statut réel (corrige définitivement
+// BACK-G05 - complète Property : statut réel (corrige définitivement
 // SEC-G04, qui avait dû retirer le filtre sur un champ `statut`
 // inexistant), source terrain (CDC §4), et assignedTo préparé mais inerte
 // (CLAUDE.md §5, cloisonnement par agent/zone hors périmètre V1).

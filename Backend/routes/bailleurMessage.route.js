@@ -13,7 +13,7 @@ const bailleurMessageRouter = Router();
  * @swagger
  * /api/bailleur-messages/emails:
  *   post:
- *     summary: « Emails » — envoie un message à une sélection de bailleurs depuis contact@
+ *     summary: « Emails » - envoie un message à une sélection de bailleurs depuis contact@
  *     description: >
  *       Mis en file (outbox), tracé dans l'historique de chaque bailleur,
  *       dernier contact mis à jour. « {nom} » est remplacé par le nom du
@@ -32,7 +32,7 @@ const bailleurMessageRouter = Router();
  *               message: { type: string, maxLength: 10000 }
  *     responses:
  *       201:
- *         description: "{ sent, withoutEmail } — withoutEmail liste les bailleurs sans adresse"
+ *         description: "{ sent, withoutEmail } - withoutEmail liste les bailleurs sans adresse"
  *       400:
  *         description: Sélection, objet ou message manquant
  *       403:
@@ -44,7 +44,7 @@ bailleurMessageRouter.post("/emails", authMiddlware, requirePermission("bailleur
  * @swagger
  * /api/bailleur-messages/contact-log:
  *   post:
- *     summary: « Contacts » — trace un appel, WhatsApp, SMS ou e-mail lancé depuis le site
+ *     summary: « Contacts » - trace un appel, WhatsApp, SMS ou e-mail lancé depuis le site
  *     tags: [Bailleurs]
  *     requestBody:
  *       required: true

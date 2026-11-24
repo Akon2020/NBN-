@@ -103,7 +103,7 @@ describe("BACK-G20 - Reporting (PDF/Excel/CSV)", () => {
   });
 
   it("exporte les biens en CSV sans la marge pour un rôle sans property:margin:read", async () => {
-    // La trésorerie a property:margin:read (seed RBAC) — on vérifie donc
+    // La trésorerie a property:margin:read (seed RBAC) - on vérifie donc
     // avec ce rôle que la marge EST présente, la protection elle-même
     // étant déjà couverte par les tests de la route property elle-même ;
     // ici on vérifie que le rapport respecte bien ce même mécanisme

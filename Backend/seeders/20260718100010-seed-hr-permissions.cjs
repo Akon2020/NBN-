@@ -1,7 +1,7 @@
 "use strict";
 
-// BACK-G22 — RH avancé (V1 minimale). Aucun rôle "RH" dédié n'existe dans
-// le catalogue (CLAUDE.md §5) — rattaché à "operations", qui couvre déjà
+// BACK-G22 - RH avancé (V1 minimale). Aucun rôle "RH" dédié n'existe dans
+// le catalogue (CLAUDE.md §5) - rattaché à "operations", qui couvre déjà
 // la gestion administrative interne (clients/bailleurs/missions).
 const NEW_PERMISSIONS = [
   { key: "hr:read", description: "Consulter les profils RH, évaluations, objectifs, compétences, formations" },

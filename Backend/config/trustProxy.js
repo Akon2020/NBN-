@@ -1,7 +1,7 @@
 // En production, l'API tourne derrière le reverse proxy du cPanel
 // (openresty → Passenger). Sans `trust proxy`, Express prend l'IP du
 // proxy pour celle du client : tous les utilisateurs partagent alors la
-// même adresse, et donc le même quota du rate limiter — dix connexions
+// même adresse, et donc le même quota du rate limiter - dix connexions
 // ratées n'importe où dans l'agence bloquent la connexion de tout le
 // monde pendant quinze minutes.
 //

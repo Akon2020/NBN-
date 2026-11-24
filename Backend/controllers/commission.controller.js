@@ -25,11 +25,11 @@ const COMMISSION_INCLUDES = [
   { model: User, as: "creator", attributes: ["idUser", "fullName"] },
 ];
 
-// CDC — commission agence/agent/commissionnaire calculée à partir d'une
+// CDC - commission agence/agent/commissionnaire calculée à partir d'une
 // transaction immobilière conclue (Client.statutPipeline === "CONCLU").
 // Le montant de la commission est soit fourni directement
 // (montantCommission), soit dérivé d'un taux appliqué au montant de la
-// transaction — jamais les deux à la fois pour éviter une incohérence
+// transaction - jamais les deux à la fois pour éviter une incohérence
 // silencieuse entre le taux affiché et le montant réellement dû.
 export const createCommission = async (req, res, next) => {
   try {
@@ -138,7 +138,7 @@ export const getAllCommissions = async (req, res, next) => {
   }
 };
 
-// Marque une commission comme due pour paiement — désigne la caisse qui la
+// Marque une commission comme due pour paiement - désigne la caisse qui la
 // décaissera. Distinct du calcul initial : une commission peut être
 // calculée bien avant d'être réellement exigible (ex. délai contractuel).
 export const markCommissionDue = async (req, res, next) => {

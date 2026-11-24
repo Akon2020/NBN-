@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G17 — catalogue RBAC pour les alertes. Notifications et Reminders
+// BACK-G17 - catalogue RBAC pour les alertes. Notifications et Reminders
 // sont scopés à l'utilisateur connecté (pas de liste globale), donc pas
 // de permission RBAC dédiée au-delà de l'authentification.
 const NEW_PERMISSIONS = [

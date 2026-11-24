@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G15 — catalogue RBAC pour le calcul et le pilotage des commissions.
+// BACK-G15 - catalogue RBAC pour le calcul et le pilotage des commissions.
 const NEW_PERMISSIONS = [
   { key: "commissions:read", description: "Consulter les commissions" },
   {

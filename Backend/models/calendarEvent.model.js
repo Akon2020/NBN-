@@ -1,10 +1,10 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — vue calendrier agrégée (Tasks/Reminders/CRM), pas une
+// CLAUDE.md §4 - vue calendrier agrégée (Tasks/Reminders/CRM), pas une
 // duplication systématique. `CalendarEvent` n'existe comme table propre
 // que pour les événements qui n'ont pas de source ailleurs (ex. un
-// rendez-vous pur, sans lien à une autre entité) — voir
+// rendez-vous pur, sans lien à une autre entité) - voir
 // calendar.controller.js pour l'agrégation avec les autres sources.
 const CalendarEvent = db.define(
   "calendarEvents",

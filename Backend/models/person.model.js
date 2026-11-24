@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — entité centrale de l'organisation : identité humaine de
+// CLAUDE.md §4 - entité centrale de l'organisation : identité humaine de
 // base, distincte du compte de connexion (User, 0-1, nullable).
 const Person = db.define(
   "persons",
@@ -28,7 +28,7 @@ const Person = db.define(
       allowNull: true,
     },
     // Pièce d'identité annexée : chemin interne dans le dossier privé
-    // (utils/identityDocuments.js), jamais renvoyé tel quel par l'API — les
+    // (utils/identityDocuments.js), jamais renvoyé tel quel par l'API - les
     // sérialiseurs le remplacent par `hasIdDocument`.
     idDocumentPath: {
       type: DataTypes.STRING(255),

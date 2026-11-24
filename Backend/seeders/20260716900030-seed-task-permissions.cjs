@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G16 — catalogue RBAC pour le module Tasks (Kanban générique).
+// BACK-G16 - catalogue RBAC pour le module Tasks (Kanban générique).
 const NEW_PERMISSIONS = [
   { key: "tasks:read", description: "Consulter les tâches" },
   {

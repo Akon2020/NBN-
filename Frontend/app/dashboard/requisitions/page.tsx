@@ -129,7 +129,7 @@ export default function RequisitionsPage() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {requisition.demandeur?.fullName} — {requisition.caisse?.label} —{" "}
+                    {requisition.demandeur?.fullName} - {requisition.caisse?.label} -{" "}
                     {Number(requisition.coutEstime).toLocaleString("fr-FR")}{" "}
                     {requisition.currencyCode}
                   </p>

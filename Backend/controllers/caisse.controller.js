@@ -47,7 +47,7 @@ export const getSingleCaisse = async (req, res, next) => {
   }
 };
 
-// CLAUDE.md §4 — une CaisseBalance à zéro est créée pour chaque devise
+// CLAUDE.md §4 - une CaisseBalance à zéro est créée pour chaque devise
 // active dès la création de la caisse : le solde n'existe jamais de façon
 // implicite, et toute devise active a systématiquement une ligne de solde
 // traçable, même nulle.
@@ -104,7 +104,7 @@ export const updateCaisse = async (req, res, next) => {
   }
 };
 
-// GOAL 10 — virement entre deux caisses, même circuit comptable qu'un
+// GOAL 10 - virement entre deux caisses, même circuit comptable qu'un
 // paiement (CashMovement + mise à jour CaisseBalance + LedgerEntry, dans
 // une seule transaction), sauf qu'un virement produit DEUX mouvements
 // (SORTIE côté source, ENTREE côté destination) ancrés au même

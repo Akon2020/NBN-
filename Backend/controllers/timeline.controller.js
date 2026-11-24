@@ -11,7 +11,7 @@ const ENTITY_PERMISSION = {
   TASK: "tasks:read",
 };
 
-// GOAL 3 — lecture filtrable de la timeline d'une entité. Réutilise la
+// GOAL 3 - lecture filtrable de la timeline d'une entité. Réutilise la
 // permission de lecture déjà existante du domaine concerné (jamais une
 // nouvelle permission dédiée à la timeline elle-même).
 export const getEntityTimeline = async (req, res, next) => {

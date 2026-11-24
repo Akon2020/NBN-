@@ -75,7 +75,7 @@ export default function CommissionnairesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Commissionnaires</h1>
           <p className="text-muted-foreground mt-2">
-            Pilotage des fiches terrain — score, niveau, statut (CDC §7)
+            Pilotage des fiches terrain - score, niveau, statut (CDC §7)
           </p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto bg-primary text-primary-foreground">
@@ -103,7 +103,7 @@ export default function CommissionnairesPage() {
                     <div>
                       <h3 className="font-semibold text-lg">{commissionnaire.person?.fullName}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {commissionnaire.code} {commissionnaire.zone ? `— ${commissionnaire.zone}` : ""}
+                        {commissionnaire.code} {commissionnaire.zone ? `- ${commissionnaire.zone}` : ""}
                       </p>
                     </div>
                     <Badge className={STATUT_BADGE_VARIANT[commissionnaire.statut]}>

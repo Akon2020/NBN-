@@ -204,7 +204,7 @@ export default function CalendrierPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Calendrier</h1>
           <p className="text-muted-foreground mt-2">
-            Vue agrégée des tâches, rappels, relances clients et rendez-vous — chaque source reste
+            Vue agrégée des tâches, rappels, relances clients et rendez-vous - chaque source reste
             l&apos;autorité de son propre statut.
           </p>
         </div>

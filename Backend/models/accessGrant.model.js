@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
 // Mécanisme d'exception RBAC pour le rôle "consultant" (zéro permission de
-// base) — jamais un override générique appliqué à tous les rôles
+// base) - jamais un override générique appliqué à tous les rôles
 // (CLAUDE.md §5).
 const AccessGrant = db.define(
   "accessGrants",

@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G21 — Archivage formalisé (CLAUDE.md §11/§4), scope plan.md : biens,
+// BACK-G21 - Archivage formalisé (CLAUDE.md §11/§4), scope plan.md : biens,
 // clients, réquisitions, missions terrain (jamais Bailleur/Commissionnaire).
 // Trois concepts distincts, jamais confondus :
 //   - `deletedAt`   : soft delete Sequelize (paranoid), réversible à court
@@ -9,7 +9,7 @@
 //                     terminé mais toujours consultable (ex. bien vendu
 //                     depuis longtemps, réquisition ancienne).
 // La rétention légale (purge définitive) reste hors-scope (CLAUDE.md §16
-// point 3) — aucune colonne de purge ajoutée ici.
+// point 3) - aucune colonne de purge ajoutée ici.
 const TABLES = ["properties", "clients", "requisitions", "missions"];
 
 module.exports = {

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// BACK-G22 — évaluation de performance ponctuelle rattachée à un
+// BACK-G22 - évaluation de performance ponctuelle rattachée à un
 // EmployeeProfile (jamais à un User directement : un employé peut ne pas
 // avoir de compte de connexion, CLAUDE.md §4). V1 minimale : une note
 // libre /100 et un commentaire, pas de grille de critères pondérés.

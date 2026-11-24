@@ -8,7 +8,7 @@ const searchRouter = Router();
  * @swagger
  * /api/search:
  *   get:
- *     summary: Recherche transverse (biens, clients, bailleurs, commissionnaires, tâches) — chaque type filtré par la permission de lecture de l'appelant
+ *     summary: Recherche transverse (biens, clients, bailleurs, commissionnaires, tâches) - chaque type filtré par la permission de lecture de l'appelant
  *     tags: [Search]
  *     parameters:
  *       - in: query

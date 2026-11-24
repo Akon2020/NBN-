@@ -14,12 +14,12 @@ import { hasPermission } from "../utils/rbac.js";
 
 const LIMIT = 6;
 
-// GOAL 18 — recherche transverse : chaque type d'entité n'est inclus dans
+// GOAL 18 - recherche transverse : chaque type d'entité n'est inclus dans
 // les résultats que si l'appelant a la permission de lecture correspondante
-// (CLAUDE.md §5 — jamais une nouvelle permission "search" fourre-tout qui
+// (CLAUDE.md §5 - jamais une nouvelle permission "search" fourre-tout qui
 // contournerait le RBAC déjà en place par domaine). Les biens n'ont jamais
 // été soumis à une permission de lecture (property.route.js), cohérent
-// avec le reste du système — inclus systématiquement.
+// avec le reste du système - inclus systématiquement.
 export const globalSearch = async (req, res, next) => {
   try {
     const q = (req.query.q || "").trim();

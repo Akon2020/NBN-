@@ -2,7 +2,7 @@ import api from "@/lib/axios";
 import axios from "axios";
 import { GlobalSearchResults } from "@/lib/types";
 
-// GOAL 18 — chaque type d'entité n'est renvoyé que si l'appelant a la
+// GOAL 18 - chaque type d'entité n'est renvoyé que si l'appelant a la
 // permission de lecture correspondante (RBAC tranché côté Backend,
 // jamais reconstruit ici).
 export const globalSearch = async (q: string): Promise<GlobalSearchResults> => {

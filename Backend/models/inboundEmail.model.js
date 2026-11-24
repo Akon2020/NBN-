@@ -3,7 +3,7 @@ import db from "../database/db.js";
 
 // Message reçu sur une boîte professionnelle (contact@, direction@…).
 // Qui peut le voir n'est pas une permission RBAC mais l'audience de la
-// boîte (config/mailboxes.js) — contrôlée côté Backend à chaque accès.
+// boîte (config/mailboxes.js) - contrôlée côté Backend à chaque accès.
 const InboundEmail = db.define(
   "inboundEmails",
   {

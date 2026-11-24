@@ -46,7 +46,7 @@ beforeAll(async () => {
   });
   createdUserIds.push(juridique.idUser);
 
-  // BACK-G11 — un commissionnaire de terrain avec un vrai compte de
+  // BACK-G11 - un commissionnaire de terrain avec un vrai compte de
   // connexion (User), pour vérifier que sa suspension révoque bien sa
   // session, exactement comme pour un User désactivé.
   fieldCommissionnaireEmail = `terrain.commissionnaire.${suffix}@nbn.test`;
@@ -89,7 +89,7 @@ afterAll(async () => {
 
 // Mémoïsé par email : ce fichier contient beaucoup de scénarios RBAC
 // distincts, et `/api/auth/login` est volontairement rate-limité (SEC-G07,
-// 10 tentatives/15 min) — répéter une connexion déjà obtenue pour le même
+// 10 tentatives/15 min) - répéter une connexion déjà obtenue pour le même
 // compte gaspillerait ce quota partagé entre tous les fichiers de test.
 const loginCache = new Map();
 
@@ -264,7 +264,7 @@ describe("BACK-G11 - Suspension d'un commissionnaire → révocation de session"
 
 describe("BACK-G10 - Missions terrain et validation", () => {
   it("un commissionnaire soumet une mission, idempotente sur son uuid", async () => {
-    // `fresh: true` — la session mémoïsée de ce compte a été révoquée par
+    // `fresh: true` - la session mémoïsée de ce compte a été révoquée par
     // le test de suspension ci-dessus (BACK-G11), une nouvelle connexion
     // est nécessaire (la suspension d'un commissionnaire ne bloque pas les
     // connexions futures, seulement les sessions déjà actives).

@@ -3,11 +3,11 @@ import { Op } from "sequelize";
 import { Reminder } from "../models/index.model.js";
 import { createNotification } from "./notification.service.js";
 
-// GOAL 11 — comble un écart entre l'intention documentée sur le modèle
+// GOAL 11 - comble un écart entre l'intention documentée sur le modèle
 // Reminder ("un cron parcourt les PLANIFIE dont dueAt est passée") et la
 // réalité : ce worker n'existait pas avant cette session, seul le worker
 // outbox (retries de push) tournait. Chaque Reminder échu produit
-// exactement une Notification puis passe à ENVOYE — jamais retraité même
+// exactement une Notification puis passe à ENVOYE - jamais retraité même
 // si le cron tourne plusieurs fois avant que la transition soit visible
 // (fenêtre couverte par le batch limit + l'ordre chronologique).
 const BATCH_SIZE = 50;

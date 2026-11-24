@@ -73,7 +73,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  const tasks = await Task.findAll({ where: { title: `Demande de location — ${rentalRequest.fullName}` } });
+  const tasks = await Task.findAll({ where: { title: `Demande de location - ${rentalRequest.fullName}` } });
   const taskIds = tasks.map((task) => task.idTask);
   if (taskIds.length) {
     await Reminder.destroy({ where: { relatedEntityType: "Task", relatedEntityId: taskIds } });

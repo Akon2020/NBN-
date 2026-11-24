@@ -9,7 +9,7 @@ const DEDICATED_KEYS = {
   [MAILBOX_AUDIENCES_KEY]: "Réglez l'audience d'une boîte depuis PUT /api/inbound-emails/mailboxes/:key/audience.",
 };
 
-// GOAL 13 — `value` est toujours stocké en JSON sérialisé ; on le
+// GOAL 13 - `value` est toujours stocké en JSON sérialisé ; on le
 // désérialise systématiquement en sortie pour renvoyer le vrai type
 // (nombre/booléen/objet) au lieu d'une chaîne brute.
 const serialize = (setting) => {
@@ -36,7 +36,7 @@ export const getAllSettings = async (req, res, next) => {
   }
 };
 
-// Seul point d'entrée pour modifier un paramètre — jamais de clé créée à
+// Seul point d'entrée pour modifier un paramètre - jamais de clé créée à
 // la volée depuis l'API (le catalogue de clés valides vient uniquement
 // des migrations, pour éviter une prolifération de paramètres non
 // documentés).

@@ -39,7 +39,7 @@ export function RentalRequestDeleteDialog({
     setIsDeleting(true)
     try {
       await deleteRentalRequest(request.idRentalRequest, reason.trim())
-      toast.success("Fiche supprimée — elle reste dans le rapport des demandes")
+      toast.success("Fiche supprimée - elle reste dans le rapport des demandes")
       setReason("")
       onDeleted(request.idRentalRequest)
     } catch (error) {

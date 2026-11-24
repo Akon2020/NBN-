@@ -45,8 +45,8 @@ describe("Envoi WhatsApp bien par bien", () => {
       />
     )
 
-    expect(screen.getByText("1. Appartement — Nyawera")).toBeInTheDocument()
-    expect(screen.getByText("2. Appartement — Ndendere")).toBeInTheDocument()
+    expect(screen.getByText("1. Appartement - Nyawera")).toBeInTheDocument()
+    expect(screen.getByText("2. Appartement - Ndendere")).toBeInTheDocument()
     expect(screen.getByText("0/2 envoyé(s)")).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole("button", { name: /Texte seul au client/ })[0])

@@ -170,7 +170,7 @@ requisitionRouter.get(
  * @swagger
  * /api/requisitions/{id}/archive:
  *   post:
- *     summary: Archive une réquisition (archivage métier, BACK-G21) — reste consultable
+ *     summary: Archive une réquisition (archivage métier, BACK-G21) - reste consultable
  *     tags: [Treasury]
  *     requestBody:
  *       required: true

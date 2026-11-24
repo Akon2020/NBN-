@@ -20,7 +20,7 @@ dashboardRouter.get("/stats", authMiddlware, getDashboardStats);
  * @swagger
  * /api/dashboard/charts:
  *   get:
- *     summary: Répartitions et tendances (biens par type/statut, pipeline client, trésorerie et commissions par mois, performance commissionnaires) — même gating RBAC que /stats
+ *     summary: Répartitions et tendances (biens par type/statut, pipeline client, trésorerie et commissions par mois, performance commissionnaires) - même gating RBAC que /stats
  *     tags: [Dashboard]
  *     responses:
  *       200:

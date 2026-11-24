@@ -1,6 +1,6 @@
 import { hasPermission } from "../rbac.js";
 
-// BACK-G03/BACK-G06 — même logique que property.serializer.js : la marge
+// BACK-G03/BACK-G06 - même logique que property.serializer.js : la marge
 // agence d'un bailleur est une donnée financière sensible (CDC §3).
 export const serializeBailleur = async (bailleur, user) => {
   const plain =

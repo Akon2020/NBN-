@@ -51,7 +51,7 @@ export const updateCaisse = async (
   }
 };
 
-// GOAL 10 — virement entre deux caisses, même circuit financier qu'un
+// GOAL 10 - virement entre deux caisses, même circuit financier qu'un
 // paiement (transaction unique côté Backend, solde jamais négatif).
 export const createCaisseTransfer = async (payload: {
   idCaisseSource: number;

@@ -56,7 +56,7 @@ calendarRouter.post(
  * @swagger
  * /api/calendar/{id}:
  *   patch:
- *     summary: Modifie un rendez-vous (titre, horaires, propriétaire, participants — GOAL 11)
+ *     summary: Modifie un rendez-vous (titre, horaires, propriétaire, participants - GOAL 11)
  *     tags: [Calendar]
  *     parameters:
  *       - in: path

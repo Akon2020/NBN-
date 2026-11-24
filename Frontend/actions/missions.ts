@@ -30,7 +30,7 @@ export const getSingleMission = async (id: number): Promise<Mission> => {
   }
 };
 
-// GOAL 14 — déclaré par le commissionnaire assigné (ou missions:validate),
+// GOAL 14 - déclaré par le commissionnaire assigné (ou missions:validate),
 // distinct des transitions de validation administrative ci-dessous.
 export const updateMissionProgression = async (
   id: number,

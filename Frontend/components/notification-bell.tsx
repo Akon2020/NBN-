@@ -9,10 +9,10 @@ import { getMyNotifications, markAllNotificationsRead, markNotificationRead } fr
 import { getSocket } from "@/lib/socket"
 import type { Notification } from "@/lib/types"
 
-// ADMIN-G07 — Socket.IO ne fait que déclencher un refetch REST (jamais
+// ADMIN-G07 - Socket.IO ne fait que déclencher un refetch REST (jamais
 // poussé de données brutes, CLAUDE.md §6 "quasi temps réel") ; un
 // intervalle de repli (60s) garantit que la cloche reste à jour même si
-// la connexion socket est indisponible — jamais une dépendance dure.
+// la connexion socket est indisponible - jamais une dépendance dure.
 const POLL_INTERVAL_MS = 60_000
 
 export function NotificationBell() {

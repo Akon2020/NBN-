@@ -31,7 +31,7 @@ const EMPTY_RESULTS: GlobalSearchResults = {
   tasks: [],
 }
 
-// GOAL 18 — palette de recherche transverse (Ctrl/Cmd+K), interroge
+// GOAL 18 - palette de recherche transverse (Ctrl/Cmd+K), interroge
 // GET /api/search une seule fois par saisie (debounce 300ms), jamais de
 // filtrage côté client sur un catalogue entier téléchargé d'avance.
 export function GlobalSearchCommand() {
@@ -137,7 +137,7 @@ export function GlobalSearchCommand() {
                       <Building2 className="text-primary" />
                       <div className="min-w-0">
                         <p className="truncate">
-                          {PROPERTY_TYPE_LABELS[property.propertyType]} — {property.quartier}
+                          {PROPERTY_TYPE_LABELS[property.propertyType]} - {property.quartier}
                         </p>
                         {property.avenue && (
                           <p className="truncate text-xs text-muted-foreground">{property.avenue}</p>

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §5 — Session (pas une simple table RefreshToken) : porte la
+// CLAUDE.md §5 - Session (pas une simple table RefreshToken) : porte la
 // rotation des refresh tokens, la détection de réutilisation (via
 // tokenFamilyId) et l'historique de révocation.
 const Session = db.define(

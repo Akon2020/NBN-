@@ -19,7 +19,7 @@ const Property = db.define("properties", {
       "CONSTRUCTION_SEMI_DURABLE",
       "TERRAIN_PLAT",
       "TERRAIN_PENTE",
-      // Ajoutés avec le formulaire de collecte terrain — chaque type a sa
+      // Ajoutés avec le formulaire de collecte terrain - chaque type a sa
       // ligne correspondante dans `marginSettings` (les deux ENUM restent
       // alignés, sans quoi le bien n'aurait aucun pourcentage effectif).
       "PARCELLE",
@@ -40,7 +40,7 @@ const Property = db.define("properties", {
   toilets: DataTypes.INTEGER,
   kitchens: DataTypes.INTEGER,
   depots: DataTypes.INTEGER,
-  // Relevés terrain — `null` signifie « non renseigné », jamais « non »
+  // Relevés terrain - `null` signifie « non renseigné », jamais « non »
   // (d'où le booléen nullable plutôt qu'un défaut à false).
   hasElectricity: { type: DataTypes.BOOLEAN, allowNull: true },
   hasWater: { type: DataTypes.BOOLEAN, allowNull: true },
@@ -58,7 +58,7 @@ const Property = db.define("properties", {
   },
   observations: DataTypes.TEXT,
   price: DataTypes.DECIMAL(12, 2),
-  // Plancher de négociation fixé par le responsable — champ sensible,
+  // Plancher de négociation fixé par le responsable - champ sensible,
   // filtré par property.serializer.js (property:prix_minimum:read).
   prixMinimum: DataTypes.DECIMAL(12, 2),
   modalitePaiement: {
@@ -74,7 +74,7 @@ const Property = db.define("properties", {
     allowNull: true,
   },
   modalitePaiementAutre: DataTypes.STRING(255),
-  // GOAL 9 — `margin` est désormais une valeur dérivée, jamais saisie
+  // GOAL 9 - `margin` est désormais une valeur dérivée, jamais saisie
   // directement (retirée de PROPERTY_FIELDS) : toujours recalculée à
   // partir de `price` et du pourcentage effectif (override ou défaut
   // global par type, cf. shared/marginCalculator.js).
@@ -92,8 +92,8 @@ const Property = db.define("properties", {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
-  // GOAL 1 — cycle de vie du bien. "VENDU" n'est atteignable qu'en
-  // category=SALE (contrôlé en application, pas au niveau du schéma — un
+  // GOAL 1 - cycle de vie du bien. "VENDU" n'est atteignable qu'en
+  // category=SALE (contrôlé en application, pas au niveau du schéma - un
   // CHECK constraint conditionnel n'apporterait rien qu'une validation
   // applicative ne couvre déjà, cf. property.controller.js).
   statut: {
@@ -108,7 +108,7 @@ const Property = db.define("properties", {
     defaultValue: "DISPONIBLE",
   },
   // Source terrain (CDC §4) : code du commissionnaire ayant apporté le
-  // bien, ou nom de l'informateur — les deux optionnels et exclusifs en
+  // bien, ou nom de l'informateur - les deux optionnels et exclusifs en
   // pratique, jamais combinés à un contrôle strict au niveau schéma.
   codeCommissionnaire: {
     type: DataTypes.STRING(50),
@@ -135,7 +135,7 @@ const Property = db.define("properties", {
       key: "idUser",
     },
   },
-  // Bailleur ayant fourni ce bien (CDC §3 "Biens associés" — lien direct
+  // Bailleur ayant fourni ce bien (CDC §3 "Biens associés" - lien direct
   // avec le module biens).
   idBailleur: {
     type: DataTypes.BIGINT,
@@ -153,7 +153,7 @@ const Property = db.define("properties", {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  // BACK-G21 — soft delete (paranoid). Distinct de l'archivage métier
+  // BACK-G21 - soft delete (paranoid). Distinct de l'archivage métier
   // ci-dessous (CLAUDE.md §11) : `deletedAt` reste invisible en usage
   // normal et réversible à court terme (erreur de saisie), jamais un
   // aboutissement de cycle de vie métier.

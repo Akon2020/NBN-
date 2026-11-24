@@ -279,7 +279,7 @@ export default function RentalDetailPage({ params }: { params: Promise<{ id: str
                 <div className="rounded-lg border border-dashed border-border p-3 text-sm">
                   <span className="text-muted-foreground">Prix minimum acceptable : </span>
                   <span className="font-semibold">${Number(property.prixMinimum).toLocaleString("fr-FR")}</span>
-                  <p className="mt-1 text-xs text-muted-foreground">Confidentiel — ne jamais communiquer au client.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Confidentiel - ne jamais communiquer au client.</p>
                 </div>
               )}
             </CardContent>

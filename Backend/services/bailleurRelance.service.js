@@ -58,7 +58,7 @@ export const processRelance = async (relance) => {
     await createNotification({
       idUser: relance.createdBy,
       type: "bailleur_relance:whatsapp",
-      title: `Relance WhatsApp à envoyer — ${messages.length} bailleur(s)`,
+      title: `Relance WhatsApp à envoyer - ${messages.length} bailleur(s)`,
       message: "Les messages sont prêts : ouvrez la relance et envoyez-les en un clic.",
       relatedEntityType: "BailleurRelance",
       relatedEntityId: relance.idRelance,

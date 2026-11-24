@@ -22,7 +22,7 @@ import { deleteFile } from "../utils/deletefile.js";
 import { compressImageInPlace } from "../utils/imageCompression.js";
 import { recalculatePropertyMargin } from "../shared/marginCalculator.js";
 
-// GOAL 18 — exporté pour être réutilisé tel quel par `search.controller.js`
+// GOAL 18 - exporté pour être réutilisé tel quel par `search.controller.js`
 // (recherche globale), jamais un include dupliqué/divergent pour les biens.
 export const PROPERTY_INCLUDES = [
   { model: RentalProperty, as: "rentalDetails" },
@@ -41,7 +41,7 @@ const PUBLIC_PROPERTY_INCLUDES = [
   { model: PropertyVideo, as: "videos", separate: true, order: [["order", "ASC"]] },
 ];
 
-// MOBILE-G03 — le "client final" du CDC n'a pas de compte User (une Person
+// MOBILE-G03 - le "client final" du CDC n'a pas de compte User (une Person
 // devient Client/Bailleur, jamais un User, CLAUDE.md §4) : lecture publique
 // volontairement restreinte aux biens DISPONIBLE, avec le même filtrage
 // field-level qu'un appelant sans permission (`serializeProperty(..., null)`
@@ -90,11 +90,11 @@ export const getPublicProperty = async (req, res, next) => {
   }
 };
 
-// BACK-G21 — les biens archivés (archivage métier) restent en base et
+// BACK-G21 - les biens archivés (archivage métier) restent en base et
 // consultables mais se désencombrent des listes actives par défaut ;
 // `?includeArchived=true` les réintègre explicitement (jamais confondu
 // avec `deletedAt`, exclu automatiquement par Sequelize en mode paranoid).
-// GOAL 18 — filtres optionnels appliqués côté serveur (jamais obligatoires,
+// GOAL 18 - filtres optionnels appliqués côté serveur (jamais obligatoires,
 // rétrocompatible avec tout appelant qui listait déjà tout le catalogue) :
 // évite de télécharger l'intégralité des biens pour filtrer côté client,
 // contrainte "connexion faible" du CLAUDE.md §1.
@@ -176,11 +176,11 @@ export const getSingleProperty = async (req, res, next) => {
   }
 };
 
-// GOAL 1 — `statut` n'est délibérément pas dans cette liste : tout
+// GOAL 1 - `statut` n'est délibérément pas dans cette liste : tout
 // changement de statut passe par `updatePropertyStatut` (validation des
 // transitions + journalisation timeline), jamais par la mise à jour
 // générique des champs.
-// GOAL 9 — `margin` et `marginOverridePercentage` n'y sont pas non plus :
+// GOAL 9 - `margin` et `marginOverridePercentage` n'y sont pas non plus :
 // `margin` est une valeur dérivée (jamais saisie directement), et
 // l'override passe par `updatePropertyMarginOverride` (seul point d'entrée
 // audité, même patron que le statut).
@@ -250,10 +250,10 @@ export const createProperty = async (req, res, next) => {
       );
     }
 
-    // GOAL 9 — `margin` est toujours dérivée, calculée dès la création à
+    // GOAL 9 - `margin` est toujours dérivée, calculée dès la création à
     // partir du prix et du pourcentage effectif de son type (aucun override
     // possible à la création, cf. updatePropertyMarginOverride).
-    // GOAL 12 — `unit` transmis explicitement (déjà connu ici) pour éviter
+    // GOAL 12 - `unit` transmis explicitement (déjà connu ici) pour éviter
     // une requête RentalProperty superflue dans resolveStayType.
     await recalculatePropertyMargin(property, { transaction, unit: category === "RENT" ? unit : undefined });
 
@@ -264,7 +264,7 @@ export const createProperty = async (req, res, next) => {
       entityId: property.idProperty,
       eventType: "CREATED",
       title: `Bien créé (${category === "RENT" ? "à louer" : "à vendre"})`,
-      description: [property.propertyType, property.quartier].filter(Boolean).join(" — "),
+      description: [property.propertyType, property.quartier].filter(Boolean).join(" - "),
       actorUserId: req.user.idUser,
     });
 
@@ -311,10 +311,10 @@ export const updateProperty = async (req, res, next) => {
       });
     }
 
-    // GOAL 9 — un changement de prix doit toujours se refléter dans la
+    // GOAL 9 - un changement de prix doit toujours se refléter dans la
     // marge dérivée, override ou pas (l'override porte sur le pourcentage,
     // jamais sur le montant final).
-    // GOAL 12 — un changement d'`unit` seul (ex. passage longue durée →
+    // GOAL 12 - un changement d'`unit` seul (ex. passage longue durée →
     // courte durée) doit aussi redéclencher le calcul : le pourcentage
     // effectif en dépend désormais, même si le prix n'a pas bougé.
     // RentalProperty étant déjà à jour ci-dessus, `resolveStayType` lit la
@@ -343,7 +343,7 @@ const PROPERTY_STATUTS = [
   "VENDU",
 ];
 
-// GOAL 1 — seul point d'entrée pour changer le statut d'un bien (jamais via
+// GOAL 1 - seul point d'entrée pour changer le statut d'un bien (jamais via
 // `updateProperty`), afin que chaque transition soit à la fois validée
 // (VENDU réservé aux biens SALE) et journalisée dans la timeline (GOAL 3).
 export const updatePropertyStatut = async (req, res, next) => {
@@ -385,7 +385,7 @@ export const updatePropertyStatut = async (req, res, next) => {
       actorUserId: req.user.idUser,
     });
 
-    // GOAL 8 — "sortie" côté client (vue 360), symétrique de l'"entrée"
+    // GOAL 8 - "sortie" côté client (vue 360), symétrique de l'"entrée"
     // journalisée dans client.controller.js au moment de l'occupation.
     if (previousStatut === "OCCUPE_CLIENT_NBN" && statut !== "OCCUPE_CLIENT_NBN") {
       const validatedMatchings = await Matching.findAll({
@@ -396,7 +396,7 @@ export const updatePropertyStatut = async (req, res, next) => {
           entityType: "CLIENT",
           entityId: matching.idClient,
           eventType: "SORTIE",
-          title: `Sortie du bien — ${[property.avenue, property.quartier].filter(Boolean).join(", ")}`,
+          title: `Sortie du bien - ${[property.avenue, property.quartier].filter(Boolean).join(", ")}`,
           description: note || null,
           metadata: { idProperty: property.idProperty },
           actorUserId: req.user.idUser,
@@ -413,7 +413,7 @@ export const updatePropertyStatut = async (req, res, next) => {
   }
 };
 
-// GOAL 9 — seul point d'entrée pour changer l'override de marge d'un bien
+// GOAL 9 - seul point d'entrée pour changer l'override de marge d'un bien
 // (jamais via `updateProperty`) : garantit la validation du pourcentage et
 // la journalisation (MarginHistory + timeline du bien), même patron que
 // `updatePropertyStatut`. `percentage: null` retire l'override et fait
@@ -472,9 +472,9 @@ export const updatePropertyMarginOverride = async (req, res, next) => {
   }
 };
 
-// Upload découplé de la création (CLAUDE.md §8 — même principe côté web
+// Upload découplé de la création (CLAUDE.md §8 - même principe côté web
 // qu'offline mobile : un échec d'image ne doit jamais invalider le bien).
-// GOAL 2 — chaque image est recompressée (sharp) avant d'être enregistrée ;
+// GOAL 2 - chaque image est recompressée (sharp) avant d'être enregistrée ;
 // un échec de compression n'empêche jamais l'ajout (voir imageCompression.js).
 export const addPropertyImages = async (req, res, next) => {
   try {
@@ -541,8 +541,8 @@ export const deletePropertyImage = async (req, res, next) => {
   }
 };
 
-// GOAL 2 — réorganisation : `orderedIds` est la liste complète des
-// idPropertyImage du bien dans le nouvel ordre voulu, jamais un delta —
+// GOAL 2 - réorganisation : `orderedIds` est la liste complète des
+// idPropertyImage du bien dans le nouvel ordre voulu, jamais un delta -
 // plus simple et sans ambiguïté côté client (un simple drag terminé
 // renvoie l'état final de la liste).
 export const reorderPropertyImages = async (req, res, next) => {
@@ -570,7 +570,7 @@ export const reorderPropertyImages = async (req, res, next) => {
   }
 };
 
-// GOAL 2 — vidéo jamais recompressée côté serveur (coût CPU disproportionné
+// GOAL 2 - vidéo jamais recompressée côté serveur (coût CPU disproportionné
 // sur un hébergement mono-process, cf. upload.middleware.js) : seule la
 // validation de format/taille protège cet endpoint.
 export const addPropertyVideos = async (req, res, next) => {
@@ -661,10 +661,10 @@ export const reorderPropertyVideos = async (req, res, next) => {
   }
 };
 
-// BACK-G21 — soft delete (paranoid) uniquement : `property.destroy()` pose
+// BACK-G21 - soft delete (paranoid) uniquement : `property.destroy()` pose
 // désormais `deletedAt` au lieu de supprimer la ligne (CLAUDE.md §11,
 // "réversible à court terme"). Les lignes enfants (images/téléphones/
-// scores/détails location-vente) ne sont plus supprimées en cascade ici —
+// scores/détails location-vente) ne sont plus supprimées en cascade ici -
 // une restauration doit rendre un bien intact, pas une coquille vide.
 // La suppression définitive des fichiers physiques et des lignes enfants
 // reste hors-scope V1 (rétention légale, CLAUDE.md §16 point 3).

@@ -1,7 +1,7 @@
 import { Op } from "sequelize";
 import { Role, AccessGrant } from "../models/index.model.js";
 
-// BACK-G02 — RBAC hybride (Role + Permission), complété par le mécanisme
+// BACK-G02 - RBAC hybride (Role + Permission), complété par le mécanisme
 // d'exception AccessGrant pour le rôle consultant (CLAUDE.md §5).
 // "admin" a un accès total par construction (statut distingué, pas une
 // simple entrée RolePermission qu'il faudrait maintenir à jour à chaque
@@ -45,7 +45,7 @@ export const hasPermission = async (user, permissionKey) => {
 };
 
 /**
- * Garde de permission générique (BACK-G02) — remplace le correctif
+ * Garde de permission générique (BACK-G02) - remplace le correctif
  * temporaire `requireRole` de SEC-G02. Doit être appelée après
  * `authMiddlware`.
  */

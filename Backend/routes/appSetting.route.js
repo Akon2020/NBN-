@@ -21,7 +21,7 @@ appSettingRouter.get("/", authMiddlware, requirePermission("settings:read"), get
  * @swagger
  * /api/settings/{key}:
  *   patch:
- *     summary: Modifie un paramètre de configuration existant (GOAL 13) — jamais de clé créée à la volée
+ *     summary: Modifie un paramètre de configuration existant (GOAL 13) - jamais de clé créée à la volée
  *     tags: [Settings]
  *     parameters:
  *       - in: path

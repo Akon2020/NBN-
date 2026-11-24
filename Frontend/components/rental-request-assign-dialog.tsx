@@ -101,7 +101,7 @@ export function RentalRequestAssignDialog({
         note: note.trim() || undefined,
       })
       setResult(data)
-      toast.success(`Tâche créée — fiche envoyée à ${data.emailsQueued} destinataire(s)`)
+      toast.success(`Tâche créée - fiche envoyée à ${data.emailsQueued} destinataire(s)`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur inconnue")
     } finally {

@@ -13,11 +13,11 @@ import { createNotification } from "./notification.service.js";
 
 // Logique de création/liaison des tâches, partagée par le module Tâches et
 // par les écrans qui créent une tâche à partir d'une ressource métier (ex.
-// « Assigner une tâche » depuis une demande de location) — une seule
+// « Assigner une tâche » depuis une demande de location) - une seule
 // implémentation des assignations, rappels et notifications.
 
 // Remplace intégralement les assignations/liens d'une tâche à partir des
-// tableaux fournis — plus simple et moins sujet à erreur qu'un diff
+// tableaux fournis - plus simple et moins sujet à erreur qu'un diff
 // incrémental côté Kanban (l'UI renvoie toujours l'état complet voulu).
 export const syncTaskRelations = async (
   idTask,
@@ -71,7 +71,7 @@ export const syncTaskRelations = async (
   }
 };
 
-// GOAL 15 — un seul point d'entrée pour notifier un ensemble d'utilisateurs
+// GOAL 15 - un seul point d'entrée pour notifier un ensemble d'utilisateurs
 // concernés par une tâche, jamais l'acteur qui vient de déclencher
 // l'événement lui-même.
 export const notifyUsers = async (userIds, excludeUserId, { type, title, message, relatedEntityId }) => {
@@ -90,9 +90,9 @@ export const notifyUsers = async (userIds, excludeUserId, { type, title, message
   );
 };
 
-// GOAL 15 — rappels d'échéance via l'infrastructure Reminder existante.
+// GOAL 15 - rappels d'échéance via l'infrastructure Reminder existante.
 // Régénérés à chaque création/mise à jour pour ne jamais laisser un rappel
-// obsolète (mauvaise échéance, assigné retiré) — seuls les rappels pas
+// obsolète (mauvaise échéance, assigné retiré) - seuls les rappels pas
 // encore envoyés (statut PLANIFIE) sont concernés.
 export const syncTaskDeadlineReminders = async (task, assigneeUserIds, transaction) => {
   await Reminder.destroy({
@@ -122,7 +122,7 @@ export const getCurrentAssigneeUserIds = async (idTask, transaction) => {
 
 /**
  * Crée une tâche avec ses assignés, liens et rappels (transaction propre),
- * journalise la création et notifie les assignés — jamais le créateur.
+ * journalise la création et notifie les assignés - jamais le créateur.
  */
 export const createTaskWithRelations = async (
   { title, description, priorite, dateEcheance, assigneeUserIds, idProperties, idClients, idBailleurs, idCommissionnaires },

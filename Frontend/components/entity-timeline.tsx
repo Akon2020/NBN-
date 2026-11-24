@@ -127,7 +127,7 @@ interface EntityTimelineProps {
   entityId: number
 }
 
-// GOAL 3 — historique chronologique réutilisé sur les fiches bien, client,
+// GOAL 3 - historique chronologique réutilisé sur les fiches bien, client,
 // commissionnaire et bailleur. Filtrable par type d'événement, jamais un
 // simple flux brut non trié (le Backend trie déjà par occurredAt DESC).
 export function EntityTimeline({ entityType, entityId }: EntityTimelineProps) {
@@ -209,7 +209,7 @@ export function EntityTimeline({ entityType, entityId }: EntityTimelineProps) {
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
                       {formatDate(event.occurredAt)}
-                      {event.actor ? ` — ${event.actor.fullName}` : ""}
+                      {event.actor ? ` - ${event.actor.fullName}` : ""}
                     </p>
                   </div>
                 </div>

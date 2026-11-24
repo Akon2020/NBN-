@@ -1,6 +1,6 @@
-// CDC §7 — score global /100 = somme des 4 sous-scores /25 (performance,
+// CDC §7 - score global /100 = somme des 4 sous-scores /25 (performance,
 // qualité, discipline, engagement). Grille d'évolution automatique et
-// classement dérivé — jamais stockés indépendamment du score pour éviter
+// classement dérivé - jamais stockés indépendamment du score pour éviter
 // toute désynchronisation.
 
 const SCORE_MIN = 0;
@@ -15,7 +15,7 @@ export const computeScoreGlobal = (commissionnaire) =>
   clampSubScore(commissionnaire.scoreDiscipline) +
   clampSubScore(commissionnaire.scoreEngagement);
 
-// CDC §7 — Élite (90-100), Très performant (75-89), Moyen (60-74), Risque (<60).
+// CDC §7 - Élite (90-100), Très performant (75-89), Moyen (60-74), Risque (<60).
 export const getClassement = (scoreGlobal) => {
   if (scoreGlobal >= 90) return "ELITE";
   if (scoreGlobal >= 75) return "TRES_PERFORMANT";
@@ -23,13 +23,13 @@ export const getClassement = (scoreGlobal) => {
   return "RISQUE";
 };
 
-// CDC §7 — "score ≥ 75 + conditions → upgrade ; score < 60 → alerte".
+// CDC §7 - "score ≥ 75 + conditions → upgrade ; score < 60 → alerte".
 // Le CDC ne détaille pas les "conditions" au-delà du seuil de score ; seul
 // le seuil est appliqué ici, à affiner si une condition métier
 // supplémentaire (ex. ancienneté minimale) est précisée ultérieurement.
 // "Alerte" est traduite par un passage en statut OBSERVATION (un des 4
 // statuts déjà prévus par le CDC pour ce cas), pas par un système
-// d'alerte générique — celui-ci n'existe pas encore dans le système
+// d'alerte générique - celui-ci n'existe pas encore dans le système
 // (CLAUDE.md §7, module Notifications/Alertes non construit à ce stade).
 export const applyEvolutionGrid = (commissionnaire) => {
   const scoreGlobal = computeScoreGlobal(commissionnaire);

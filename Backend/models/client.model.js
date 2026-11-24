@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
 // CDC §3 module 3 "FICHE CLIENT INTELLIGENTE". L'identité (nom, téléphone,
-// email) vit sur Person — une même Person peut être Client ET Bailleur
+// email) vit sur Person - une même Person peut être Client ET Bailleur
 // (CLAUDE.md §4).
 const Client = db.define(
   "clients",
@@ -12,7 +12,7 @@ const Client = db.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    // GOAL 6 — numéro de dossier unique, lisible, recherchable (ex.
+    // GOAL 6 - numéro de dossier unique, lisible, recherchable (ex.
     // "CLI-2026-000042"). Dérivé de idClient (généré juste après la
     // création, cf. client.controller.js) plutôt qu'un compteur séparé :
     // garantit l'unicité sans mécanisme de séquence supplémentaire à
@@ -62,7 +62,7 @@ const Client = db.define(
       allowNull: true,
     },
     tags: DataTypes.STRING(255),
-    // BACK-G08 — pipeline commercial (CDC §3 module 8).
+    // BACK-G08 - pipeline commercial (CDC §3 module 8).
     statutPipeline: {
       type: DataTypes.ENUM(
         "NOUVEAU",
@@ -87,7 +87,7 @@ const Client = db.define(
       type: DataTypes.BIGINT,
       allowNull: true,
     },
-    // BACK-G21 — soft delete (paranoid) et archivage métier, deux concepts
+    // BACK-G21 - soft delete (paranoid) et archivage métier, deux concepts
     // distincts (CLAUDE.md §11) : `deletedAt` = erreur de saisie,
     // réversible à court terme ; `archivedAt`/`archiveReason` = pipeline
     // clôturé (CONCLU/PERDU ancien) mais toujours consultable.

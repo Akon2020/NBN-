@@ -24,7 +24,7 @@ const generateValidationCode = () =>
 // info.md §6, étape "Saisie" + "Vérification" (contrôle automatique des
 // champs obligatoires et de la conformité budgétaire). La conformité
 // budgétaire vérifiée ici est structurelle (la devise demandée est bien
-// une devise suivie par la caisse ciblée) — la suffisance réelle du solde
+// une devise suivie par la caisse ciblée) - la suffisance réelle du solde
 // est une question de décaissement (BACK-G14), pas de recevabilité de la
 // demande : plusieurs réquisitions concurrentes peuvent légitimement viser
 // la même caisse avant qu'aucune ne soit décaissée.
@@ -78,7 +78,7 @@ export const createRequisition = async (req, res, next) => {
   }
 };
 
-// info.md §6, étape "Archivage" — recherche par filtres pour audit. Aucune
+// info.md §6, étape "Archivage" - recherche par filtres pour audit. Aucune
 // réquisition n'est jamais supprimée, la liste complète reste toujours
 // consultable.
 export const getAllRequisitions = async (req, res, next) => {
@@ -92,7 +92,7 @@ export const getAllRequisitions = async (req, res, next) => {
       if (from) where.createdAt[Op.gte] = new Date(from);
       if (to) where.createdAt[Op.lte] = new Date(to);
     }
-    // BACK-G21 — désencombre les listes actives par défaut sans jamais
+    // BACK-G21 - désencombre les listes actives par défaut sans jamais
     // supprimer la traçabilité (info.md §6).
     if (includeArchived !== "true") where.archivedAt = null;
 
@@ -149,7 +149,7 @@ const decideRequisition = async (req, res, next, { statut, requireMotif, generat
       include: REQUISITION_INCLUDES,
     });
 
-    // BACK-G17 — événement métier, jamais un envoi de notification en
+    // BACK-G17 - événement métier, jamais un envoi de notification en
     // dur ici : le listener (shared/eventListeners.js) décide de la
     // conséquence, ce contrôleur ne fait qu'annoncer le fait.
     if (statut === "APPROUVEE") {
@@ -165,7 +165,7 @@ const decideRequisition = async (req, res, next, { statut, requireMotif, generat
   }
 };
 
-// info.md §6, étape "Approbation" — la trésorière valide, rejette (motif),
+// info.md §6, étape "Approbation" - la trésorière valide, rejette (motif),
 // ou demande un complément.
 export const approveRequisition = (req, res, next) =>
   decideRequisition(req, res, next, {
@@ -184,7 +184,7 @@ export const requestRequisitionComplement = (req, res, next) =>
     generateCode: false,
   });
 
-// info.md §6, étape "Génération" — PDF rendu à la demande à partir des
+// info.md §6, étape "Génération" - PDF rendu à la demande à partir des
 // données figées à l'approbation (jamais stocké sur disque, voir
 // utils/requisitionPdf.js).
 export const getRequisitionPdf = async (req, res, next) => {
@@ -219,10 +219,10 @@ export const getRequisitionPdf = async (req, res, next) => {
   }
 };
 
-// BACK-G21 — archivage métier (une réquisition approuvée/rejetée ancienne
+// BACK-G21 - archivage métier (une réquisition approuvée/rejetée ancienne
 // se désencombre des listes actives sans jamais être supprimée, voir le
 // commentaire du modèle). Aucun endpoint de suppression n'existe pour les
-// réquisitions (traçabilité indéfinie, info.md §6) — seul l'archivage
+// réquisitions (traçabilité indéfinie, info.md §6) - seul l'archivage
 // s'applique ici, pas de soft delete.
 export const { archiveResource: archiveRequisition, unarchiveResource: unarchiveRequisition } =
   createArchiveHandlers(Requisition, "idRequisition", "Réquisition non trouvée");

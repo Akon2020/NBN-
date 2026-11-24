@@ -59,7 +59,7 @@ bailleurRelanceRouter.get("/", authMiddlware, requirePermission("bailleurs:read"
  *     tags: [Bailleurs]
  *     responses:
  *       200:
- *         description: "{ remaining } — la relance est terminée quand il n'en reste plus"
+ *         description: "{ remaining } - la relance est terminée quand il n'en reste plus"
  *       409:
  *         description: Message pas en attente d'envoi
  */

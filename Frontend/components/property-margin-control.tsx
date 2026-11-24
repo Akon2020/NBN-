@@ -23,11 +23,11 @@ interface PropertyMarginControlProps {
   onChanged: (updated: Property) => void
 }
 
-// GOAL 9 — la marge est désormais toujours dérivée (price * pourcentage
+// GOAL 9 - la marge est désormais toujours dérivée (price * pourcentage
 // effectif) : ce contrôle ne modifie jamais `margin` directement, il agit
 // uniquement sur `marginOverridePercentage` via le point d'entrée dédié
 // (PATCH /:id/margin-override), même patron que PropertyStatutControl.
-// N'est rendu que si `property.margin` est présent — le Backend a déjà
+// N'est rendu que si `property.margin` est présent - le Backend a déjà
 // décidé, via property:margin:read, si cet utilisateur peut voir la marge.
 export function PropertyMarginControl({ property, onChanged }: PropertyMarginControlProps) {
   const [open, setOpen] = useState(false)

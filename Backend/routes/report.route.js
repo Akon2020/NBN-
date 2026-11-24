@@ -134,7 +134,7 @@ reportRouter.get(
  *       - in: query
  *         name: from
  *         schema: { type: string, format: date }
- *         description: Défaut — 30 jours avant `to`
+ *         description: Défaut - 30 jours avant `to`
  *       - in: query
  *         name: to
  *         schema: { type: string, format: date }

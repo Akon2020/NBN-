@@ -13,7 +13,7 @@ const REFRESH_TOKEN_BYTES = 64;
 
 // 24 h par défaut, décision du porteur de projet : une journée de terrain
 // ne doit pas être coupée par une reconnexion. La révocation reste
-// immédiate malgré cette durée — chaque requête compare `securityVersion`
+// immédiate malgré cette durée - chaque requête compare `securityVersion`
 // (suspension, changement de mot de passe, déconnexion globale).
 export const generateAccessToken = (user) => {
   return jwt.sign(
@@ -23,7 +23,7 @@ export const generateAccessToken = (user) => {
   );
 };
 
-// Durée de vie restante d'un access token, en millisecondes — le cookie
+// Durée de vie restante d'un access token, en millisecondes - le cookie
 // qui le porte expire en même temps que lui au lieu d'être un cookie de
 // session que certains navigateurs mobiles effacent à la fermeture.
 export const accessTokenMaxAge = (accessToken) => {
@@ -37,7 +37,7 @@ const generateOpaqueToken = () =>
 export const hashToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
-// CLAUDE.md §5 — pas d'empreinte intrusive, juste un libellé lisible dérivé
+// CLAUDE.md §5 - pas d'empreinte intrusive, juste un libellé lisible dérivé
 // du User-Agent.
 export const deriveDeviceLabel = (userAgent) => {
   if (!userAgent) return "Appareil inconnu";
@@ -74,7 +74,7 @@ export const createSession = async ({ idUser, platform, userAgent }) => {
 /**
  * Rotation (CLAUDE.md §5) : l'ancienne session est révoquée et pointe vers
  * la nouvelle (`replacedBySessionId`), qui reste dans la même famille de
- * tokens (`tokenFamilyId`) — nécessaire pour la détection de réutilisation.
+ * tokens (`tokenFamilyId`) - nécessaire pour la détection de réutilisation.
  */
 export const rotateSession = async (previousSession, { userAgent } = {}) => {
   const refreshToken = generateOpaqueToken();

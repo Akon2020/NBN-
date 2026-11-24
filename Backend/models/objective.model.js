@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// BACK-G22 — objectif individuel assigné à un EmployeeProfile. V1
+// BACK-G22 - objectif individuel assigné à un EmployeeProfile. V1
 // minimale : un statut simple, pas de sous-objectifs ni de pondération.
 const Objective = db.define(
   "objectives",

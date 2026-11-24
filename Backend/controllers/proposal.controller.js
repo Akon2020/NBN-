@@ -7,7 +7,7 @@ const CHANNEL_LABELS = { WHATSAPP: "WhatsApp", EMAIL: "e-mail", AUTRE: "autre ca
 const MAX_PROPERTIES_PER_BATCH = 20;
 
 // Ce qu'un historique de propositions montre d'un bien : ce que le client a
-// reçu, jamais le bailleur, le prix plancher, la marge ni l'informateur —
+// reçu, jamais le bailleur, le prix plancher, la marge ni l'informateur -
 // données confidentielles réservées aux onglets Bailleurs et Galerie.
 const PROPOSED_PROPERTY_ATTRIBUTES = [
   "idProperty",
@@ -76,7 +76,7 @@ export const getProposalsByClient = async (req, res, next) => {
   }
 };
 
-// BACK-G07 — trace l'envoi d'une proposition unitaire à un Client réel.
+// BACK-G07 - trace l'envoi d'une proposition unitaire à un Client réel.
 export const createProposal = async (req, res, next) => {
   try {
     const { idProperty, idClient, message, channel } = req.body;
@@ -121,7 +121,7 @@ export const createProposal = async (req, res, next) => {
 
 /**
  * Envoi d'une sélection du panier à un client : une Proposal par bien, dans
- * une seule transaction. Un client encore « Nouveau » passe à « Proposé » —
+ * une seule transaction. Un client encore « Nouveau » passe à « Proposé » -
  * c'est littéralement ce qui vient de se produire. Un dossier plus avancé
  * (visite, négociation…) ne recule jamais.
  */

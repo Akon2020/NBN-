@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G20 — catalogue RBAC pour la génération de rapports (à la demande,
+// BACK-G20 - catalogue RBAC pour la génération de rapports (à la demande,
 // V1). Une seule permission de lecture : générer un rapport n'écrit
 // jamais de donnée, seul le contenu diffère selon le field-level
 // authorization déjà en place (property:margin:read).

@@ -229,7 +229,7 @@ describe("BACK-G14 - Payment → CashMovement → LedgerEntry (append-only)", ()
     expect(Number(balanceAfterCancel.balance)).toBe(0);
 
     // Une nouvelle écriture a été ajoutée (contre-écriture), l'ancienne
-    // n'a jamais été touchée — append-only, pas de modification.
+    // n'a jamais été touchée - append-only, pas de modification.
     const ledgerCountAfter = await LedgerEntry.count({
       where: { idCaisse: caisseId, currencyCode: "CDF" },
     });

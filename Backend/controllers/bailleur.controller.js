@@ -103,7 +103,7 @@ export const uploadBailleurPhoto = async (req, res, next) => {
 
 export const getAllBailleurs = async (req, res, next) => {
   try {
-    // GOAL 6 — recherche directe par numéro de dossier.
+    // GOAL 6 - recherche directe par numéro de dossier.
     const where = req.query.dossierNumber
       ? { dossierNumber: { [Op.like]: `%${req.query.dossierNumber}%` } }
       : {};
@@ -286,7 +286,7 @@ export const createBailleur = async (req, res, next) => {
       { transaction }
     );
 
-    // GOAL 6 — même principe que Client (voir client.controller.js).
+    // GOAL 6 - même principe que Client (voir client.controller.js).
     await bailleur.update(
       {
         dossierNumber: `BAI-${new Date().getFullYear()}-${String(bailleur.idBailleur).padStart(6, "0")}`,
@@ -312,7 +312,7 @@ export const createBailleur = async (req, res, next) => {
       title: "Bailleur créé",
       description: [person.fullName, idProperties.length ? `${idProperties.length} bien(s) rattaché(s)` : null]
         .filter(Boolean)
-        .join(" — "),
+        .join(" - "),
       actorUserId: req.user.idUser,
     });
 

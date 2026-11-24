@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — écriture append-only : aucune LedgerEntry validée n'est
+// CLAUDE.md §4 - écriture append-only : aucune LedgerEntry validée n'est
 // jamais modifiée ni supprimée après création (pas de route PATCH/DELETE
 // exposée dans ledgerEntry.controller.js, volontairement). Une correction
 // se fait uniquement par une nouvelle écriture d'ajustement/annulation

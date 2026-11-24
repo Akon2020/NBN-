@@ -1,6 +1,6 @@
 "use strict";
 
-// GOAL 9 — écrire/overrider une marge est distinct de la lire
+// GOAL 9 - écrire/overrider une marge est distinct de la lire
 // (`property:margin:read`, déjà en place) : même granularité read/manage
 // que le reste du catalogue RBAC (ex. hr:read/hr:manage).
 const NEW_PERMISSIONS = [

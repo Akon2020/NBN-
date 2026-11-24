@@ -19,7 +19,7 @@ api.defaults.adapter = async (config) => {
   return response;
 };
 
-describe("api — renouvellement silencieux de la session", () => {
+describe("api - renouvellement silencieux de la session", () => {
   beforeEach(() => {
     calls.length = 0;
   });

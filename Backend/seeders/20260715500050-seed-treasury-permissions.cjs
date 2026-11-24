@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G12 — catalogue RBAC étendu pour la trésorerie (caisses, devises,
+// BACK-G12 - catalogue RBAC étendu pour la trésorerie (caisses, devises,
 // taux de change). Le pilotage financier détaillé (réquisitions,
 // paiements, commissions) aura ses propres permissions aux goals suivants
 // du Milestone 4, pas regroupées ici pour rester granulaire.

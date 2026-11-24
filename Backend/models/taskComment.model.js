@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// GOAL 15 — fil de discussion append-only par tâche : jamais d'édition de
+// GOAL 15 - fil de discussion append-only par tâche : jamais d'édition de
 // contenu après publication, seule la suppression (auteur ou tasks:manage)
 // est permise côté contrôleur.
 const TaskComment = db.define(

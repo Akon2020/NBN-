@@ -2,7 +2,7 @@ import api from "@/lib/axios";
 import axios from "axios";
 
 // `responseType: "blob"` fait que même une réponse d'erreur JSON (403/500)
-// arrive sous forme de Blob, jamais d'objet déjà parsé — il faut le relire
+// arrive sous forme de Blob, jamais d'objet déjà parsé - il faut le relire
 // explicitement en texte avant d'en extraire `message`.
 const handleError = async (error: unknown, fallback: string): Promise<never> => {
   if (axios.isAxiosError(error)) {
@@ -13,7 +13,7 @@ const handleError = async (error: unknown, fallback: string): Promise<never> => 
         const parsed = JSON.parse(await data.text());
         message = parsed.message || fallback;
       } catch {
-        // Corps non-JSON (ex. timeout réseau brut) — on garde le fallback.
+        // Corps non-JSON (ex. timeout réseau brut) - on garde le fallback.
       }
       throw new Error(message);
     }
@@ -22,7 +22,7 @@ const handleError = async (error: unknown, fallback: string): Promise<never> => 
   throw new Error("Erreur inconnue");
 };
 
-// BACK-G20 — génération à la demande, jamais stockée : chaque appel
+// BACK-G20 - génération à la demande, jamais stockée : chaque appel
 // déclenche un téléchargement direct côté navigateur, rien n'est mis en
 // cache côté Frontend.
 const triggerDownload = (blob: Blob, filename: string) => {
@@ -70,7 +70,7 @@ export const downloadRentalRequestsExport = async (
   }
 };
 
-// GOAL 10 — export tabulaire du ledger, en complément du PDF déjà existant.
+// GOAL 10 - export tabulaire du ledger, en complément du PDF déjà existant.
 export const downloadCaisseLedgerExport = async (
   caisseId: number,
   format: "csv" | "xlsx",

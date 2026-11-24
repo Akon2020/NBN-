@@ -3,7 +3,7 @@ import { EMAIL_MX_CHECK_TIMEOUT_MS } from "../config/env.js";
 
 // Vérifications des coordonnées saisies dans les formulaires publics.
 // Objectif métier : le bouton « Contacter » de la fiche client et
-// l'accusé de réception doivent pouvoir joindre la personne — une adresse
+// l'accusé de réception doivent pouvoir joindre la personne - une adresse
 // ou un numéro faux se découvre sinon au moment de rappeler le client.
 
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -14,7 +14,7 @@ const UNDELIVERABLE_DNS_CODES = ["ENOTFOUND", "ENODATA", "NXDOMAIN"];
 
 /**
  * Crée un vérificateur d'adresse. `resolveMx` est injectable pour les tests.
- * Retourne `{ ok, email, reason }` — `email` normalisé (trim + minuscules).
+ * Retourne `{ ok, email, reason }` - `email` normalisé (trim + minuscules).
  *
  * Un DNS lent ou en panne n'invalide jamais une adresse (on accepte) :
  * refuser un vrai client parce que le résolveur du serveur a hoqueté

@@ -6,7 +6,7 @@
  * Si le compte existe déjà, il est promu `admin`, réactivé si nécessaire, et
  * son mot de passe est réinitialisé avec la valeur fournie. Dans ce cas les
  * sessions ouvertes sont révoquées et `securityVersion` est incrémenté, comme
- * pour tout changement de mot de passe (CLAUDE.md §5) — sans quoi un jeton
+ * pour tout changement de mot de passe (CLAUDE.md §5) - sans quoi un jeton
  * volé resterait valable après la reprise en main du compte.
  *
  * Le script s'appuie sur les migrations pour le schéma : il ne synchronise

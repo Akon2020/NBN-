@@ -19,7 +19,7 @@ const MISSION_TYPES = ["COLLECTE_BIEN", "APPORT_CLIENT", "SUIVI"];
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // 1. Nouveaux types de bien — sur `properties` ET `marginSettings`,
+    // 1. Nouveaux types de bien - sur `properties` ET `marginSettings`,
     // les deux ENUM doivent rester alignés (un type sans ligne de marge
     // n'aurait aucun pourcentage effectif à appliquer).
     await queryInterface.changeColumn("properties", "propertyType", {
@@ -32,7 +32,7 @@ module.exports = {
     });
 
     // Mêmes valeurs par défaut que les types existants (10 % longue durée,
-    // 20 % courte durée) — reconfigurables ensuite via /api/margin-settings.
+    // 20 % courte durée) - reconfigurables ensuite via /api/margin-settings.
     const now = new Date();
     const rows = [];
     NEW_PROPERTY_TYPES.forEach((propertyType) => {
@@ -89,7 +89,7 @@ module.exports = {
       allowNull: true,
     });
 
-    // 3. Conditions du propriétaire relevées à la collecte — portées par
+    // 3. Conditions du propriétaire relevées à la collecte - portées par
     // le Bailleur (c'est sa position, pas celle du bien : elle vaut pour
     // tous ses biens).
     await queryInterface.addColumn("bailleurs", "disponibiliteVisite", {

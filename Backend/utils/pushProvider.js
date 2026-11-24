@@ -1,13 +1,13 @@
-// CLAUDE.md §7 — abstraction PushProvider, implémentation initiale Expo
+// CLAUDE.md §7 - abstraction PushProvider, implémentation initiale Expo
 // Push. Un seul appel `fetch` vers l'API Expo (pas de SDK serveur dédié :
 // `expo-server-sdk` ajouterait une dépendance pour ~15 lignes de logique,
 // contraire à la contrainte "application légère" tant que le volume
 // d'envoi reste modeste). Remplaçable par un autre provider (FCM natif,
-// etc.) sans toucher au reste du code — seul `sendPushNotification` est
+// etc.) sans toucher au reste du code - seul `sendPushNotification` est
 // consommé à l'extérieur de ce fichier.
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
-// MOBILE-G05 câble l'enregistrement du token — tant qu'un utilisateur n'a
+// MOBILE-G05 câble l'enregistrement du token - tant qu'un utilisateur n'a
 // jamais ouvert l'app mobile (ou a refusé les notifications),
 // `expoPushToken` est null et l'envoi est délibérément sauté (jamais une
 // erreur : l'absence de token n'est pas un échec, c'est un état normal).

@@ -9,7 +9,7 @@ const PROPERTY_TYPES = [
   "TERRAIN_PENTE",
 ];
 
-// GOAL 12 — courte durée (unit=DAY sur RentalProperty) justifie
+// GOAL 12 - courte durée (unit=DAY sur RentalProperty) justifie
 // généralement un pourcentage de marge distinct de la longue durée
 // (rotation plus fréquente, coûts de nettoyage/gestion plus élevés) :
 // `MarginSetting` gagne une seconde dimension `stayType`, configurable

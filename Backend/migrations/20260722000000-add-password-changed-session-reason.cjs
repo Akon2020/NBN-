@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // GOAL 16 — un changement de mot de passe (self-service) révoque
+    // GOAL 16 - un changement de mot de passe (self-service) révoque
     // désormais toutes les sessions actives (CLAUDE.md §5, même double
     // mécanisme que la suspension) : mérite sa propre raison d'audit,
     // distincte de "logout_all" (déconnexion volontaire multi-appareils)

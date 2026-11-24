@@ -105,7 +105,7 @@ export const rentalRequestAcknowledgement = ({ fullName, sexe, orderNumber, requ
 
 // Notification d'équipe : nouvelle demande de location reçue.
 export const rentalRequestTeamEmail = ({ fullName, phone, email, localisation, budget, orderNumber, link }) => ({
-  subject: `Nouvelle demande de location — ${fullName}`,
+  subject: `Nouvelle demande de location - ${fullName}`,
   html: layout(`
     <p>Une nouvelle demande de location vient d'être soumise sur le site.</p>
     ${detailRows([

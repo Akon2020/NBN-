@@ -2,14 +2,14 @@ import { Notification, Alert, OutboxEvent, User } from "../models/index.model.js
 import { sendPushNotification } from "../utils/pushProvider.js";
 import { eventBus } from "../shared/eventBus.js";
 
-// CLAUDE.md §7 — un événement métier peut produire, indépendamment : une
+// CLAUDE.md §7 - un événement métier peut produire, indépendamment : une
 // Notification (information), une Alert (suivi), un Reminder (échéance
 // future), un RealtimeEvent (BACK-G18). Ce service ne fait que la partie
 // Notification/Alert ; les Reminder sont créés directement là où la règle
 // d'échéance est connue (pas de logique générique ici).
 
 // Toute Notification créée met en file une tentative de push via
-// OutboxEvent — jamais un envoi synchrone bloquant la requête HTTP
+// OutboxEvent - jamais un envoi synchrone bloquant la requête HTTP
 // d'origine, et jamais perdu si l'envoi échoue (le worker retente).
 export const createNotification = async ({
   idUser,
@@ -33,7 +33,7 @@ export const createNotification = async ({
     payload: JSON.stringify({ idNotification: notification.idNotification }),
   });
 
-  // BACK-G18 — canal temps réel, additif : un client déconnecté de
+  // BACK-G18 - canal temps réel, additif : un client déconnecté de
   // Socket.IO ne perd rien (la Notification et sa tentative de push
   // existent déjà indépendamment de cette émission, `emitToUser` est un
   // no-op silencieux si Socket.IO n'est pas initialisé).
@@ -79,7 +79,7 @@ export const createAlert = async ({
   return alert;
 };
 
-// CLAUDE.md §4 — "Une Alert peut à son tour générer des Notification à
+// CLAUDE.md §4 - "Une Alert peut à son tour générer des Notification à
 // chaque changement d'état." Notifie le responsable actuel (assignedTo si
 // renseigné, sinon le créateur) à chaque transition de statut.
 export const transitionAlert = async (alert, { statut, resolvedBy }) => {
@@ -114,7 +114,7 @@ export const markNotificationRead = async (notification) => {
   return notification;
 };
 
-// Consommé par le worker outbox (services/outbox.worker.js) — isolé ici
+// Consommé par le worker outbox (services/outbox.worker.js) - isolé ici
 // pour rester testable indépendamment du scheduler cron.
 export const deliverNotificationPush = async (idNotification) => {
   const notification = await Notification.findByPk(idNotification, {

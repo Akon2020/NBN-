@@ -223,7 +223,7 @@ export const login = async (req, res, next) => {
 };
 
 /**
- * BACK-G01 — Rotation du refresh token. Détecte la réutilisation d'un
+ * BACK-G01 - Rotation du refresh token. Détecte la réutilisation d'un
  * refresh token déjà révoqué et révoque alors toute la famille de tokens
  * (CLAUDE.md §5).
  */
@@ -468,7 +468,7 @@ export const logout = async (req, res, next) => {
 };
 
 /**
- * BACK-G01 — Déconnecte toutes les sessions de l'utilisateur courant
+ * BACK-G01 - Déconnecte toutes les sessions de l'utilisateur courant
  * (tous appareils) et invalide immédiatement tout access token déjà émis
  * via l'incrément de securityVersion.
  */

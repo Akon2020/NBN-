@@ -31,7 +31,7 @@ export const setImapClientFactory = (factory) => {
 
 // --- Audience d'une boîte ---------------------------------------------------
 // Règle contextuelle (CLAUDE.md §2.3), pas une permission : la boîte
-// contact@ est visible par ses rôles, direction@ par la seule direction —
+// contact@ est visible par ses rôles, direction@ par la seule direction -
 // l'admin n'y a pas accès par défaut, à la demande de l'agence. `mailbox`
 // porte l'audience effective (Paramètres, sinon serveur) : voir
 // mailboxAudience.service.js.

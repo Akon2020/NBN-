@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Tokens de marque NBN Express (CLAUDE.md §10) — valeurs mesurées, pas une
+ * Tokens de marque NBN Express (CLAUDE.md §10) - valeurs mesurées, pas une
  * estimation. Coexistent avec les alias sémantiques shadcn ci-dessous
  * (--primary, --secondary, --accent) qui pilotent déjà tout le dashboard
  * existant ; ces tokens nommés (bg-primary-900, text-accent-600, ...) sont

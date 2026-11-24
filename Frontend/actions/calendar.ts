@@ -35,7 +35,7 @@ export const createCalendarEvent = async (payload: {
   }
 };
 
-// GOAL 11 — modification d'un rendez-vous existant, notamment sa liste de
+// GOAL 11 - modification d'un rendez-vous existant, notamment sa liste de
 // participants (chaque ajout notifie la personne concernée côté Backend).
 export const updateCalendarEvent = async (
   id: number,

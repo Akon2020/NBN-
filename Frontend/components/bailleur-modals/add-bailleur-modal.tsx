@@ -48,7 +48,7 @@ const EMPTY = {
 }
 
 // « Ajouter un Bailleur » en deux étapes : identité (pièce d'identité
-// obligatoire), puis ses biens — déjà dans la galerie, ou à collecter.
+// obligatoire), puis ses biens - déjà dans la galerie, ou à collecter.
 export function AddBailleurModal({ open, onOpenChange, onAdd }: AddBailleurModalProps) {
   const router = useRouter()
   const [step, setStep] = useState<"identite" | "biens">("identite")
@@ -131,7 +131,7 @@ export function AddBailleurModal({ open, onOpenChange, onAdd }: AddBailleurModal
         <DialogHeader>
           <DialogTitle>Ajouter un bailleur</DialogTitle>
           <DialogDescription>
-            {step === "identite" ? "Étape 1 sur 2 — Identité du bailleur" : "Étape 2 sur 2 — Ses biens"}
+            {step === "identite" ? "Étape 1 sur 2 - Identité du bailleur" : "Étape 2 sur 2 - Ses biens"}
           </DialogDescription>
         </DialogHeader>
 

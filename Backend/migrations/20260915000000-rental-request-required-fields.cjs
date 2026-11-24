@@ -17,7 +17,7 @@ const ALL_MODALITES = ["AVANCE_1_GARANTIE_3", ...EXISTING_MODALITES];
 module.exports = {
   async up(queryInterface, Sequelize) {
     // L'adresse du client sert à l'accusé de réception et au bouton
-    // « Contacter » de la fiche — elle devient obligatoire dans le
+    // « Contacter » de la fiche - elle devient obligatoire dans le
     // formulaire, mais reste nullable ici pour les demandes déjà reçues.
     await queryInterface.addColumn("rentalRequests", "email", {
       type: Sequelize.STRING(150),

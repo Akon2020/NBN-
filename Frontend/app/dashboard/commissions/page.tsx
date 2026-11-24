@@ -84,7 +84,7 @@ export default function CommissionsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-balance">Commissions</h1>
           <p className="text-muted-foreground mt-2">
-            Agence, agent ou commissionnaire — calculées sur une transaction conclue
+            Agence, agent ou commissionnaire - calculées sur une transaction conclue
           </p>
         </div>
         <Button
@@ -113,7 +113,7 @@ export default function CommissionsPage() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold">
-                      {COMMISSION_BENEFICIAIRE_LABELS[commission.beneficiaireType]} —{" "}
+                      {COMMISSION_BENEFICIAIRE_LABELS[commission.beneficiaireType]} -{" "}
                       {beneficiaireLabel(commission)}
                     </span>
                     <Badge className={STATUT_BADGE_CLASS[commission.statut]}>

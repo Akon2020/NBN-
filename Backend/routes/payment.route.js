@@ -61,7 +61,7 @@ paymentRouter.get("/", authMiddlware, requirePermission("payments:read"), getAll
  * @swagger
  * /api/payments:
  *   post:
- *     summary: Enregistre un paiement (encaissement/décaissement) — génère CashMovement + LedgerEntry
+ *     summary: Enregistre un paiement (encaissement/décaissement) - génère CashMovement + LedgerEntry
  *     tags: [Treasury]
  *     requestBody:
  *       required: true

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CDC §7 — système d'incidents (retard > 30 min, données incomplètes,
+// CDC §7 - système d'incidents (retard > 30 min, données incomplètes,
 // non-respect des règles) impactant le score discipline et potentiellement
 // le statut du commissionnaire (voir utils/commissionnaireScoring.js).
 const CommissionnaireIncident = db.define(

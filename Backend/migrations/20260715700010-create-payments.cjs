@@ -47,7 +47,7 @@ module.exports = {
       description: { type: Sequelize.STRING(255), allowNull: true },
       // Auto-référence volontairement sans contrainte FK MySQL (évite la
       // complexité d'un ALTER TABLE différé sur une table qui se crée
-      // elle-même) — intégrité maintenue au niveau applicatif
+      // elle-même) - intégrité maintenue au niveau applicatif
       // (payment.controller.js `cancelPayment`).
       reversalOfPaymentId: { type: Sequelize.BIGINT, allowNull: true },
       recordedBy: {

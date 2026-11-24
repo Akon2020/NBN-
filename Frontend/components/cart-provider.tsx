@@ -4,15 +4,15 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Property, ProposalTarget } from "@/lib/types"
 import { getAppSettings } from "@/actions/appSettings"
 
-// GOAL 5 — panier immobilier transversal (biens à louer, à vendre,
+// GOAL 5 - panier immobilier transversal (biens à louer, à vendre,
 // favoris, recherche...). Persistant en localStorage : c'est une sélection
 // de travail éphémère pour préparer un partage WhatsApp. Ce qui est tracé
 // côté Backend, c'est l'envoi à un client (Proposal), pas le panier.
 const STORAGE_KEY = "nbn-property-cart"
 // Client pour lequel la sélection est préparée (« Proposer des biens »
-// depuis sa fiche) — conservé si l'agent navigue entre les listes.
+// depuis sa fiche) - conservé si l'agent navigue entre les listes.
 const TARGET_STORAGE_KEY = "nbn-proposal-target"
-// GOAL 13 — valeur de repli si /api/settings est inaccessible (rôle sans
+// GOAL 13 - valeur de repli si /api/settings est inaccessible (rôle sans
 // settings:read, ou hors-ligne) ; la vraie limite vient de
 // cart.maxItems, configurable depuis Paramètres.
 const DEFAULT_MAX_ITEMS = 10

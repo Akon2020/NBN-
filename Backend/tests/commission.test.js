@@ -175,7 +175,7 @@ describe("BACK-G15 - Commissions (calcul, éligibilité, paiement)", () => {
     expect(res.status).toBe(400);
   });
 
-  it("marque une commission due puis la paie — le circuit Payment→CashMovement→LedgerEntry se déclenche", async () => {
+  it("marque une commission due puis la paie - le circuit Payment→CashMovement→LedgerEntry se déclenche", async () => {
     const login = await loginAs(tresorerieEmail);
 
     const create = await request(app)

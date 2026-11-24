@@ -76,7 +76,7 @@ export const requestRequisitionComplement = async (
   }
 };
 
-// Le token vit dans un cookie httpOnly (lib/axios.ts) — un lien direct
+// Le token vit dans un cookie httpOnly (lib/axios.ts) - un lien direct
 // vers l'API risquerait de ne pas envoyer le cookie selon la politique
 // SameSite. On passe par axios (withCredentials) et on ouvre le blob reçu.
 export const openRequisitionPdf = async (id: number): Promise<void> => {

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — Payment découplé de PaymentMethod (espèces/virement/
+// CLAUDE.md §4 - Payment découplé de PaymentMethod (espèces/virement/
 // Mobile Money). Table de référence, jamais supprimée une fois utilisée
 // (désactivation via isActive, même principe que Currency).
 const PaymentMethod = db.define(

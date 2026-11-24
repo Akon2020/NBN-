@@ -17,7 +17,7 @@ module.exports = {
         onDelete: "CASCADE",
       },
       refreshTokenHash: {
-        // sha256 du refresh token — jamais le token en clair.
+        // sha256 du refresh token - jamais le token en clair.
         type: Sequelize.STRING(64),
         allowNull: false,
       },

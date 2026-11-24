@@ -81,7 +81,7 @@ export const authMiddlware = async (req, res, next) => {
 // Formulaires ouverts qui bénéficient d'un contexte utilisateur sans
 // l'exiger (collecte de bien : préremplissage et traçabilité du
 // collecteur s'il est connecté, soumission possible sinon). Un jeton
-// absent, expiré ou invalide n'est jamais une erreur ici — la requête
+// absent, expiré ou invalide n'est jamais une erreur ici - la requête
 // continue simplement sans `req.user`.
 export const optionalAuth = async (req, res, next) => {
   let token = null;

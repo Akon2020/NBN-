@@ -238,7 +238,7 @@ export function AddSaleModal({ open, onOpenChange, onAdd }: AddSaleModalProps) {
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               required
             />
-            {/* GOAL 9 — la marge est désormais calculée automatiquement à
+            {/* GOAL 9 - la marge est désormais calculée automatiquement à
                 partir du pourcentage par défaut du type de bien (réglable
                 depuis Paramètres) ou d'un override spécifique au bien. */}
           </div>

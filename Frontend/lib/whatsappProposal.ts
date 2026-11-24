@@ -15,7 +15,7 @@ export const DEFAULT_COMPANY: CompanyInfo = {
   email: "",
 }
 
-// GOAL 13 — coordonnées de l'agence configurables depuis Paramètres
+// GOAL 13 - coordonnées de l'agence configurables depuis Paramètres
 // (company.info), plutôt qu'un nom/ville codés en dur ici.
 export const getCompanyInfo = async (): Promise<CompanyInfo> => {
   try {
@@ -56,7 +56,7 @@ export interface PropertyCaptionOptions {
   includePhotoLink?: boolean
 }
 
-// Modèle d'un message WhatsApp pour UN bien — seul endroit où sa forme est
+// Modèle d'un message WhatsApp pour UN bien - seul endroit où sa forme est
 // définie (panier, fiches, galerie). Remplaçable par le modèle de l'agence
 // sans toucher aux écrans. Émojis limités à ceux que tous les téléphones
 // affichent (les chiffres encadrés 1️⃣ s'affichaient en carrés).
@@ -132,7 +132,7 @@ export const buildWhatsAppProposalMessage = (properties: Property[], company: Co
         includePhotoLink: true,
       })
     )
-    .join("\n\n———\n\n")
+    .join("\n\n---\n\n")
 
 export const whatsAppShareUrl = (text: string, phoneNumber?: string | null) => {
   const encoded = encodeURIComponent(text)

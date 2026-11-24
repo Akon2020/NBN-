@@ -28,13 +28,13 @@ import {
 import { toast } from "sonner"
 
 const labelOf = (choices: { value: string; label: string }[], value?: string | null) =>
-  choices.find((c) => c.value === value)?.label || value || "—"
+  choices.find((c) => c.value === value)?.label || value || "-"
 
 const labelsOf = (choices: { value: string; label: string }[], values?: string[] | null) =>
-  values && values.length ? values.map((v) => labelOf(choices, v)).join(", ") : "—"
+  values && values.length ? values.map((v) => labelOf(choices, v)).join(", ") : "-"
 
 function DetailLine({ label, value }: { label: string; value?: string | number | null }) {
-  if (value === undefined || value === null || value === "" || value === "—") return null
+  if (value === undefined || value === null || value === "" || value === "-") return null
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
       <span className="w-56 shrink-0 text-sm text-muted-foreground">{label}</span>
@@ -44,7 +44,7 @@ function DetailLine({ label, value }: { label: string; value?: string | number |
 }
 
 // Les demandes reçues via le formulaire public. La trace est immuable ici
-// — le suivi commercial se fait sur la fiche client liée (pipeline), pas
+// - le suivi commercial se fait sur la fiche client liée (pipeline), pas
 // sur cet écran.
 export default function DemandesPage() {
   const [requests, setRequests] = useState<RentalRequest[]>([])
@@ -97,7 +97,7 @@ export default function DemandesPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-balance">Demandes de location</h1>
         <p className="text-muted-foreground mt-2">
-          Reçues via le formulaire public — chaque demande crée ou met à jour une fiche client sur le pipeline
+          Reçues via le formulaire public - chaque demande crée ou met à jour une fiche client sur le pipeline
         </p>
       </div>
 
@@ -208,7 +208,7 @@ export default function DemandesPage() {
                     label="Localisation"
                     value={[selected.ville === "AUTRE" ? selected.villeAutre : selected.ville, selected.commune, selected.quartier]
                       .filter(Boolean)
-                      .join(" — ")}
+                      .join(" - ")}
                   />
                   <DetailLine label="Avenues préférées" value={selected.avenues} />
                 </section>

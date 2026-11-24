@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// Assignation multi-collaborateurs (CDC — "assignation, attribution").
+// Assignation multi-collaborateurs (CDC - "assignation, attribution").
 const TaskAssignee = db.define(
   "taskAssignees",
   {

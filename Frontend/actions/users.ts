@@ -76,8 +76,8 @@ export const deleteUser = async (id: number): Promise<void> => {
   }
 };
 
-// GOAL 16 — changement en libre-service, réservé au propriétaire du compte
-// côté Backend (403 sinon) — révoque toutes ses sessions actives.
+// GOAL 16 - changement en libre-service, réservé au propriétaire du compte
+// côté Backend (403 sinon) - révoque toutes ses sessions actives.
 export const changeOwnPassword = async (
   id: number,
   oldPassword: string,
@@ -100,8 +100,8 @@ export const changeOwnPassword = async (
   }
 };
 
-// GOAL 16 — réinitialisation par un administrateur (users:manage), sans
-// connaître l'ancien mot de passe — révoque toutes les sessions de la cible.
+// GOAL 16 - réinitialisation par un administrateur (users:manage), sans
+// connaître l'ancien mot de passe - révoque toutes les sessions de la cible.
 export const resetUserPassword = async (
   id: number,
   newPassword: string
@@ -153,7 +153,7 @@ export interface UserDirectoryEntry {
   role: string;
 }
 
-// GOAL 11 — annuaire minimal ouvert à tout utilisateur authentifié
+// GOAL 11 - annuaire minimal ouvert à tout utilisateur authentifié
 // (contrairement à `getAllUsers`, réservé à `users:read`), pour les
 // sélecteurs d'assignation (participants de calendrier, etc.).
 export const getUsersDirectory = async (): Promise<UserDirectoryEntry[]> => {

@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 
-// CLAUDE.md §12 — Excel via exceljs, CSV en génération native (pas de lib
+// CLAUDE.md §12 - Excel via exceljs, CSV en génération native (pas de lib
 // dédiée pour un format aussi simple). `columns` = [{ header, key }],
 // partagé entre les deux formats pour ne jamais faire diverger leur
 // contenu.

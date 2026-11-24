@@ -80,7 +80,7 @@ commissionnaireRouter.get(
  * @swagger
  * /api/commissionnaires/{id}/clients:
  *   get:
- *     summary: Liste les clients apportés par ce commissionnaire (GOAL 4 — Client.sourceCommissionnaireCode)
+ *     summary: Liste les clients apportés par ce commissionnaire (GOAL 4 - Client.sourceCommissionnaireCode)
  *     tags: [Commissionnaires]
  *     parameters:
  *       - in: path

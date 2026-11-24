@@ -22,7 +22,7 @@ export const resolveIdentityDocument = (storedPath) => {
 
 /**
  * Enregistre une pièce d'identité reçue en mémoire (multer).
- * - Image : orientation corrigée, réduite à 2000 px, réencodée en JPEG —
+ * - Image : orientation corrigée, réduite à 2000 px, réencodée en JPEG -
  *   lisible à l'écran, légère sur réseau faible, et débarrassée des
  *   métadonnées EXIF (position GPS du téléphone comprise).
  * - PDF : conservé tel quel après contrôle de sa signature.

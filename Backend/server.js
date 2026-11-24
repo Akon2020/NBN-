@@ -17,7 +17,7 @@ const server = app.listen(PORT, async () => {
     startInboundMailCron();
     // Relances programmées des bailleurs (vérifiées chaque minute).
     startBailleurRelanceCron();
-    // BACK-G18 — attaché au même serveur HTTP que l'API REST (pas un port
+    // BACK-G18 - attaché au même serveur HTTP que l'API REST (pas un port
     // séparé). Si l'hébergement cible ne supporte pas les WebSocket
     // persistants (cPanel, CLAUDE.md §12 point ouvert), cette ligne est le
     // seul endroit à retirer : tout le reste du système fonctionne déjà

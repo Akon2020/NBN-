@@ -39,7 +39,7 @@ currencyRouter.post("/", authMiddlware, requirePermission("treasury:manage"), cr
  * @swagger
  * /api/currencies/{code}:
  *   patch:
- *     summary: Met à jour une devise (label, symbole, activation) — jamais de suppression
+ *     summary: Met à jour une devise (label, symbole, activation) - jamais de suppression
  *     tags: [Treasury]
  *     parameters:
  *       - in: path

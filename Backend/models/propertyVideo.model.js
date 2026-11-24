@@ -1,9 +1,9 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// GOAL 2 — table dédiée (jamais une colonne "type" polymorphe sur
+// GOAL 2 - table dédiée (jamais une colonne "type" polymorphe sur
 // PropertyImage) : une vidéo a des contraintes propres (MIME, taille,
-// pas de compression serveur — cf. upload.middleware.js), mélanger les
+// pas de compression serveur - cf. upload.middleware.js), mélanger les
 // deux dans une table générique "media" aurait forcé des colonnes
 // nullables incohérentes selon le type.
 const PropertyVideo = db.define("propertyVideos", {

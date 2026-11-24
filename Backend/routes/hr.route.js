@@ -113,7 +113,7 @@ hrRouter.get(
  * @swagger
  * /api/hr/employee-profiles/{id}/evaluations:
  *   post:
- *     summary: Crée une évaluation de performance (V1 minimale — note libre + commentaire)
+ *     summary: Crée une évaluation de performance (V1 minimale - note libre + commentaire)
  *     tags: [HR]
  *     responses:
  *       201:

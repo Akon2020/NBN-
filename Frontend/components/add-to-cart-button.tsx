@@ -12,7 +12,7 @@ interface AddToCartButtonProps {
   className?: string
 }
 
-// GOAL 5 — bouton réutilisé sur chaque carte de bien (location, vente,
+// GOAL 5 - bouton réutilisé sur chaque carte de bien (location, vente,
 // recherche, favoris, galerie) pour construire le panier WhatsApp.
 export function AddToCartButton({ property, className }: AddToCartButtonProps) {
   const { isInCart, toggleItem, maxItems, items } = useCart()

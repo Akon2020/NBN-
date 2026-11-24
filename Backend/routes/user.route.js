@@ -227,7 +227,7 @@ userRouter.patch("/update/:id/password", authMiddlware, updateUserPassword);
  * @swagger
  * /api/users/update/{id}/reset-password:
  *   patch:
- *     summary: Réinitialise le mot de passe d'un utilisateur (admin, sans ancien mot de passe) — révoque toutes ses sessions
+ *     summary: Réinitialise le mot de passe d'un utilisateur (admin, sans ancien mot de passe) - révoque toutes ses sessions
  *     tags: [Users]
  *     parameters:
  *       - in: path

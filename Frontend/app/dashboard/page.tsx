@@ -248,7 +248,7 @@ export default function DashboardPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{entry.label}</p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {entry.detail ? `${entry.detail} — ` : ""}
+                            {entry.detail ? `${entry.detail} - ` : ""}
                             {timeAgo(entry.date)}
                           </p>
                         </div>

@@ -1,6 +1,6 @@
 "use strict";
 
-// CLAUDE.md §4 — Payment découplé de PaymentMethod (espèces/virement/
+// CLAUDE.md §4 - Payment découplé de PaymentMethod (espèces/virement/
 // Mobile Money, catalogue V1 explicite du cahier des charges).
 const METHODS = [
   { code: "CASH", label: "Espèces" },

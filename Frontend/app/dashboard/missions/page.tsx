@@ -116,7 +116,7 @@ export default function MissionsPage() {
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
                     {mission.commissionnaire?.person?.fullName || `Commissionnaire #${mission.idCommissionnaire}`}
-                    {" — "}
+                    {" - "}
                     {new Date(mission.createdAt).toLocaleDateString("fr-FR")}
                   </p>
                   {mission.notes && <p className="text-sm text-muted-foreground mt-1">{mission.notes}</p>}

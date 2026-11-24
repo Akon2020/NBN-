@@ -1,7 +1,7 @@
 import { BAILLEUR_PRIORITES, type Bailleur } from "@/lib/types"
 
 // Même ordre que le Backend (VIP, PREMIUM, STANDARD, INACTIF, puis
-// alphabétique) — réappliqué après un ajout ou une modification locale, sans
+// alphabétique) - réappliqué après un ajout ou une modification locale, sans
 // recharger la liste.
 export const sortBailleurs = (bailleurs: Bailleur[]): Bailleur[] =>
   [...bailleurs].sort((a, b) => {

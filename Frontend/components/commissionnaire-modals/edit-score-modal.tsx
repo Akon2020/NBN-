@@ -84,7 +84,7 @@ export function EditScoreModal({ open, onOpenChange, commissionnaire, onUpdated 
         <DialogHeader>
           <DialogTitle>Évaluer le score</DialogTitle>
           <DialogDescription>
-            4 dimensions sur 25 points chacune (CDC §7) — la grille d'évolution (niveau, statut) est
+            4 dimensions sur 25 points chacune (CDC §7) - la grille d'évolution (niveau, statut) est
             réappliquée automatiquement.
           </DialogDescription>
         </DialogHeader>

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4/§7 — message adressé à un utilisateur, historisable
+// CLAUDE.md §4/§7 - message adressé à un utilisateur, historisable
 // (in-app toujours créé ; push tenté séparément via OutboxEvent, jamais
 // perdu même si l'envoi échoue). `relatedEntityType`/`relatedEntityId`
 // sont une référence souple pour la navigation côté client (deep-link),

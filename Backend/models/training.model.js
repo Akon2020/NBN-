@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// BACK-G22 — catalogue de formations (référentiel partagé), le suivi par
+// BACK-G22 - catalogue de formations (référentiel partagé), le suivi par
 // employé vit sur la table de liaison EmployeeTraining.
 const Training = db.define(
   "trainings",

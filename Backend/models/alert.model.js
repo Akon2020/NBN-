@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — cycle de vie propre : ouverte → reconnue → assignée →
+// CLAUDE.md §4 - cycle de vie propre : ouverte → reconnue → assignée →
 // en cours → résolue → clôturée. Liste des types encore ouverte
 // (CLAUDE.md §16 point 2) : "commissionnaire:score_bas" et
 // "requisition:en_attente" sont les deux premiers types réels câblés ;
@@ -41,7 +41,7 @@ const Alert = db.define(
       type: DataTypes.BIGINT,
       allowNull: true,
     },
-    // Référence souple, même principe que Notification ci-dessus — pas
+    // Référence souple, même principe que Notification ci-dessus - pas
     // une association contrainte.
     relatedEntityType: {
       type: DataTypes.STRING(50),

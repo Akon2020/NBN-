@@ -34,7 +34,7 @@ import {
 } from "@/lib/types"
 import { toast } from "sonner"
 
-// GOAL 19 — palette dérivée des tokens de marque NBN (CLAUDE.md §10),
+// GOAL 19 - palette dérivée des tokens de marque NBN (CLAUDE.md §10),
 // recharts a besoin de couleurs littérales (pas de classes Tailwind dans
 // le SVG), donc dupliquées ici plutôt que réutilisées via une classe.
 const PALETTE = ["#14294a", "#c13f0b", "#245640", "#2f7350", "#f59e0b", "#5b6472"]

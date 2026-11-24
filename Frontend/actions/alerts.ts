@@ -26,8 +26,8 @@ export interface AlertInput {
   assignedTo?: number;
 }
 
-// GOAL 20 — POST /api/alerts (alerts:manage) existait déjà côté Backend
-// sans jamais être appelé par le Frontend — permet la création manuelle
+// GOAL 20 - POST /api/alerts (alerts:manage) existait déjà côté Backend
+// sans jamais être appelé par le Frontend - permet la création manuelle
 // d'une alerte, en plus des alertes générées automatiquement par le système.
 export const createAlert = async (input: AlertInput): Promise<Alert> => {
   try {

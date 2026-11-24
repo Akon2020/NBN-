@@ -27,7 +27,7 @@ const storage = multer.diskStorage({
 
 // SEC-G06 : whitelist MIME + limite de taille propre à multer, indépendante
 // de la limite globale body-parser (1024mb) qui n'est là que pour les gros
-// payloads JSON. GOAL 2 — limites en variables d'environnement (CLAUDE.md
+// payloads JSON. GOAL 2 - limites en variables d'environnement (CLAUDE.md
 // §13, jamais une constante en dur), la vidéo n'étant jamais recompressée
 // côté serveur (coût CPU disproportionné sur un hébergement cPanel
 // mono-process) a donc une limite de taille plus stricte que l'image

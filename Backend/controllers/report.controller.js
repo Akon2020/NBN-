@@ -26,7 +26,7 @@ const parseRange = (query) => {
   return { from, to };
 };
 
-// CLAUDE.md §7/§10 — "état de caisse" (rapport officiel stylisé),
+// CLAUDE.md §7/§10 - "état de caisse" (rapport officiel stylisé),
 // génération à la demande, jamais stocké.
 export const getCaisseStatementPdf = async (req, res, next) => {
   try {
@@ -67,7 +67,7 @@ const PROPERTY_COLUMNS_BASE = [
   { header: "Prix", key: "price" },
 ];
 
-// BACK-G20 — respecte le même field-level authorization que l'API REST :
+// BACK-G20 - respecte le même field-level authorization que l'API REST :
 // `serializeProperties(properties, req.user)` retire `margin` si
 // l'utilisateur n'a pas `property:margin:read`, jamais une règle isolée
 // codée en dur ici (CLAUDE.md §15 critère 3).
@@ -254,8 +254,8 @@ const LEDGER_COLUMNS = [
   { header: "Description", key: "description" },
 ];
 
-// GOAL 10 — export tabulaire (CSV/Excel) du ledger d'une caisse, en
-// complément du PDF déjà existant (`getCaisseStatementPdf`) — même source
+// GOAL 10 - export tabulaire (CSV/Excel) du ledger d'une caisse, en
+// complément du PDF déjà existant (`getCaisseStatementPdf`) - même source
 // de données (LedgerEntry, append-only), même filtrage par période.
 export const exportCaisseLedger = async (req, res, next) => {
   try {

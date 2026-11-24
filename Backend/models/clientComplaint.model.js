@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// GOAL 8 — plaintes client, absentes du système jusqu'ici (seul
+// GOAL 8 - plaintes client, absentes du système jusqu'ici (seul
 // CommissionnaireIncident existait, côté terrain). Table dédiée plutôt
 // qu'un texte libre dans `notesAgent` : un statut de suivi réel (ouverte/
 // résolue) a une valeur métier propre, pas seulement une note.

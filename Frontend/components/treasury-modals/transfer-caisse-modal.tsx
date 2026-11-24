@@ -34,7 +34,7 @@ interface TransferCaisseModalProps {
   onTransferred: (transfer: CaisseTransfer) => void
 }
 
-// GOAL 10 — virement entre deux caisses, dans une seule devise, jamais de
+// GOAL 10 - virement entre deux caisses, dans une seule devise, jamais de
 // conversion implicite (CLAUDE.md §4). Le Backend reste seul autorité sur
 // la validation (caisse clôturée, solde insuffisant) ; ce formulaire ne
 // fait que proposer les devises réellement communes aux deux caisses.

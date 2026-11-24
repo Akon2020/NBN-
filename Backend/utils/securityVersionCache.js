@@ -1,6 +1,6 @@
 import { User } from "../models/index.model.js";
 
-// CLAUDE.md §5 — cache in-process de révocation, sans dépendance Redis
+// CLAUDE.md §5 - cache in-process de révocation, sans dépendance Redis
 // (contrainte cPanel mono-process tant que non infirmée). Abstraction
 // remplaçable : à basculer vers un cache partagé si l'hébergement final
 // fait tourner plusieurs process Node en parallèle (cluster).

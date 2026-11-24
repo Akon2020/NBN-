@@ -2,7 +2,7 @@
 
 // Rôle « direction » : compte de la direction de l'agence, destinataire
 // exclusif des messages reçus sur direction@nbnexpress.org. Aucune
-// permission métier par défaut — son accès aux écrans se décide ensuite,
+// permission métier par défaut - son accès aux écrans se décide ensuite,
 // comme pour tout rôle, via le catalogue RBAC.
 const ROLE = { name: "direction", label: "Direction" };
 

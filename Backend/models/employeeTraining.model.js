@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// BACK-G22 — table de liaison explicite EmployeeProfile↔Training
+// BACK-G22 - table de liaison explicite EmployeeProfile↔Training
 // (CLAUDE.md §4 : jamais de relation polymorphe générique).
 const EmployeeTraining = db.define(
   "employeeTrainings",

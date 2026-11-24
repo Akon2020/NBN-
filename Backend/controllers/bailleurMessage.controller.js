@@ -114,7 +114,7 @@ export const logBailleurContact = async (req, res, next) => {
 
 /**
  * Historique des échanges d'un bailleur : ce que l'agence lui a envoyé, et
- * ses messages reçus sur les boîtes professionnelles — uniquement celles
+ * ses messages reçus sur les boîtes professionnelles - uniquement celles
  * dont l'utilisateur fait partie de l'audience (direction@ reste privée).
  */
 export const getBailleurMessages = async (req, res, next) => {

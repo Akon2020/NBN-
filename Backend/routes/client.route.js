@@ -165,7 +165,7 @@ clientRouter.post(
  * @swagger
  * /api/clients/{id}/archive:
  *   post:
- *     summary: Archive un client (archivage métier, BACK-G21) — distinct de la suppression
+ *     summary: Archive un client (archivage métier, BACK-G21) - distinct de la suppression
  *     tags: [Clients]
  *     parameters:
  *       - in: path
@@ -229,7 +229,7 @@ clientRouter.post(
  * @swagger
  * /api/clients/{id}/dossier:
  *   get:
- *     summary: Vue 360 du client — biens matchés/occupés, propositions, commissions/paiements, plaintes (GOAL 8)
+ *     summary: Vue 360 du client - biens matchés/occupés, propositions, commissions/paiements, plaintes (GOAL 8)
  *     tags: [Clients]
  *     parameters:
  *       - in: path

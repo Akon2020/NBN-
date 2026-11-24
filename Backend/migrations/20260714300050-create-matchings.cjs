@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G08 — CDC module 4 "MATCHING" : associer 1 client à plusieurs biens.
+// BACK-G08 - CDC module 4 "MATCHING" : associer 1 client à plusieurs biens.
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {

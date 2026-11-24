@@ -90,7 +90,7 @@ export function ClientProposalsDialog({
                     {property && (
                       <p className="text-sm text-muted-foreground">
                         {[property.avenue, property.quartier, property.commune].filter(Boolean).join(", ")}
-                        {composition ? ` — ${composition}` : ""}
+                        {composition ? ` - ${composition}` : ""}
                       </p>
                     )}
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

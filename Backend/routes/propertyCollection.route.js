@@ -10,13 +10,13 @@ const propertyCollectionRouter = Router();
  * @swagger
  * /api/property-collections:
  *   post:
- *     summary: Enregistre un bien collecté sur le terrain — crée le bien, son bailleur et une mission de traçabilité
+ *     summary: Enregistre un bien collecté sur le terrain - crée le bien, son bailleur et une mission de traçabilité
  *     description: >
  *       Route interne non indexée côté client, atteignable sans compte (un
  *       commissionnaire terrain ou un bailleur n'en a pas toujours).
  *       L'utilisateur connecté est tracé s'il y en a un. Le formulaire est
  *       rempli soit par le responsable du bien lui-même (e-mail requis), soit
- *       par un collecteur — commissionnaire (nom, téléphone et code CCM
+ *       par un collecteur - commissionnaire (nom, téléphone et code CCM
  *       requis) ou membre de l'équipe (aucune identité supplémentaire).
  *       Pour joindre la pièce d'identité du responsable (obligatoire quand il
  *       remplit lui-même), envoyer un multipart/form-data avec `data` (ce même

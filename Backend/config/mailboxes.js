@@ -1,5 +1,5 @@
 // Boîtes mail professionnelles relevées par le système (IMAP) et depuis
-// lesquelles on répond (SMTP). Déclarées par variables d'environnement —
+// lesquelles on répond (SMTP). Déclarées par variables d'environnement -
 // les mots de passe n'ont rien à faire en base ni dans le code :
 //
 //   MAILBOXES=contact,direction

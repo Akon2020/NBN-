@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — table de référence configurable (USD/CDF pré-remplies via
+// CLAUDE.md §4 - table de référence configurable (USD/CDF pré-remplies via
 // seeder, extensible sans migration). `code` est la clé métier (ISO 4217),
 // pas un id auto-increment, pour rester lisible dans les FK de CaisseBalance
 // et ExchangeRate.

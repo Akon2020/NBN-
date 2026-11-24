@@ -1,6 +1,6 @@
 "use strict";
 
-// CLAUDE.md §4 — USD et CDF pré-remplies, table extensible sans migration
+// CLAUDE.md §4 - USD et CDF pré-remplies, table extensible sans migration
 // (une nouvelle devise s'ajoute par une simple ligne, pas un déploiement).
 const CURRENCIES = [
   { code: "USD", label: "Dollar américain", symbol: "$" },

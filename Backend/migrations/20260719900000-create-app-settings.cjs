@@ -1,6 +1,6 @@
 "use strict";
 
-// GOAL 13 — valeurs de départ raisonnables, toutes reconfigurables ensuite
+// GOAL 13 - valeurs de départ raisonnables, toutes reconfigurables ensuite
 // via l'API ; aucune n'est présentée comme une obligation légale ou un
 // choix définitif (CLAUDE.md §11/§13 : toute valeur métier est une
 // variable de configuration, jamais une constante figée dans le code).

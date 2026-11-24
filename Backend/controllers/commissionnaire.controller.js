@@ -16,7 +16,7 @@ import { eventBus } from "../shared/eventBus.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
 import { getSettingValue } from "../shared/appSettings.js";
 
-// BACK-G17 — n'émet l'alerte que sur la transition réelle vers
+// BACK-G17 - n'émet l'alerte que sur la transition réelle vers
 // OBSERVATION (jamais à chaque recalcul de score qui laisse le statut
 // inchangé), pour ne pas spammer une alerte identique en boucle.
 const emitScoreLowIfNewlyObserved = (commissionnaire, previousStatut) => {
@@ -37,7 +37,7 @@ const withClassement = (commissionnaire) => {
   return plain;
 };
 
-// MOBILE-G04 — le Mobile a besoin de résoudre "ma propre fiche
+// MOBILE-G04 - le Mobile a besoin de résoudre "ma propre fiche
 // commissionnaire" à partir du compte connecté, sans avoir à récupérer
 // (ni filtrer côté client) la liste complète de tous les commissionnaires.
 export const getMyCommissionnaireProfile = async (req, res, next) => {
@@ -94,7 +94,7 @@ export const getSingleCommissionnaire = async (req, res, next) => {
   }
 };
 
-// GOAL 4 — renforce le lien Client↔Commissionnaire : la fiche
+// GOAL 4 - renforce le lien Client↔Commissionnaire : la fiche
 // commissionnaire doit pouvoir montrer les clients qu'il a effectivement
 // apportés (Client.sourceCommissionnaireCode === ce code), pas seulement
 // l'inverse (déjà visible côté fiche client).
@@ -159,7 +159,7 @@ export const createCommissionnaire = async (req, res, next) => {
       entityId: commissionnaire.idCommissionnaire,
       eventType: "CREATED",
       title: "Commissionnaire créé",
-      description: `${person.fullName} — ${code}`,
+      description: `${person.fullName} - ${code}`,
       actorUserId: req.user.idUser,
     });
 
@@ -213,9 +213,9 @@ export const updateCommissionnaire = async (req, res, next) => {
       });
     }
 
-    // BACK-G11 — suspension/exclusion d'un commissionnaire révoque
+    // BACK-G11 - suspension/exclusion d'un commissionnaire révoque
     // immédiatement toute session active, exactement comme pour un User
-    // désactivé (CLAUDE.md §5) — seulement si la Person liée a un compte
+    // désactivé (CLAUDE.md §5) - seulement si la Person liée a un compte
     // de connexion (un commissionnaire peut ne jamais s'être connecté).
     if (passageEnSuspension && commissionnaire.person?.idUser) {
       const linkedUser = await User.findByPk(commissionnaire.person.idUser);
@@ -238,7 +238,7 @@ export const updateCommissionnaire = async (req, res, next) => {
 
 // Évaluation manuelle des 4 sous-scores (CDC §7 : le calcul automatique à
 // partir des transactions/commissions dépend du module Trésorerie,
-// Milestone 4, pas encore construit — en attendant, un utilisateur autorisé
+// Milestone 4, pas encore construit - en attendant, un utilisateur autorisé
 // saisit chaque sous-score /25). La grille d'évolution est réappliquée à
 // chaque évaluation.
 export const updateCommissionnaireScore = async (req, res, next) => {
@@ -286,7 +286,7 @@ export const deleteCommissionnaire = async (req, res, next) => {
   }
 };
 
-// CDC §7 — système d'incidents (retard, données incomplètes, non-respect
+// CDC §7 - système d'incidents (retard, données incomplètes, non-respect
 // des règles) impactant le score discipline, réévalué automatiquement
 // après chaque incident.
 export const createIncident = async (req, res, next) => {
@@ -312,7 +312,7 @@ export const createIncident = async (req, res, next) => {
       createdBy: req.user.idUser,
     });
 
-    // GOAL 13 — l'incident reste toujours enregistré (traçabilité), mais
+    // GOAL 13 - l'incident reste toujours enregistré (traçabilité), mais
     // son impact automatique sur le score/la grille d'évolution peut être
     // désactivé (ex. période de gestion manuelle assumée par un
     // superviseur) sans perdre l'historique des incidents eux-mêmes.

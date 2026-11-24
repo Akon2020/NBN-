@@ -90,7 +90,7 @@ export const deleteClient = async (id: number): Promise<void> => {
   }
 };
 
-// --- GOAL 8 — vue 360 (dossier agrégé, plaintes) --------------------------
+// --- GOAL 8 - vue 360 (dossier agrégé, plaintes) --------------------------
 
 export const getClientDossier = async (id: number): Promise<ClientDossier> => {
   try {

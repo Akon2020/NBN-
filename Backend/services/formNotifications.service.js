@@ -54,7 +54,7 @@ export const notifyRentalRequest = async ({ rentalRequest, client }) => {
   const orderNumber = client.dossierNumber;
   const localisation = [rentalRequest.commune, rentalRequest.quartier, rentalRequest.avenues]
     .filter(Boolean)
-    .join(" — ");
+    .join(" - ");
   const budget = `${Number(rentalRequest.budgetMin).toLocaleString("fr-FR")} à ${Number(
     rentalRequest.loyerMax
   ).toLocaleString("fr-FR")} ${rentalRequest.devise}`;
@@ -75,7 +75,7 @@ export const notifyRentalRequest = async ({ rentalRequest, client }) => {
   return notifyTeam(RENTAL_REQUEST_ROLES, {
     notification: {
       type: "rental_request:new",
-      title: `Nouvelle demande de location — ${rentalRequest.fullName}`,
+      title: `Nouvelle demande de location - ${rentalRequest.fullName}`,
       message: [localisation, budget].filter(Boolean).join(" · "),
       relatedEntityType: "Client",
       relatedEntityId: client.idClient,
@@ -95,8 +95,8 @@ export const notifyRentalRequest = async ({ rentalRequest, client }) => {
 export const notifyPropertyCollection = async ({ property, responsable, source, parResponsable }) => {
   const localisation = [property.propertyType, property.commune, property.quartier, property.avenue]
     .filter(Boolean)
-    .join(" — ");
-  const title = `Nouveau bien collecté — ${property.propertyType} à ${property.quartier || property.commune}`;
+    .join(" - ");
+  const title = `Nouveau bien collecté - ${property.propertyType} à ${property.quartier || property.commune}`;
   const detailPath = property.category === "SALE" ? "sales" : "rentals";
 
   if (parResponsable && responsable.email) {

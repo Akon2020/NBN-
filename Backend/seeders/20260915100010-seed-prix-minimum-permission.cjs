@@ -2,7 +2,7 @@
 
 // Prix minimum acceptable d'un bien : visible par l'administration
 // uniquement. L'admin a déjà toutes les permissions par construction
-// (utils/rbac.js) — aucun rôle ne la reçoit ici. Elle existe au catalogue
+// (utils/rbac.js) - aucun rôle ne la reçoit ici. Elle existe au catalogue
 // pour pouvoir être accordée ponctuellement via un AccessGrant.
 const PERMISSION = {
   key: "property:prix_minimum:read",

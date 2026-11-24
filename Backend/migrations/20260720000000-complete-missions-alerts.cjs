@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // GOAL 14 — la timeline générique (GOAL 3) couvrait déjà PROPERTY/
+    // GOAL 14 - la timeline générique (GOAL 3) couvrait déjà PROPERTY/
     // CLIENT/COMMISSIONNAIRE/BAILLEUR ; une mission a besoin de son propre
     // historique consultable en un seul endroit (création, transitions,
     // archivage), en plus des événements déjà journalisés côté
@@ -13,7 +13,7 @@ module.exports = {
       allowNull: false,
     });
 
-    // GOAL 14 — progression déclarée par le commissionnaire assigné,
+    // GOAL 14 - progression déclarée par le commissionnaire assigné,
     // distincte du statut de validation administrative (SOUMISE/VALIDEE/
     // REJETEE/CORRECTION_DEMANDEE) : une mission validée pour être
     // exécutée peut être 0% à 100% avancée sur le terrain avant d'être

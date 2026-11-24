@@ -2,7 +2,7 @@ import { createRequire } from "module";
 
 // Référentiel des quartiers et avenues de Bukavu fourni par l'agence
 // (« Quartiers par commune »). Copie identique de
-// Frontend/lib/locations.data.json — pas de package partagé entre les
+// Frontend/lib/locations.data.json - pas de package partagé entre les
 // projets (CLAUDE.md §9) : une mise à jour se fait des deux côtés.
 const require = createRequire(import.meta.url);
 export const BUKAVU_LOCATIONS = require("./bukavuLocations.data.json");

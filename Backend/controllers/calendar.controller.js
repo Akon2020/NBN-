@@ -21,7 +21,7 @@ const EVENT_INCLUDES = [
   },
 ];
 
-// CLAUDE.md §4 — vue agrégée, jamais une duplication systématique.
+// CLAUDE.md §4 - vue agrégée, jamais une duplication systématique.
 // Chaque source garde son statut de vérité propre (Task.statut,
 // Reminder.statut, Client.statutRelance) ; le calendrier ne fait que
 // projeter une date sur une frise, jamais une copie qui pourrait diverger.
@@ -36,7 +36,7 @@ export const getCalendarEvents = async (req, res, next) => {
     const { from, to } = parseRange(req.query);
     const dateRange = { [Op.between]: [from, to] };
 
-    // GOAL 11 — un bien concerné par un rendez-vous (participant) doit le
+    // GOAL 11 - un bien concerné par un rendez-vous (participant) doit le
     // voir dans son calendrier même s'il n'en est ni le propriétaire
     // (`idUser`) ni le créateur. Résolu en deux temps pour éviter qu'un
     // LEFT JOIN sur `participants` ne duplique les lignes d'un événement
@@ -127,7 +127,7 @@ export const getCalendarEvents = async (req, res, next) => {
   }
 };
 
-// GOAL 11 — notifie chaque personne concernée par un rendez-vous (le
+// GOAL 11 - notifie chaque personne concernée par un rendez-vous (le
 // propriétaire s'il diffère du créateur, plus chaque participant), jamais
 // le créateur lui-même (il vient de créer l'événement, pas besoin de le
 // lui apprendre).
@@ -147,7 +147,7 @@ const notifyConcernedUsers = async (event, concernedUserIds, creatorId) => {
   );
 };
 
-// CLAUDE.md §4 — un CalendarEvent propre uniquement pour un rendez-vous
+// CLAUDE.md §4 - un CalendarEvent propre uniquement pour un rendez-vous
 // sans lien à une autre entité (pas de duplication d'un Task/Reminder
 // existant sous une autre forme).
 export const createCalendarEvent = async (req, res, next) => {
@@ -191,7 +191,7 @@ export const createCalendarEvent = async (req, res, next) => {
   }
 };
 
-// GOAL 11 — modification d'un rendez-vous existant (absent jusqu'ici,
+// GOAL 11 - modification d'un rendez-vous existant (absent jusqu'ici,
 // seules création/suppression existaient). Remplace intégralement la
 // liste de participants si `participantUserIds` est fourni (jamais un
 // merge implicite) et notifie les nouveaux participants ajoutés.

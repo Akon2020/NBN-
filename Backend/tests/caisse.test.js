@@ -16,7 +16,7 @@ let juridiqueEmail;
 
 const loginCache = new Map();
 
-// `/api/auth/login` est rate-limité (SEC-G07, 10 tentatives/15 min) — un
+// `/api/auth/login` est rate-limité (SEC-G07, 10 tentatives/15 min) - un
 // cache par email évite de gaspiller ce quota partagé entre fichiers de
 // test (même pattern que tests/commissionnaire.test.js).
 const loginAs = async (email) => {

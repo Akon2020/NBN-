@@ -8,7 +8,7 @@ export const computeMarginAmount = (price, percentage) => {
   return round2(Number(price) * (Number(percentage) / 100));
 };
 
-// GOAL 12 — une location facturée à la journée (RentalProperty.unit=DAY)
+// GOAL 12 - une location facturée à la journée (RentalProperty.unit=DAY)
 // est une courte durée ; tout le reste (MONTH/YEAR, ou une vente sans
 // RentalProperty) reste longue durée. `unit` est le seul discriminant :
 // jamais de champ dupliqué juste pour ce libellé.
@@ -24,9 +24,9 @@ export const resolveStayType = async (property, options = {}) => {
   return rentalDetails?.unit === "DAY" ? "COURT_SEJOUR" : "LONGUE_DUREE";
 };
 
-// GOAL 9 — un override sur le bien prime toujours sur le pourcentage
+// GOAL 9 - un override sur le bien prime toujours sur le pourcentage
 // global de son type ; jamais l'inverse, et jamais de mélange des deux.
-// GOAL 12 — le pourcentage global lui-même dépend désormais aussi du
+// GOAL 12 - le pourcentage global lui-même dépend désormais aussi du
 // type de séjour (courte/longue durée), résolu via `resolveStayType`.
 export const getEffectivePercentage = async (property, options = {}) => {
   if (
@@ -46,7 +46,7 @@ export const getEffectivePercentage = async (property, options = {}) => {
 // Recalcule et persiste `margin` (montant, dérivé) d'un seul bien à partir
 // de son prix et de son pourcentage effectif (override ou défaut global,
 // selon son type de bien ET son type de séjour). Jamais appelé pour
-// modifier `marginOverridePercentage` lui-même — cette fonction ne fait
+// modifier `marginOverridePercentage` lui-même - cette fonction ne fait
 // que refléter l'état courant, elle ne décide rien.
 // `options.unit` : à fournir quand déjà connu de l'appelant (évite une
 // requête RentalProperty superflue, cf. property.controller.js).

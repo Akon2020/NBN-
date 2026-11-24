@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// GOAL 11 — assignation multi-personnes d'un rendez-vous (même patron que
+// GOAL 11 - assignation multi-personnes d'un rendez-vous (même patron que
 // TaskAssignee) : `CalendarEvent.idUser` reste le "propriétaire" unique
 // utilisé pour le filtrage de la vue calendrier existante, cette table
 // ajoute les autres personnes concernées, chacune notifiée à la création.

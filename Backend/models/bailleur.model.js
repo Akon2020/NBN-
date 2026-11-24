@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CDC §3 module 3 "FICHE BAILLEUR" — client VIP, fiche plus riche qu'un
+// CDC §3 module 3 "FICHE BAILLEUR" - client VIP, fiche plus riche qu'un
 // simple locataire (relation commerciale suivie sur la durée).
 const Bailleur = db.define(
   "bailleurs",
@@ -11,7 +11,7 @@ const Bailleur = db.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    // GOAL 6 — même principe que Client.dossierNumber (voir ce modèle).
+    // GOAL 6 - même principe que Client.dossierNumber (voir ce modèle).
     dossierNumber: {
       type: DataTypes.STRING(30),
       allowNull: true,
@@ -31,7 +31,7 @@ const Bailleur = db.define(
       allowNull: true,
     },
     dureeCollaboration: DataTypes.STRING(50),
-    // Champ sensible (BACK-G03) — filtré en sérialisation selon
+    // Champ sensible (BACK-G03) - filtré en sérialisation selon
     // bailleur:marge:read, même logique que Property.margin.
     margeAgence: DataTypes.DECIMAL(12, 2),
     frequenceContactJours: DataTypes.INTEGER,

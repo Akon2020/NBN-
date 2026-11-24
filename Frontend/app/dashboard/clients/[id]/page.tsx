@@ -195,11 +195,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 </h3>
                 <p className="text-muted-foreground">
                   {client.besoinTypeBien || "Non renseigné"}
-                  {client.besoinUsage && ` — usage ${client.besoinUsage.toLowerCase()}`}
+                  {client.besoinUsage && ` - usage ${client.besoinUsage.toLowerCase()}`}
                 </p>
                 {(client.budgetMin || client.budgetMax) && (
                   <p className="text-muted-foreground mt-1">
-                    Budget : ${client.budgetMin ?? "?"} — ${client.budgetMax ?? "?"}
+                    Budget : ${client.budgetMin ?? "?"} - ${client.budgetMax ?? "?"}
                   </p>
                 )}
               </div>
@@ -213,7 +213,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 </h3>
                 <p className="text-muted-foreground">
                   {client.localisationQuartiers || "Non renseigné"}
-                  {client.localisationVille && ` — ${client.localisationVille}`}
+                  {client.localisationVille && ` - ${client.localisationVille}`}
                 </p>
               </div>
 

@@ -14,10 +14,10 @@ import { MarginSettingsPanel } from "@/components/margin-settings-panel"
 import { MailboxAudiencePanel } from "@/components/mailbox-audience-panel"
 import { getAppSettings, updateAppSetting, type CompanyInfo } from "@/actions/appSettings"
 
-// GOAL 13 — centre de configuration réel : chaque champ ci-dessous est
+// GOAL 13 - centre de configuration réel : chaque champ ci-dessous est
 // persisté côté Backend (/api/settings) et effectivement consulté
 // ailleurs dans l'application (panier WhatsApp, message de proposition,
-// impact des incidents sur le score commissionnaire) — plus aucun champ
+// impact des incidents sur le score commissionnaire) - plus aucun champ
 // décoratif qui n'aurait d'effet nulle part.
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)

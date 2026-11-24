@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — profil RH. userId nullable via Person : un employé peut
+// CLAUDE.md §4 - profil RH. userId nullable via Person : un employé peut
 // exister sans compte de connexion.
 const EmployeeProfile = db.define(
   "employeeProfiles",

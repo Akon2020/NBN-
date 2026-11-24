@@ -1,8 +1,8 @@
 import { hasPermission } from "../rbac.js";
 
-// BACK-G03 — Field-level authorization générique côté sérialisation
+// BACK-G03 - Field-level authorization générique côté sérialisation
 // (CLAUDE.md §5) : le filtrage se fait ici, dans une couche centralisée par
-// ressource — jamais via un `if` isolé dispersé dans un contrôleur.
+// ressource - jamais via un `if` isolé dispersé dans un contrôleur.
 
 // Droits évalués une seule fois par réponse : une liste de 300 biens ne
 // déclenche pas 900 lectures de permissions.

@@ -173,7 +173,7 @@ propertyRouter.patch(
  * @swagger
  * /api/properties/{id}/statut:
  *   patch:
- *     summary: Change le statut d'un bien (cycle de vie, GOAL 1) — seul point d'entrée pour cette transition, journalisée dans la timeline
+ *     summary: Change le statut d'un bien (cycle de vie, GOAL 1) - seul point d'entrée pour cette transition, journalisée dans la timeline
  *     tags: [Properties]
  *     parameters:
  *       - in: path
@@ -213,7 +213,7 @@ propertyRouter.patch(
  * @swagger
  * /api/properties/{id}/margin-override:
  *   patch:
- *     summary: Définit ou retire l'override de pourcentage de marge d'un bien (GOAL 9) — seul point d'entrée pour cette valeur, journalisé (MarginHistory + timeline)
+ *     summary: Définit ou retire l'override de pourcentage de marge d'un bien (GOAL 9) - seul point d'entrée pour cette valeur, journalisé (MarginHistory + timeline)
  *     tags: [Properties]
  *     parameters:
  *       - in: path
@@ -465,7 +465,7 @@ propertyRouter.post(
  * @swagger
  * /api/properties/{id}/archive:
  *   post:
- *     summary: Archive un bien (archivage métier, BACK-G21) — distinct de la suppression
+ *     summary: Archive un bien (archivage métier, BACK-G21) - distinct de la suppression
  *     tags: [Properties]
  *     parameters:
  *       - in: path

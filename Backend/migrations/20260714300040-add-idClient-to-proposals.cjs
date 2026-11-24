@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G07 — remplace les champs clientName/clientPhone jamais activés
+// BACK-G07 - remplace les champs clientName/clientPhone jamais activés
 // (commentés dans le modèle) par un vrai lien vers un Client.
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {

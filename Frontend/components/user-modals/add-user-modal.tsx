@@ -19,9 +19,9 @@ interface AddUserModalProps {
   onAdd: (user: User) => void
 }
 
-// GOAL 16 — la création envoie fullName/email/role au Backend, qui attribue
+// GOAL 16 - la création envoie fullName/email/role au Backend, qui attribue
 // lui-même un mot de passe par défaut et envoie l'email de bienvenue
-// correspondant (Backend/controllers/user.controller.js::createUser) —
+// correspondant (Backend/controllers/user.controller.js::createUser) -
 // aucun champ mot de passe ici, contrairement à l'ancienne version qui en
 // affichait un sans jamais l'utiliser.
 export function AddUserModal({ open, onOpenChange, onAdd }: AddUserModalProps) {
@@ -44,7 +44,7 @@ export function AddUserModal({ open, onOpenChange, onAdd }: AddUserModalProps) {
       onAdd(user)
       onOpenChange(false)
       resetForm()
-      toast.success(`Utilisateur ${user.fullName} créé — email de bienvenue envoyé`)
+      toast.success(`Utilisateur ${user.fullName} créé - email de bienvenue envoyé`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur inconnue")
     } finally {

@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G14 — catalogue RBAC pour le circuit Payment→CashMovement→
+// BACK-G14 - catalogue RBAC pour le circuit Payment→CashMovement→
 // LedgerEntry. Seule la trésorerie peut comptabiliser/annuler un paiement ;
 // operations garde une lecture pour le suivi financier des opérations.
 const NEW_PERMISSIONS = [

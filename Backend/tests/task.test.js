@@ -164,7 +164,7 @@ describe("BACK-G16 - Module Tasks (Kanban)", () => {
     expect(move.body.data.statut).toBe("TERMINEE");
 
     const after = await Property.findByPk(propertyId);
-    expect(after.statut).toBe("DISPONIBLE"); // inchangé — règle stricte CLAUDE.md §4
+    expect(after.statut).toBe("DISPONIBLE"); // inchangé - règle stricte CLAUDE.md §4
   });
 
   it("un statut invalide est refusé (400)", async () => {

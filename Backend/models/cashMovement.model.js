@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — un mouvement de caisse n'est jamais automatiquement une
+// CLAUDE.md §4 - un mouvement de caisse n'est jamais automatiquement une
 // commission ni une réquisition : c'est une conséquence d'un Payment
 // comptabilisé, toujours rattachée à une caisse et une devise précises.
 const CashMovement = db.define(
@@ -28,11 +28,11 @@ const CashMovement = db.define(
       type: DataTypes.ENUM("ENTREE", "SORTIE"),
       allowNull: false,
     },
-    // GOAL 10 — nullable : un mouvement peut désormais provenir d'un
+    // GOAL 10 - nullable : un mouvement peut désormais provenir d'un
     // virement entre caisses (idCaisseTransfer) plutôt que d'un paiement.
     // Toujours l'un OU l'autre en pratique, jamais les deux ni aucun des
     // deux (contrôlé en application, cf. payment.controller.js /
-    // caisse.controller.js — jamais un mouvement sans origine traçable).
+    // caisse.controller.js - jamais un mouvement sans origine traçable).
     idPayment: {
       type: DataTypes.BIGINT,
       allowNull: true,

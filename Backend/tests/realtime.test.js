@@ -37,7 +37,7 @@ beforeAll(async () => {
   expect(login.status).toBe(200);
   operationsToken = login.body.data.token;
 
-  // BACK-G18 — Socket.IO a besoin d'un vrai serveur HTTP en écoute
+  // BACK-G18 - Socket.IO a besoin d'un vrai serveur HTTP en écoute
   // (contrairement à supertest, qui simule les requêtes REST sans jamais
   // ouvrir de port) : instance dédiée, port éphémère, jamais le port réel
   // de développement.
@@ -67,12 +67,12 @@ const connect = (token) =>
   });
 
 // Le Frontend web n'a pas accès à `auth.token` (cookie httpOnly,
-// ADMIN-G01) — la gateway doit aussi accepter le jeton via le cookie
+// ADMIN-G01) - la gateway doit aussi accepter le jeton via le cookie
 // `token`, exactement comme `authMiddlware` pour le REST.
 const connectViaCookie = (token) =>
   new Promise((resolve, reject) => {
     // La poignée de main initiale (polling HTTP) transporte fiablement des
-    // en-têtes personnalisés côté Node — le websocket pur n'est pas garanti
+    // en-têtes personnalisés côté Node - le websocket pur n'est pas garanti
     // ici selon les couches sous-jacentes, seule la première requête HTTP
     // du handshake Engine.IO compte pour l'authentification côté serveur.
     const socket = ioClient(`http://localhost:${port}`, {
@@ -107,7 +107,7 @@ describe("BACK-G18 - Realtime (Socket.IO) avec audiences calculées côté serve
     try {
       const received = new Promise((resolve) => socket.once("notification:new", resolve));
 
-      // `emitToUser` calcule lui-même le nom de room ("user:<id>") — le
+      // `emitToUser` calcule lui-même le nom de room ("user:<id>") - le
       // client n'a jamais fourni ni demandé ce nom, il ne fait qu'écouter
       // l'événement une fois dans la bonne room par construction serveur.
       emitToUser(operationsUserId, "notification:new", { idNotification: 999, type: "test" });
@@ -158,7 +158,7 @@ describe("BACK-G18 - Realtime (Socket.IO) avec audiences calculées côté serve
   });
 
   it("le REST reste intégralement fonctionnel sans aucune connexion Socket.IO active (fallback, CLAUDE.md §6)", async () => {
-    // Aucun socket connecté ici — juste la garantie que le flux métier
+    // Aucun socket connecté ici - juste la garantie que le flux métier
     // (déjà exercé de bout en bout par tests/notification.test.js) ne
     // dépend jamais d'un client Socket.IO connecté pour fonctionner.
     const res = await request(app)

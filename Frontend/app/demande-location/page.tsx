@@ -605,7 +605,7 @@ export default function DemandeLocationPage() {
     {
       id: "conditions",
       title: "Conditions & engagement",
-      subtitle: "Dernière étape — merci de lire et d'accepter avant d'envoyer.",
+      subtitle: "Dernière étape - merci de lire et d'accepter avant d'envoyer.",
       validate: () => (conditionsAccepted ? null : "Vous devez accepter les conditions pour envoyer votre demande."),
       content: (
         <div className="space-y-5">
@@ -680,7 +680,7 @@ export default function DemandeLocationPage() {
                 Dites-nous ce que vous cherchez
               </h1>
               <p className="text-muted-foreground leading-relaxed">
-                Quelques questions pour comprendre votre besoin. Comptez 3 à 4 minutes — vos réponses sont
+                Quelques questions pour comprendre votre besoin. Comptez 3 à 4 minutes - vos réponses sont
                 enregistrées au fur et à mesure, vous pouvez revenir plus tard.
               </p>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

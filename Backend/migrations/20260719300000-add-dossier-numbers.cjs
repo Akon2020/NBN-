@@ -1,9 +1,9 @@
 "use strict";
 
 /** @type {import('sequelize-cli').Migration} */
-// GOAL 6 — numéro de dossier unique et lisible pour clients et bailleurs
+// GOAL 6 - numéro de dossier unique et lisible pour clients et bailleurs
 // (commissionnaires ont déjà `code`, les réquisitions ont déjà
-// `validationCode` — ces deux entités ne sont donc pas concernées ici).
+// `validationCode` - ces deux entités ne sont donc pas concernées ici).
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.addColumn("clients", "dossierNumber", {

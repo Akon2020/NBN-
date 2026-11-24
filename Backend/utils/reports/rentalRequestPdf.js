@@ -59,7 +59,7 @@ const CANAUX = {
 const safe = (value) =>
   String(value ?? "")
     .replace(/[\r\t]/g, " ")
-    .replace(/[^\n\x20-\x7E -ÿ–—‘’“”…€•Œœ]/g, "")
+    .replace(/[^\n\x20-\x7E -ÿ–-‘’“”…€•Œœ]/g, "")
     .trim();
 
 const orOther = (map, value, other) => (value === "AUTRE" ? other : map[value] || value);
@@ -81,7 +81,7 @@ export const generateRentalRequestPdf = async (request) => {
     page = pdf.addPage(A4);
     page.drawRectangle({ x: 0, y: A4[1] - 56, width: A4[0], height: 56, color: NAVY });
     page.drawText("NBN Express", { x: MARGIN, y: A4[1] - 34, size: 16, font: bold, color: rgb(1, 1, 1) });
-    page.drawText(safe(`Fiche de demande de location — ${dossier}`), {
+    page.drawText(safe(`Fiche de demande de location - ${dossier}`), {
       x: MARGIN + 110,
       y: A4[1] - 33,
       size: 11,
@@ -196,7 +196,7 @@ export const generateRentalRequestPdf = async (request) => {
 
   ensureSpace(30);
   y -= 10;
-  page.drawText("Document interne NBN Express — confidentiel, ne pas transmettre au client.", {
+  page.drawText("Document interne NBN Express - confidentiel, ne pas transmettre au client.", {
     x: MARGIN,
     y,
     size: 8,

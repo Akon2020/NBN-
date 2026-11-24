@@ -30,9 +30,9 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-// GOAL 7 — pipeline commercial en vrai Kanban : glisser une carte dans une
+// GOAL 7 - pipeline commercial en vrai Kanban : glisser une carte dans une
 // autre colonne appelle exactement le même endpoint que l'ancien bouton
-// "avancer" (PATCH /api/clients/:id, statutPipeline) — aucune règle de
+// "avancer" (PATCH /api/clients/:id, statutPipeline) - aucune règle de
 // transition n'est imposée côté Frontend (le Backend l'accepte déjà telle
 // quelle, CLAUDE.md §2.2), donc sauter une étape en un seul glissement
 // fonctionne sans code supplémentaire.
@@ -191,7 +191,7 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-balance">Clients — Pipeline commercial</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Clients - Pipeline commercial</h1>
           <p className="text-muted-foreground mt-2">
             Glissez une carte vers une autre étape pour faire progresser (ou sauter) le pipeline
           </p>

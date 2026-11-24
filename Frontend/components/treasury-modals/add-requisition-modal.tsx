@@ -152,7 +152,7 @@ export function AddRequisitionModal({ open, onOpenChange, onAdd }: AddRequisitio
               <Label>Devise *</Label>
               <Select value={currencyCode} onValueChange={setCurrencyCode}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="—" />
+                  <SelectValue placeholder="-" />
                 </SelectTrigger>
                 <SelectContent>
                   {selectedCaisse?.balances?.map((b) => (

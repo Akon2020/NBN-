@@ -8,7 +8,7 @@ import {
   PropertyVideoEntry,
 } from "@/lib/types";
 
-// GOAL 18 — filtres optionnels envoyés directement au Backend (jamais un
+// GOAL 18 - filtres optionnels envoyés directement au Backend (jamais un
 // téléchargement de tout le catalogue suivi d'un filtrage côté client),
 // rétrocompatible : aucun paramètre = comportement identique à avant.
 export interface PropertySearchFilters {
@@ -114,7 +114,7 @@ export const updateProperty = async (
   }
 };
 
-// GOAL 1 — seul point d'entrée pour changer le statut d'un bien, jamais
+// GOAL 1 - seul point d'entrée pour changer le statut d'un bien, jamais
 // via `updateProperty` (voir property.controller.js côté Backend).
 export const updatePropertyStatut = async (
   id: number,
@@ -137,7 +137,7 @@ export const updatePropertyStatut = async (
   }
 };
 
-// GOAL 9 — seul point d'entrée pour changer l'override de marge d'un bien,
+// GOAL 9 - seul point d'entrée pour changer l'override de marge d'un bien,
 // jamais via `updateProperty`. `percentage: null` retire l'override.
 export const updatePropertyMarginOverride = async (
   id: number,

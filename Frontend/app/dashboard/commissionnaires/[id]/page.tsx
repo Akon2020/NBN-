@@ -69,7 +69,7 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
       try {
         setClientsApportes(await getCommissionnaireClients(Number(id)))
       } catch {
-        // GOAL 4 — un rôle sans clients:read verra simplement une section vide,
+        // GOAL 4 - un rôle sans clients:read verra simplement une section vide,
         // pas d'erreur bloquante : le reste de la fiche commissionnaire reste utilisable.
       }
       setIsLoading(false)
@@ -171,7 +171,7 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
                 <div>
                   <CardTitle className="text-2xl">{commissionnaire.person?.fullName}</CardTitle>
                   <p className="text-muted-foreground mt-1">
-                    {commissionnaire.code} {commissionnaire.zone ? `— ${commissionnaire.zone}` : ""}
+                    {commissionnaire.code} {commissionnaire.zone ? `- ${commissionnaire.zone}` : ""}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -235,7 +235,7 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
                         <p className="text-sm text-muted-foreground">{incident.description}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        -{Number(incident.impactDiscipline)} pts discipline —{" "}
+                        -{Number(incident.impactDiscipline)} pts discipline -{" "}
                         {new Date(incident.dateIncident).toLocaleDateString("fr-FR")}
                       </p>
                     </div>
@@ -264,7 +264,7 @@ export default function CommissionnaireDetailPage({ params }: { params: Promise<
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-2">
-                {STATUT_COMMISSIONNAIRE_LABELS[commissionnaire.statut]} — la suspension révoque
+                {STATUT_COMMISSIONNAIRE_LABELS[commissionnaire.statut]} - la suspension révoque
                 immédiatement toute session active liée à un compte.
               </p>
             </CardContent>

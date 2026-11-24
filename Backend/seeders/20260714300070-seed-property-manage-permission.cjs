@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G07 — permission de gestion des biens (création/édition/suppression),
+// BACK-G07 - permission de gestion des biens (création/édition/suppression),
 // distincte de la simple consultation qui reste ouverte à tout utilisateur
 // authentifié (cf. property.route.js).
 const PERMISSION = {

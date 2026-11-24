@@ -4,7 +4,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     // Curseur de relève par boîte : dernier UID IMAP traité. UIDVALIDITY
-    // change si le serveur renumérote la boîte — le curseur repart alors de
+    // change si le serveur renumérote la boîte - le curseur repart alors de
     // la position courante au lieu de réimporter tout l'historique.
     await queryInterface.createTable("mailboxStates", {
       mailboxKey: { type: Sequelize.STRING(50), primaryKey: true },

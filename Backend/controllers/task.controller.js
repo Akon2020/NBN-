@@ -191,9 +191,9 @@ export const updateTask = async (req, res, next) => {
   }
 };
 
-// CLAUDE.md §4 — un changement de statut de tâche (déplacement Kanban) ne
+// CLAUDE.md §4 - un changement de statut de tâche (déplacement Kanban) ne
 // touche JAMAIS une ressource liée. Cette route ne fait qu'écrire
-// `Task.statut`, rien d'autre — jamais de cascade vers Property.statut,
+// `Task.statut`, rien d'autre - jamais de cascade vers Property.statut,
 // Client.statutPipeline, etc.
 export const updateTaskStatus = async (req, res, next) => {
   try {
@@ -220,7 +220,7 @@ export const updateTaskStatus = async (req, res, next) => {
     const currentAssigneeUserIds = await getCurrentAssigneeUserIds(task.idTask);
     await notifyUsers(currentAssigneeUserIds, req.user.idUser, {
       type: "task:status_changed",
-      title: `Tâche « ${task.title} » — nouveau statut : ${statut}`,
+      title: `Tâche « ${task.title} » - nouveau statut : ${statut}`,
       message: null,
       relatedEntityId: task.idTask,
     });
@@ -250,7 +250,7 @@ export const deleteTask = async (req, res, next) => {
   }
 };
 
-// GOAL 15 — fil de discussion par tâche. Ouvert à quiconque a tasks:read
+// GOAL 15 - fil de discussion par tâche. Ouvert à quiconque a tasks:read
 // (même principe que le calendrier/les missions : la lecture d'une
 // ressource inclut la participation à sa discussion), pas réservé à
 // tasks:manage.
@@ -318,7 +318,7 @@ export const createTaskComment = async (req, res, next) => {
   }
 };
 
-// GOAL 15 — modération minimale : l'auteur peut retirer son propre
+// GOAL 15 - modération minimale : l'auteur peut retirer son propre
 // commentaire, un titulaire de tasks:manage peut retirer n'importe lequel.
 // Pas d'événement de timeline dédié à une suppression de commentaire,
 // cohérent avec le reste du système où seule la substance métier est

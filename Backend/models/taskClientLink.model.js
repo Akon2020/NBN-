@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — voir taskPropertyLink.model.js pour la justification des
+// CLAUDE.md §4 - voir taskPropertyLink.model.js pour la justification des
 // tables de liaison explicites par type.
 const TaskClientLink = db.define(
   "taskClientLinks",

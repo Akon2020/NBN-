@@ -21,7 +21,7 @@ export const mailtoLink = (email: string | null | undefined, subject: string, bo
     : null
 
 export const clientContactSubject = (dossierNumber?: string | null) =>
-  dossierNumber ? `Votre demande de location — dossier ${dossierNumber}` : "Votre demande de location"
+  dossierNumber ? `Votre demande de location - dossier ${dossierNumber}` : "Votre demande de location"
 
 export const clientContactMessage = ({
   fullName,

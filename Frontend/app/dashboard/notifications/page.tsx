@@ -12,7 +12,7 @@ import type { Notification } from "@/lib/types"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-// GOAL 20 — historique complet des notifications (au-delà de la cloche,
+// GOAL 20 - historique complet des notifications (au-delà de la cloche,
 // plafonnée à un aperçu déroulant) : même source `GET /api/notifications/me`,
 // affichage plein écran groupé par jour, avec marquage individuel ou groupé.
 const RELATED_ENTITY_HREF: Record<string, (id: number, notification: Notification) => string> = {

@@ -29,7 +29,7 @@ export const getAllAlerts = async (req, res, next) => {
   }
 };
 
-// GOAL 14 — détail d'une alerte (absent jusqu'ici, seule la liste existait).
+// GOAL 14 - détail d'une alerte (absent jusqu'ici, seule la liste existait).
 export const getSingleAlert = async (req, res, next) => {
   try {
     const alert = await Alert.findByPk(req.params.id, {
@@ -73,10 +73,10 @@ export const createManualAlert = async (req, res, next) => {
   }
 };
 
-// CLAUDE.md §4 — cycle de vie : ouverte → reconnue → assignée → en cours
+// CLAUDE.md §4 - cycle de vie : ouverte → reconnue → assignée → en cours
 // → résolue → clôturée. Chaque transition notifie le responsable actuel
 // (services/notification.service.js `transitionAlert`).
-// GOAL 14 — le graphe de transitions valides est désormais imposé côté
+// GOAL 14 - le graphe de transitions valides est désormais imposé côté
 // Backend (avant cette session, n'importe quel statut → n'importe quel
 // autre était accepté sans contrôle ; seule la Frontend respectait un
 // ordre par convention, ce qui contredit CLAUDE.md §2.2 : le Backend

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CDC §3 module 4 "MATCHING" — associer 1 client à plusieurs biens.
+// CDC §3 module 4 "MATCHING" - associer 1 client à plusieurs biens.
 const Matching = db.define(
   "matchings",
   {

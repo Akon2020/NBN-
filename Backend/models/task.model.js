@@ -1,10 +1,10 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — module Tasks générique (vue Kanban/liste, assignation
+// CLAUDE.md §4 - module Tasks générique (vue Kanban/liste, assignation
 // multi-collaborateurs). Le statut d'une Task ne pilote JAMAIS l'état
 // métier d'une ressource liée (property.statut, client.statutPipeline,
-// etc. restent des sources de vérité séparées et autonomes) — appliqué
+// etc. restent des sources de vérité séparées et autonomes) - appliqué
 // dans task.controller.js en ne touchant jamais une ressource liée lors
 // d'un changement de statut de tâche.
 const Task = db.define(

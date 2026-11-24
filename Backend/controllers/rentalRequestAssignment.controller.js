@@ -46,7 +46,7 @@ export const getRentalRequestPdf = async (req, res, next) => {
 /**
  * « Assigner une tâche » depuis une demande reçue : crée la tâche (liée au
  * client et aux commissionnaires choisis) et envoie la fiche PDF par e-mail
- * à chaque personne — utilisateurs, commissionnaires, et adresses saisies à
+ * à chaque personne - utilisateurs, commissionnaires, et adresses saisies à
  * la main pour quelqu'un qui n'a pas encore de compte.
  */
 export const assignRentalRequest = async (req, res, next) => {
@@ -111,7 +111,7 @@ export const assignRentalRequest = async (req, res, next) => {
 
     const task = await createTaskWithRelations(
       {
-        title: `Demande de location — ${request.fullName}`,
+        title: `Demande de location - ${request.fullName}`,
         description: [
           note || null,
           `Demande n° ${dossier}. La fiche PDF a été envoyée par e-mail aux personnes assignées.`,

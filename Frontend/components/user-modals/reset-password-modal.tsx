@@ -17,8 +17,8 @@ interface ResetPasswordModalProps {
   user: User | null
 }
 
-// GOAL 16 — réinitialisation admin (users:manage), sans connaître l'ancien
-// mot de passe — révoque immédiatement toutes les sessions actives de la
+// GOAL 16 - réinitialisation admin (users:manage), sans connaître l'ancien
+// mot de passe - révoque immédiatement toutes les sessions actives de la
 // cible (Backend/controllers/user.controller.js::resetUserPassword).
 export function ResetPasswordModal({ open, onOpenChange, user }: ResetPasswordModalProps) {
   const [newPassword, setNewPassword] = useState("")
@@ -30,7 +30,7 @@ export function ResetPasswordModal({ open, onOpenChange, user }: ResetPasswordMo
     setSubmitting(true)
     try {
       await resetUserPassword(user.idUser, newPassword)
-      toast.success(`Mot de passe de ${user.fullName} réinitialisé — sessions déconnectées`)
+      toast.success(`Mot de passe de ${user.fullName} réinitialisé - sessions déconnectées`)
       onOpenChange(false)
       setNewPassword("")
     } catch (error) {

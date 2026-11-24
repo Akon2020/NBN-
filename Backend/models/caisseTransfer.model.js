@@ -1,10 +1,10 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// GOAL 10 — un virement entre deux caisses, dans une seule devise (jamais
+// GOAL 10 - un virement entre deux caisses, dans une seule devise (jamais
 // de conversion implicite, cf. CLAUDE.md §4). Ancre deux CashMovement (une
 // SORTIE côté source, une ENTREE côté destination) exactement comme
-// `Payment` ancre les mouvements liés à un encaissement/décaissement —
+// `Payment` ancre les mouvements liés à un encaissement/décaissement -
 // jamais de mouvement "flottant" sans origine traçable. Immuable une fois
 // créé (pas d'updatedAt) : une correction passe par un nouveau virement en
 // sens inverse, jamais une modification de celui-ci.

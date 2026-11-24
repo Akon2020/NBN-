@@ -112,7 +112,7 @@ taskRouter.patch("/:id", authMiddlware, requirePermission("tasks:manage"), updat
  * @swagger
  * /api/tasks/{id}/statut:
  *   patch:
- *     summary: Change le statut d'une tâche (déplacement Kanban) — ne touche jamais une ressource liée
+ *     summary: Change le statut d'une tâche (déplacement Kanban) - ne touche jamais une ressource liée
  *     tags: [Tasks]
  *     requestBody:
  *       required: true

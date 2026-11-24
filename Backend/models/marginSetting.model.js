@@ -1,10 +1,10 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// GOAL 9 — un pourcentage de marge par défaut par type de bien, seule
+// GOAL 9 - un pourcentage de marge par défaut par type de bien, seule
 // source de vérité pour le calcul automatique en l'absence d'override sur
 // un bien précis (Property.marginOverridePercentage).
-// GOAL 12 — deuxième dimension `stayType` : la courte durée (location
+// GOAL 12 - deuxième dimension `stayType` : la courte durée (location
 // journalière) justifie généralement un pourcentage distinct de la longue
 // durée pour un même type de bien (rotation/coûts de gestion différents).
 const MarginSetting = db.define(

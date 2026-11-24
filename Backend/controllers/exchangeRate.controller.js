@@ -6,7 +6,7 @@ const EXCHANGE_RATE_INCLUDES = [
   { model: User, as: "creator", attributes: ["idUser", "fullName"] },
 ];
 
-// CLAUDE.md §4 — utilisé uniquement pour le reporting consolidé multi-devises,
+// CLAUDE.md §4 - utilisé uniquement pour le reporting consolidé multi-devises,
 // jamais pour convertir automatiquement un solde de caisse.
 export const getAllExchangeRates = async (req, res, next) => {
   try {

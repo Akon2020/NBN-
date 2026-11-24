@@ -351,7 +351,7 @@ export default function TaskDetailPage() {
                     href={`/dashboard/rentals/${link.idProperty}`}
                     className={cn("block text-sm hover:underline")}
                   >
-                    Bien — {link.property?.quartier || `#${link.idProperty}`}
+                    Bien - {link.property?.quartier || `#${link.idProperty}`}
                   </Link>
                 ))}
                 {task.clientLinks.map((link) => (

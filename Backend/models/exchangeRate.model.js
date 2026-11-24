@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — pour le reporting consolidé multi-devises uniquement.
+// CLAUDE.md §4 - pour le reporting consolidé multi-devises uniquement.
 // Un total multi-devises ne s'additionne jamais silencieusement : tout
 // calcul consolidé doit passer explicitement par un taux tracé (from, to,
 // rate, date, source), jamais un taux implicite.

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// BACK-G22 — catalogue de compétences (référentiel partagé, pas dupliqué
+// BACK-G22 - catalogue de compétences (référentiel partagé, pas dupliqué
 // par employé). Le niveau par employé vit sur la table de liaison
 // EmployeeSkill.
 const Skill = db.define(

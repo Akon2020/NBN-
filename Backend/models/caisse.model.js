@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — caisses multiples, chacune avec un responsable et un
+// CLAUDE.md §4 - caisses multiples, chacune avec un responsable et un
 // statut. Le solde par devise vit dans CaisseBalance (jamais mélangé,
 // voir caisseBalance.model.js), pas ici.
 const Caisse = db.define(

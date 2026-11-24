@@ -75,7 +75,7 @@ missionRouter.get("/:id", authMiddlware, requirePermission("missions:read"), get
  * @swagger
  * /api/missions/{id}/progression:
  *   patch:
- *     summary: Déclare l'avancement terrain d'une mission (0-100, GOAL 14) — le commissionnaire assigné ou missions:validate
+ *     summary: Déclare l'avancement terrain d'une mission (0-100, GOAL 14) - le commissionnaire assigné ou missions:validate
  *     tags: [Missions]
  *     parameters:
  *       - in: path
@@ -114,7 +114,7 @@ missionRouter.patch(
  * @swagger
  * /api/missions:
  *   post:
- *     summary: Soumet une mission terrain (collecte de bien, apport client, suivi) — idempotent sur uuid
+ *     summary: Soumet une mission terrain (collecte de bien, apport client, suivi) - idempotent sur uuid
  *     tags: [Missions]
  *     requestBody:
  *       required: true
@@ -233,7 +233,7 @@ missionRouter.patch(
  * @swagger
  * /api/missions/{id}/archive:
  *   post:
- *     summary: Archive une mission terrain (archivage métier, BACK-G21) — reste consultable
+ *     summary: Archive une mission terrain (archivage métier, BACK-G21) - reste consultable
  *     tags: [Missions]
  *     requestBody:
  *       required: true

@@ -10,8 +10,8 @@ const MISSION_INCLUDES = [
   { model: Client },
 ];
 
-// GOAL 14 — notifie le compte de connexion du commissionnaire assigné
-// (s'il en a un — un commissionnaire terrain peut exister sans User,
+// GOAL 14 - notifie le compte de connexion du commissionnaire assigné
+// (s'il en a un - un commissionnaire terrain peut exister sans User,
 // CLAUDE.md §4), jamais une exception silencieuse si aucun compte n'existe.
 const notifyMissionCommissionnaire = async (mission, { type, title, message }) => {
   const commissionnaire = await Commissionnaire.findByPk(mission.idCommissionnaire, {
@@ -29,7 +29,7 @@ const notifyMissionCommissionnaire = async (mission, { type, title, message }) =
   });
 };
 
-// BACK-G21 — missions archivées désencombrées des listes actives par
+// BACK-G21 - missions archivées désencombrées des listes actives par
 // défaut, réintégrables via `?includeArchived=true`.
 export const getAllMissions = async (req, res, next) => {
   try {
@@ -61,7 +61,7 @@ export const getMissionsByCommissionnaire = async (req, res, next) => {
   }
 };
 
-// GOAL 14 — détail d'une mission (absent jusqu'ici, seules les listes
+// GOAL 14 - détail d'une mission (absent jusqu'ici, seules les listes
 // existaient).
 export const getSingleMission = async (req, res, next) => {
   try {
@@ -76,7 +76,7 @@ export const getSingleMission = async (req, res, next) => {
   }
 };
 
-// CLAUDE.md §8 — idempotence terrain : `uuid` généré côté client Mobile dès
+// CLAUDE.md §8 - idempotence terrain : `uuid` généré côté client Mobile dès
 // la création locale. Une resoumission après coupure réseau (même uuid) ne
 // doit jamais créer de doublon.
 export const createMission = async (req, res, next) => {
@@ -99,7 +99,7 @@ export const createMission = async (req, res, next) => {
       defaults: { idCommissionnaire, type, idProperty, idClient, notes },
     });
 
-    // Jamais journalisé sur une resoumission idempotente (même uuid) — un
+    // Jamais journalisé sur une resoumission idempotente (même uuid) - un
     // seul événement CREATED par mission réelle, pas par tentative réseau.
     if (created) {
       await recordTimelineEvent({
@@ -125,7 +125,7 @@ export const createMission = async (req, res, next) => {
 const transitionMission = async (req, res, next, { statut, requireMotif }) => {
   try {
     const { id } = req.params;
-    // `Valider` n'envoie légitimement aucun corps de requête — express.json()
+    // `Valider` n'envoie légitimement aucun corps de requête - express.json()
     // ne peuple `req.body` que si un Content-Type JSON est présent.
     const { motifRejet } = req.body || {};
 
@@ -148,7 +148,7 @@ const transitionMission = async (req, res, next, { statut, requireMotif }) => {
 
     const missionEvent = {
       eventType: "MISSION",
-      title: `Mission ${mission.type} — ${statut}`,
+      title: `Mission ${mission.type} - ${statut}`,
       description: requireMotif ? motifRejet : null,
       actorUserId: req.user.idUser,
     };
@@ -172,7 +172,7 @@ const transitionMission = async (req, res, next, { statut, requireMotif }) => {
       actorUserId: req.user.idUser,
     });
 
-    // GOAL 14 — le commissionnaire assigné n'était jamais notifié d'une
+    // GOAL 14 - le commissionnaire assigné n'était jamais notifié d'une
     // décision sur sa mission avant cette session.
     const STATUT_MESSAGE = {
       VALIDEE: "Votre mission a été validée.",
@@ -192,7 +192,7 @@ const transitionMission = async (req, res, next, { statut, requireMotif }) => {
   }
 };
 
-// CDC §7 — écran de validation des missions terrain, trois actions.
+// CDC §7 - écran de validation des missions terrain, trois actions.
 export const validateMission = (req, res, next) =>
   transitionMission(req, res, next, { statut: "VALIDEE", requireMotif: false });
 
@@ -202,14 +202,14 @@ export const rejectMission = (req, res, next) =>
 export const requestMissionCorrection = (req, res, next) =>
   transitionMission(req, res, next, { statut: "CORRECTION_DEMANDEE", requireMotif: true });
 
-// BACK-G21 — archivage métier, orthogonal au `statut` de la mission. Aucun
+// BACK-G21 - archivage métier, orthogonal au `statut` de la mission. Aucun
 // endpoint de suppression n'existe pour les missions (historique terrain,
-// CDC §7) — seul l'archivage s'applique ici, pas de soft delete.
+// CDC §7) - seul l'archivage s'applique ici, pas de soft delete.
 export const { archiveResource: archiveMission, unarchiveResource: unarchiveMission } =
   createArchiveHandlers(Mission, "idMission", "Mission non trouvée");
 
-// GOAL 14 — seul le commissionnaire assigné (via son propre compte) ou un
-// utilisateur avec missions:validate peut déclarer l'avancement terrain —
+// GOAL 14 - seul le commissionnaire assigné (via son propre compte) ou un
+// utilisateur avec missions:validate peut déclarer l'avancement terrain -
 // jamais un tiers non concerné, même avec missions:read.
 export const updateMissionProgression = async (req, res, next) => {
   try {

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// GOAL 9 — historique append-only des changements de marge, distinct de la
+// GOAL 9 - historique append-only des changements de marge, distinct de la
 // Timeline générique (shared/timeline.js) : un changement de pourcentage
 // global par type de bien n'est pas rattaché à un bien précis, donc pas un
 // bon candidat pour un événement PROPERTY. Un changement d'override sur un
@@ -23,7 +23,7 @@ const MarginHistory = db.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    // GOAL 12 — uniquement renseigné pour scope=GLOBAL (un changement de
+    // GOAL 12 - uniquement renseigné pour scope=GLOBAL (un changement de
     // pourcentage par défaut concerne toujours un couple type/séjour précis).
     stayType: {
       type: DataTypes.STRING,

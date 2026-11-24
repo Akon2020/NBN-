@@ -16,12 +16,12 @@ import {
 } from "../models/index.model.js";
 import { getEffectivePermissions } from "../utils/rbac.js";
 
-// ADMIN-G00 — le tableau de bord (page d'accueil du dashboard) affichait
+// ADMIN-G00 - le tableau de bord (page d'accueil du dashboard) affichait
 // jusqu'ici des chiffres et une "activité récente" entièrement inventés en
 // dur côté Frontend. Cet endpoint agrège des compteurs réels, chaque bloc
 // n'étant renvoyé que si l'utilisateur a la permission de lire le domaine
 // correspondant (jamais de logique d'autorisation dupliquée côté client,
-// CLAUDE.md §2.2) — les biens/favoris restent visibles de tous les
+// CLAUDE.md §2.2) - les biens/favoris restent visibles de tous les
 // utilisateurs authentifiés, comme le reste de l'API properties/favorites.
 export const getDashboardStats = async (req, res, next) => {
   try {
@@ -50,7 +50,7 @@ export const getDashboardStats = async (req, res, next) => {
           type: "PROPERTY",
           id: p.idProperty,
           label: `Nouveau bien ${p.category === "RENT" ? "à louer" : "à vendre"}`,
-          detail: [p.propertyType, p.quartier].filter(Boolean).join(" — "),
+          detail: [p.propertyType, p.quartier].filter(Boolean).join(" - "),
           date: p.createdAt,
         }))
       ),
@@ -144,10 +144,10 @@ export const getDashboardStats = async (req, res, next) => {
 
 const MONTH_BUCKET = fn("DATE_FORMAT", col("createdAt"), "%Y-%m");
 
-// GOAL 19 — répartitions et tendances réelles pour le dashboard exécutif,
+// GOAL 19 - répartitions et tendances réelles pour le dashboard exécutif,
 // même patron RBAC que `getDashboardStats` ci-dessus (permissions
 // résolues une seule fois, chaque bloc n'est renvoyé que si l'appelant a
-// le droit de lire le domaine correspondant). CLAUDE.md §4 — jamais de
+// le droit de lire le domaine correspondant). CLAUDE.md §4 - jamais de
 // somme implicite entre devises différentes : les séries financières sont
 // groupées par (mois, currencyCode), jamais fusionnées.
 export const getDashboardCharts = async (req, res, next) => {

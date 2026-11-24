@@ -19,7 +19,7 @@ const rentalRequestRouter = Router();
  * @swagger
  * /api/rental-requests:
  *   post:
- *     summary: Soumet une demande de location (formulaire public, aucune authentification) — crée/rattache un Client et le place sur le pipeline
+ *     summary: Soumet une demande de location (formulaire public, aucune authentification) - crée/rattache un Client et le place sur le pipeline
  *     tags: [RentalRequests]
  *     requestBody:
  *       required: true
@@ -188,7 +188,7 @@ rentalRequestRouter.get(
  * @swagger
  * /api/rental-requests/{id}/assign:
  *   post:
- *     summary: Assigne le traitement de la demande — crée une tâche et envoie la fiche PDF par e-mail
+ *     summary: Assigne le traitement de la demande - crée une tâche et envoie la fiche PDF par e-mail
  *     description: >
  *       Tâche liée au client et aux commissionnaires choisis (priorité déduite
  *       de l'urgence). La fiche PDF part par e-mail (outbox) à chaque
@@ -213,7 +213,7 @@ rentalRequestRouter.get(
  *               note: { type: string, maxLength: 2000 }
  *     responses:
  *       201:
- *         description: "{ idTask, emailsQueued, withoutEmail } — withoutEmail liste les commissionnaires sans e-mail"
+ *         description: "{ idTask, emailsQueued, withoutEmail } - withoutEmail liste les commissionnaires sans e-mail"
  *       400:
  *         description: Aucun destinataire, e-mail invalide, utilisateur ou commissionnaire introuvable
  *       403:

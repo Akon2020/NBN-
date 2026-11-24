@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CLAUDE.md §4 — "Commission (calculée à partir d'une transaction
+// CLAUDE.md §4 - "Commission (calculée à partir d'une transaction
 // immobilière conclue) → devient éligible à un Payment lorsqu'elle est due
 // → suit le même chemin Payment→CashMovement→LedgerEntry." Une Commission
 // n'est jamais elle-même un mouvement de caisse : elle ne fait que

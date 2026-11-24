@@ -17,7 +17,7 @@ const EMPLOYEE_PROFILE_INCLUDES = [
   { model: Poste, as: "poste" },
 ];
 
-// BACK-G22 — noyau EmployeeProfile jamais exposé via API jusqu'ici
+// BACK-G22 - noyau EmployeeProfile jamais exposé via API jusqu'ici
 // (BACK-G04 n'avait livré que le modèle). Prérequis pour rattacher
 // évaluations/objectifs/compétences/formations à une vraie ressource.
 export const getAllEmployeeProfiles = async (req, res, next) => {

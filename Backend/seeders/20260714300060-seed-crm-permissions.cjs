@@ -1,6 +1,6 @@
 "use strict";
 
-// BACK-G06 — étend le catalogue RBAC (seedé en M1) avec les permissions
+// BACK-G06 - étend le catalogue RBAC (seedé en M1) avec les permissions
 // CRM Client/Bailleur, sans toucher au seeder de base (déjà appliqué, donc
 // idempotent-skip). Idempotent sur sa propre clé de permission.
 const NEW_PERMISSIONS = [

@@ -16,10 +16,10 @@ import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
 
-// GOAL 18 — les filtres sont désormais envoyés au Backend (GET
+// GOAL 18 - les filtres sont désormais envoyés au Backend (GET
 // /api/properties?q=...&category=...) au lieu de télécharger tout le
 // catalogue puis de filtrer en mémoire (contrainte "connexion faible",
-// CLAUDE.md §1) — débounce 350ms pour ne pas déclencher une requête par
+// CLAUDE.md §1) - débounce 350ms pour ne pas déclencher une requête par
 // frappe.
 export default function SearchPage() {
   const [properties, setProperties] = useState<Property[]>([])

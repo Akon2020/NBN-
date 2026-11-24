@@ -4,7 +4,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 
-// ADMIN-G01 : le jeton vit dans un cookie httpOnly posé par le backend — il
+// ADMIN-G01 : le jeton vit dans un cookie httpOnly posé par le backend - il
 // n'est jamais lisible en JS. `withCredentials: true` suffit à l'envoyer
 // automatiquement à chaque requête, plus besoin de reconstruire un header
 // Authorization à partir d'un cookie côté client.
@@ -17,7 +17,7 @@ const api: AxiosInstance = axios.create({
 });
 
 // Routes où un 401 est une vraie réponse métier (identifiants refusés,
-// session terminée) — tenter un renouvellement y créerait une boucle.
+// session terminée) - tenter un renouvellement y créerait une boucle.
 const NO_REFRESH_ROUTES = [
   "/api/auth/login",
   "/api/auth/refresh",
@@ -64,7 +64,7 @@ api.interceptors.request.use((config) => {
 
 // Une page du dashboard lance souvent plusieurs requêtes à la fois : si le
 // jeton a expiré, elles reçoivent toutes un 401. Un seul renouvellement est
-// alors émis et partagé — chaque rotation révoque le refresh token
+// alors émis et partagé - chaque rotation révoque le refresh token
 // précédent, deux appels concurrents se feraient passer pour une
 // réutilisation frauduleuse et déconnecteraient l'utilisateur.
 let refreshInFlight: Promise<void> | null = null;

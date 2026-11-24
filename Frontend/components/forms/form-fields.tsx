@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 // Kit de champs partagé par les formulaires longs (demande de location,
 // collecte de bien). Objectif assumé : réduire le nombre d'interactions
-// nécessaires — des pastilles cliquables plutôt que des menus déroulants
+// nécessaires - des pastilles cliquables plutôt que des menus déroulants
 // (un tap au lieu de trois), et le champ « Autre » qui n'apparaît que
 // lorsqu'il est réellement choisi.
 
@@ -71,7 +71,7 @@ function Chip({
 }
 
 // Sélection unique. `otherValue` désigne l'option qui déverrouille le
-// champ libre (souvent "AUTRE") — jamais un champ libre affiché en
+// champ libre (souvent "AUTRE") - jamais un champ libre affiché en
 // permanence « au cas où ».
 export function ChoiceChips({
   choices,

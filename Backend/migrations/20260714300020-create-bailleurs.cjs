@@ -24,7 +24,7 @@ module.exports = {
         allowNull: true,
       },
       dureeCollaboration: { type: Sequelize.STRING(50), allowNull: true },
-      // Donnée financière sensible — protégée en sérialisation comme
+      // Donnée financière sensible - protégée en sérialisation comme
       // Property.margin (BACK-G03), via la permission bailleur:marge:read.
       margeAgence: { type: Sequelize.DECIMAL(12, 2), allowNull: true },
       frequenceContactJours: { type: Sequelize.INTEGER, allowNull: true },

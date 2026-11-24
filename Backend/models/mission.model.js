@@ -1,11 +1,11 @@
 import { DataTypes } from "sequelize";
 import db from "../database/db.js";
 
-// CDC §7 — mission terrain (collecte de bien, apport client, suivi) avec
+// CDC §7 - mission terrain (collecte de bien, apport client, suivi) avec
 // écran de validation Valider/Rejeter/Demander correction (BACK-G10).
 // `uuid` : généré côté client Mobile dès la création locale (CLAUDE.md §8)
 // pour garantir l'idempotence d'une soumission en cas de resynchronisation
-// après coupure réseau — jamais l'auto-increment `idMission` comme clé
+// après coupure réseau - jamais l'auto-increment `idMission` comme clé
 // d'idempotence, il n'existe qu'après écriture serveur réussie.
 const Mission = db.define(
   "missions",
@@ -57,14 +57,14 @@ const Mission = db.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
-    // GOAL 14 — avancement terrain déclaré par le commissionnaire assigné
+    // GOAL 14 - avancement terrain déclaré par le commissionnaire assigné
     // (0-100), distinct du `statut` de validation administrative.
     progression: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
     },
-    // BACK-G21 — mêmes principes que Requisition ci-dessus : archivage
+    // BACK-G21 - mêmes principes que Requisition ci-dessus : archivage
     // métier orthogonal au `statut` de la mission, `deletedAt` (paranoid)
     // réservé à l'erreur de saisie.
     archivedAt: {

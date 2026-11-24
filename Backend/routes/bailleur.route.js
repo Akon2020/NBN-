@@ -67,7 +67,7 @@ bailleurRouter.get(
  * @swagger
  * /api/bailleurs:
  *   post:
- *     summary: « Ajouter un Bailleur » — identité, pièce d'identité obligatoire, biens existants à rattacher
+ *     summary: « Ajouter un Bailleur » - identité, pièce d'identité obligatoire, biens existants à rattacher
  *     description: >
  *       Multipart `data` (JSON ci-dessous) + `pieceIdentite` (JPEG, PNG, WebP ou
  *       PDF, stocké hors du dossier public). La pièce n'est facultative que si
@@ -85,7 +85,7 @@ bailleurRouter.get(
  *               data:
  *                 type: string
  *                 description: >
- *                   JSON — type* (PROPRIETAIRE, MANDATAIRE, GERANT, SOCIETE), fullName*, phone*,
+ *                   JSON - type* (PROPRIETAIRE, MANDATAIRE, GERANT, SOCIETE), fullName*, phone*,
  *                   email, idNumber, priorite (VIP, PREMIUM, STANDARD, INACTIF), idProperties
  *                   (biens sans bailleur à rattacher), typeCollaboration, notes, margeAgence
  *               pieceIdentite:
@@ -217,7 +217,7 @@ bailleurRouter.get(
  *     tags: [Bailleurs]
  *     responses:
  *       200:
- *         description: "{ nombre, data } — biens sérialisés (champs sensibles filtrés)"
+ *         description: "{ nombre, data } - biens sérialisés (champs sensibles filtrés)"
  *       404:
  *         description: Bailleur non trouvé
  */
@@ -232,7 +232,7 @@ bailleurRouter.get(
  * @swagger
  * /api/bailleurs/{id}/properties:
  *   post:
- *     summary: « Joindre un bien existant » — rattache des biens sans bailleur
+ *     summary: « Joindre un bien existant » - rattache des biens sans bailleur
  *     tags: [Bailleurs]
  *     requestBody:
  *       required: true
@@ -292,7 +292,7 @@ bailleurRouter.post(
  *               image: { type: string, format: binary }
  *     responses:
  *       200:
- *         description: "{ photo } — chemin sous uploads/"
+ *         description: "{ photo } - chemin sous uploads/"
  *       400:
  *         description: Aucune photo ou format refusé
  */

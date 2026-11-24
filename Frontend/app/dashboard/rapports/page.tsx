@@ -144,7 +144,7 @@ export default function RapportsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-balance">Rapports</h1>
         <p className="text-muted-foreground mt-2">
-          Génération à la demande — rien n&apos;est stocké côté serveur, chaque export reflète
+          Génération à la demande - rien n&apos;est stocké côté serveur, chaque export reflète
           l&apos;état actuel des données.
         </p>
       </div>

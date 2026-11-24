@@ -21,7 +21,7 @@ const identityUpload = multer({
  * La collecte reste un corps JSON. Quand une pièce d'identité est jointe,
  * le formulaire envoie un multipart avec deux parties : `data` (le même
  * JSON, sérialisé) et `pieceIdentite` (le fichier). Les booléens et les
- * nombres gardent ainsi leur type — un multipart « champ par champ » les
+ * nombres gardent ainsi leur type - un multipart « champ par champ » les
  * transformerait tous en chaînes.
  */
 export const parseCollectionUpload = (req, res, next) => {

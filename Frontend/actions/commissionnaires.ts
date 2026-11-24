@@ -134,7 +134,7 @@ export const deleteCommissionnaire = async (id: number): Promise<void> => {
   }
 };
 
-// GOAL 4 — clients apportés par ce commissionnaire (Client.sourceCommissionnaireCode).
+// GOAL 4 - clients apportés par ce commissionnaire (Client.sourceCommissionnaireCode).
 export const getCommissionnaireClients = async (id: number): Promise<Client[]> => {
   try {
     const res = await api.get<{ nombre: number; data: Client[] }>(

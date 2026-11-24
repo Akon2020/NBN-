@@ -1,7 +1,7 @@
 "use strict";
 
 // CDC §3 module Bailleur : "Biens associés ... lien direct avec le module
-// biens" — un bien peut avoir été fourni par un bailleur.
+// biens" - un bien peut avoir été fourni par un bailleur.
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
