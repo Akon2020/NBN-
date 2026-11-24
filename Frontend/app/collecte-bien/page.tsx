@@ -30,6 +30,7 @@ import {
   normalizePhone,
 } from "@/lib/contactValidation"
 import { AgentCodeField } from "@/components/forms/agent-code-field"
+import { BailleurPicker } from "@/components/forms/bailleur-picker"
 import type { FieldAgentLookup } from "@/actions/propertyCollections"
 import {
   ACCEPTE_COMMISSION_CHOICES,
@@ -46,6 +47,8 @@ import {
   RESPONSABLE_STATUT_CHOICES,
   TYPE_MISSION_CHOICES,
   TYPE_OPERATION_CHOICES,
+  BAILLEUR_PRIORITES,
+  BAILLEUR_PRIORITE_LABELS,
   type PropertyCollectionPayload,
 } from "@/lib/types"
 import { toast } from "sonner"
@@ -92,6 +95,13 @@ const EMPTY_FORM = {
   responsablePhone: "",
   responsableEmail: "",
   responsableIdNumber: "",
+  responsablePhone2: "",
+  // Version de l'agence (membre connecté) : bailleur nouveau ou existant,
+  // catégorie du bailleur.
+  bailleurMode: "NOUVEAU",
+  idBailleur: "",
+  bailleurLabel: "",
+  bailleurPriorite: "",
   responsableDisponibiliteVisite: "",
   responsableAccepteCommission: "",
   collecteurNom: "",
@@ -142,6 +152,14 @@ export default function CollecteBienPage() {
   // commissionnaire, quand ce n'est pas lui qui remplit.
   const parCommissionnaire = !parLeCommissionnaire && form.remplisseur !== "" && form.parCommissionnaire === "OUI"
   const isRent = form.typeOperation === "RENT"
+  // Membre de l'équipe connecté (hors commissionnaire) : version de
+  // l'agence. Le Backend reste juge (bailleurs:manage) et répond 403 sinon.
+  const [isStaff, setIsStaff] = useState(false)
+  useEffect(() => {
+    const user = getAuthUser()
+    setIsStaff(Boolean(user && user.role !== "commissionnaire"))
+  }, [])
+  const existingBailleur = isStaff && form.bailleurMode === "EXISTANT"
   const countOf = (key: CountKey) => resolveCount(form[key], form[`${key}Autre`])
 
   // Préremplissage du commissionnaire quand la personne est connectée - la
@@ -203,6 +221,13 @@ export default function CollecteBienPage() {
         disponibilite: form.disponibilite || undefined,
         etatBien: form.etatBien || undefined,
         observations: observations || undefined,
+        ...(isStaff
+          ? {
+              bailleurPriorite: form.bailleurPriorite || undefined,
+              responsablePhone2: form.responsablePhone2.trim() ? normalizePhone(form.responsablePhone2) ?? undefined : undefined,
+              idBailleur: existingBailleur && form.idBailleur ? Number(form.idBailleur) : undefined,
+            }
+          : {}),
         responsableStatut: form.responsableStatut,
         responsableNom: form.responsableNom.trim(),
         responsablePhone: normalizePhone(form.responsablePhone) ?? form.responsablePhone.trim(),
@@ -241,7 +266,8 @@ export default function CollecteBienPage() {
       subtitle: "La suite du formulaire s'adapte à votre réponse.",
       validate: () => {
         if (!form.remplisseur) return "Indiquez qui remplit ce formulaire."
-        if (form.remplisseur === "COLLECTEUR" && !remplisseurAgent) {
+        // Un membre de l'équipe connecté peut collecter sans code collecteur.
+        if (form.remplisseur === "COLLECTEUR" && !remplisseurAgent && !(isStaff && !form.codeRemplisseur.trim())) {
           return "Saisissez votre code collecteur (CTR-...) : il doit être vérifié avant de continuer."
         }
         if (parLeCommissionnaire && !remplisseurAgent) {
@@ -270,7 +296,15 @@ export default function CollecteBienPage() {
             </p>
           )}
           {form.remplisseur === "COLLECTEUR" && (
-            <Field label="Votre code collecteur" required hint="Code attribué par l'agence, vérifié automatiquement.">
+            <Field
+              label="Votre code collecteur"
+              required={!isStaff}
+              hint={
+                isStaff
+                  ? "Facultatif pour un membre de l'équipe connecté."
+                  : "Code attribué par l'agence, vérifié automatiquement."
+              }
+            >
               <AgentCodeField
                 value={form.codeRemplisseur}
                 onChange={(v) => set("codeRemplisseur", v)}
@@ -481,6 +515,13 @@ export default function CollecteBienPage() {
         ? "Vos coordonnées, pour que l'agence puisse vous recontacter."
         : "Le propriétaire, mandataire, gérant ou la société qui gère ce bien.",
       validate: () => {
+        if (existingBailleur) {
+          return form.idBailleur ? null : "Choisissez le bailleur existant."
+        }
+        if (form.responsablePhone2.trim() && !normalizePhone(form.responsablePhone2)) {
+          return "Le second téléphone n'est pas valide."
+        }
+        if (isStaff && !pieceIdentite) return "Annexez la pièce d'identité du bailleur."
         if (!form.responsableStatut) return "Indiquez le statut du responsable."
         if (!form.responsableNom.trim()) return "Le nom du responsable est requis."
         if (!normalizePhone(form.responsablePhone)) return "Le téléphone du responsable n'est pas valide."
@@ -500,6 +541,49 @@ export default function CollecteBienPage() {
       },
       content: (
         <div className="space-y-5">
+          {isStaff && (
+            <div className="space-y-4 rounded-xl border border-border bg-muted/40 p-4">
+              <Field label="Profil du bailleur (agence)" required>
+                <ChoiceChips
+                  choices={[
+                    { value: "NOUVEAU", label: "Nouveau bailleur" },
+                    { value: "EXISTANT", label: "Bailleur existant" },
+                  ]}
+                  value={form.bailleurMode}
+                  onChange={(v) => set("bailleurMode", v)}
+                />
+              </Field>
+              {existingBailleur && (
+                <>
+                  <BailleurPicker
+                    selectedId={form.idBailleur ? Number(form.idBailleur) : null}
+                    onSelect={(bailleur) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        idBailleur: String(bailleur.idBailleur),
+                        bailleurLabel: `${bailleur.person?.fullName ?? ""} (${bailleur.person?.phone ?? bailleur.dossierNumber})`,
+                        bailleurPriorite: prev.bailleurPriorite || bailleur.priorite,
+                      }))
+                    }
+                  />
+                  {form.idBailleur && (
+                    <p className="text-sm">
+                      Bien rattaché à <strong>{form.bailleurLabel}</strong>. Son identité et sa pièce sont reprises de sa fiche.
+                    </p>
+                  )}
+                </>
+              )}
+              <Field label="Catégorie du bailleur" hint="Ordre de la liste des bailleurs : VIP, PREMIUM, STANDARD, INACTIF.">
+                <ChoiceChips
+                  choices={BAILLEUR_PRIORITES.map((value) => ({ value, label: BAILLEUR_PRIORITE_LABELS[value] }))}
+                  value={form.bailleurPriorite}
+                  onChange={(v) => set("bailleurPriorite", v)}
+                />
+              </Field>
+            </div>
+          )}
+          {!existingBailleur && (
+          <>
           <Field label="Statut" required>
             <ChoiceChips
               choices={RESPONSABLE_STATUT_CHOICES}
@@ -522,6 +606,17 @@ export default function CollecteBienPage() {
               placeholder="+243 ..."
             />
           </Field>
+          {isStaff && (
+            <Field label="Second téléphone">
+              <TextField
+                value={form.responsablePhone2}
+                onChange={(v) => set("responsablePhone2", v)}
+                type="tel"
+                inputMode="tel"
+                placeholder="+243 ..."
+              />
+            </Field>
+          )}
           <Field label="Adresse e-mail" required>
             <TextField
               value={form.responsableEmail}
@@ -542,8 +637,14 @@ export default function CollecteBienPage() {
             />
           </Field>
           <Field
-            label={parResponsable ? "Annexer votre pièce d'identité" : "Pièce d'identité du responsable"}
-            required={parResponsable}
+            label={
+              parResponsable
+                ? "Annexer votre pièce d'identité"
+                : isStaff
+                  ? "Pièce d'identité du bailleur"
+                  : "Pièce d'identité du responsable"
+            }
+            required={parResponsable || isStaff}
             hint={
               parResponsable
                 ? "Une photo lisible ou un PDF. Elle reste confidentielle et n'est visible que par l'administration."
@@ -587,6 +688,8 @@ export default function CollecteBienPage() {
               onChange={(v) => set("responsableAccepteCommission", v)}
             />
           </Field>
+          </>
+          )}
           {!parCommissionnaire && mediaNote}
         </div>
       ),

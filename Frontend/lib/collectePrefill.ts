@@ -2,12 +2,12 @@ import type { Bailleur } from "@/lib/types"
 
 // Même clé de brouillon que app/collecte-bien/page.tsx : le formulaire
 // restaure ce brouillon à l'ouverture.
-const COLLECTE_DRAFT_KEY = "nbn-collecte-bien-v2"
+const COLLECTE_DRAFT_KEY = "nbn-collecte-bien-v3"
 
 /**
- * Prépare le formulaire de collecte pour un bailleur déjà enregistré :
- * l'agent n'a plus qu'à saisir le bien. Le Backend rattache la collecte à ce
- * bailleur par son téléphone (jamais de doublon).
+ * Prépare le formulaire de collecte pour un bailleur déjà enregistré (version
+ * de l'agence) : le bien lui est rattaché directement, l'agent n'a plus qu'à
+ * saisir le bien.
  */
 export const prefillCollecteForBailleur = (bailleur: Bailleur) => {
   try {
@@ -18,11 +18,10 @@ export const prefillCollecteForBailleur = (bailleur: Bailleur) => {
         ...current,
         remplisseur: "COLLECTEUR",
         parCommissionnaire: "NON",
-        responsableStatut: bailleur.type,
-        responsableNom: bailleur.person?.fullName || "",
-        responsablePhone: bailleur.person?.phone || "",
-        responsableEmail: bailleur.person?.email || "",
-        responsableIdNumber: bailleur.person?.idNumber || "",
+        bailleurMode: "EXISTANT",
+        idBailleur: String(bailleur.idBailleur),
+        bailleurLabel: `${bailleur.person?.fullName || ""} (${bailleur.person?.phone || bailleur.dossierNumber || ""})`,
+        bailleurPriorite: bailleur.priorite || "",
       })
     )
   } catch {

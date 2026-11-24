@@ -23,6 +23,8 @@ import {
   normalizePhone,
 } from "../utils/contactValidation.js";
 import { KIND_OF_TYPE } from "../shared/propertyKinds.js";
+import { hasPermission } from "../utils/rbac.js";
+import { BAILLEUR_PRIORITES } from "./bailleur.controller.js";
 import { deleteIdentityDocument, storeIdentityDocument } from "../utils/identityDocuments.js";
 import { notifyPropertyCollection } from "../services/formNotifications.service.js";
 
@@ -105,6 +107,25 @@ const findAgentOfUser = async (user) => {
 
 const validateCollection = async (body, file, user = null) => {
   const fail = (error) => ({ error });
+
+  // Version de l'agence (P1.4) : un membre ayant bailleurs:manage définit
+  // le profil du bailleur (catégorie, téléphones), peut rattacher le bien à
+  // un bailleur existant, et doit annexer la pièce d'un nouveau bailleur.
+  const canManageBailleurs = user ? await hasPermission(user, "bailleurs:manage") : false;
+  let existingBailleur = null;
+  if (body.idBailleur) {
+    if (!canManageBailleurs) return { error: "Le rattachement à un bailleur existant est réservé à l'agence.", status: 403 };
+    existingBailleur = await Bailleur.findByPk(body.idBailleur, { include: [{ model: Person, as: "person" }] });
+    if (!existingBailleur) return fail("Le bailleur choisi n'existe pas.");
+  }
+  let bailleurPriorite = null;
+  if (body.bailleurPriorite !== undefined && body.bailleurPriorite !== "") {
+    if (!canManageBailleurs) return { error: "La catégorie du bailleur est réservée à l'agence.", status: 403 };
+    if (!BAILLEUR_PRIORITES.includes(body.bailleurPriorite)) {
+      return fail("Catégorie attendue : VIP, PREMIUM, STANDARD ou INACTIF.");
+    }
+    bailleurPriorite = body.bailleurPriorite;
+  }
 
   if (!REMPLISSEURS.includes(body.remplisseur)) {
     return fail("Indiquez qui remplit ce formulaire : le responsable du bien, un collecteur ou un commissionnaire.");
@@ -194,32 +215,54 @@ const validateCollection = async (body, file, user = null) => {
   }
 
   // --- Responsable du bien ---
-  if (!RESPONSABLE_STATUTS.includes(body.responsableStatut)) {
-    return fail("Indiquez le statut du responsable du bien.");
+  let responsableNom;
+  let responsablePhone;
+  let responsableEmail;
+  if (existingBailleur) {
+    // Bailleur existant : son identité vient de sa fiche.
+    responsableNom = existingBailleur.person.fullName;
+    responsablePhone = existingBailleur.person.phone;
+    responsableEmail = existingBailleur.person.email;
+  } else {
+    if (!RESPONSABLE_STATUTS.includes(body.responsableStatut)) {
+      return fail("Indiquez le statut du responsable du bien.");
+    }
+    responsableNom = text(body.responsableNom);
+    if (!responsableNom) return fail("Le nom du responsable est requis.");
+    responsablePhone = normalizePhone(body.responsablePhone);
+    if (!responsablePhone) return fail("Le téléphone du responsable n'est pas valide.");
+
+    // E-mail du responsable toujours requis : c'est par là que l'agence le
+    // recontacte par écrit (et qu'il reçoit la confirmation s'il remplit).
+    if (!text(body.responsableEmail)) {
+      return fail(parResponsable ? "Votre adresse e-mail est requise." : "L'adresse e-mail du responsable est requise.");
+    }
+    const emailCheck = await checkEmail(body.responsableEmail);
+    if (!emailCheck.ok) return fail(emailCheck.reason);
+    responsableEmail = emailCheck.email;
+
+    // Obligatoire quand le responsable remplit lui-même : c'est la seule
+    // preuve d'identité d'une personne que l'agence n'a jamais rencontrée.
+    // Facultative quand un collecteur la relève (« s'il y a possibilité »).
+    if (parResponsable && !file) return fail("Annexez votre carte d'identité.");
+
+    // Version de l'agence : la pièce d'identité d'un nouveau bailleur est
+    // obligatoire (sauf personne déjà connue avec sa pièce).
+    if (canManageBailleurs && !file) {
+      const known = await Person.findOne({ where: { phone: responsablePhone } });
+      if (!known?.idDocumentPath) return fail("Annexez la pièce d'identité du bailleur.");
+    }
   }
-  const responsableNom = text(body.responsableNom);
-  if (!responsableNom) return fail("Le nom du responsable est requis.");
-  const responsablePhone = normalizePhone(body.responsablePhone);
-  if (!responsablePhone) return fail("Le téléphone du responsable n'est pas valide.");
-
-  // E-mail du responsable toujours requis : c'est par là que l'agence le
-  // recontacte par écrit (et qu'il reçoit la confirmation s'il remplit).
-  if (!text(body.responsableEmail)) {
-    return fail(parResponsable ? "Votre adresse e-mail est requise." : "L'adresse e-mail du responsable est requise.");
+  let responsablePhone2 = null;
+  if (text(body.responsablePhone2)) {
+    responsablePhone2 = normalizePhone(body.responsablePhone2);
+    if (!responsablePhone2) return fail("Le second téléphone du responsable n'est pas valide.");
   }
-  const emailCheck = await checkEmail(body.responsableEmail);
-  if (!emailCheck.ok) return fail(emailCheck.reason);
-  const responsableEmail = emailCheck.email;
 
-  // Obligatoire quand le responsable remplit lui-même : c'est la seule
-  // preuve d'identité d'une personne que l'agence n'a jamais rencontrée.
-  // Facultative quand un collecteur la relève (« s'il y a possibilité »).
-  if (parResponsable && !file) return fail("Annexez votre carte d'identité.");
-
-  if (!DISPONIBILITES_VISITE.includes(body.responsableDisponibiliteVisite)) {
+  if (!existingBailleur && !DISPONIBILITES_VISITE.includes(body.responsableDisponibiliteVisite)) {
     return fail("Indiquez si le responsable est disponible pour les visites.");
   }
-  if (!ACCEPTATIONS_COMMISSION.includes(body.responsableAccepteCommission)) {
+  if (!existingBailleur && !ACCEPTATIONS_COMMISSION.includes(body.responsableAccepteCommission)) {
     return fail("Indiquez si le responsable accepte la commission de l'agence.");
   }
 
@@ -258,6 +301,9 @@ const validateCollection = async (body, file, user = null) => {
       codeCommissionnaire: commissionnaireAgent?.code ?? null,
       remplisseurAgent,
       commissionnaireAgent,
+      existingBailleur,
+      bailleurPriorite,
+      responsablePhone2,
     },
   };
 };
@@ -270,9 +316,13 @@ const validateCollection = async (body, file, user = null) => {
 export const createPropertyCollection = async (req, res, next) => {
   // Validation (DNS de l'e-mail compris) hors transaction : aucune
   // connexion MySQL retenue pendant la vérification.
-  const { error: validationError, values } = await validateCollection(req.body, req.file, req.user ?? null);
+  const { error: validationError, status: validationStatus, values } = await validateCollection(
+    req.body,
+    req.file,
+    req.user ?? null
+  );
   if (validationError) {
-    return res.status(400).json({ message: validationError });
+    return res.status(validationStatus ?? 400).json({ message: validationError });
   }
 
   // Écrit avant la transaction (lent, hors connexion MySQL), supprimé si
@@ -296,61 +346,72 @@ export const createPropertyCollection = async (req, res, next) => {
   const transaction = await db.transaction();
   try {
     // --- Responsable → Person + Bailleur (dédoublonnés par téléphone) ---
-    let ownerPerson = await Person.findOne({
-      where: { phone: values.responsablePhone },
-      transaction,
-    });
-    if (!ownerPerson) {
-      ownerPerson = await Person.create(
-        {
-          fullName: values.responsableNom,
-          phone: values.responsablePhone,
-          email: values.responsableEmail,
-          idNumber: values.responsableIdNumber,
-          ...(storedDocument ?? {}),
-        },
-        { transaction }
-      );
-      documentAttached = Boolean(storedDocument);
-    } else {
-      // Complète une fiche existante sans jamais écraser ce que l'agence
-      // a déjà renseigné ou corrigé. Vaut aussi pour la pièce d'identité :
-      // cette route est publique, connaître le téléphone d'un bailleur ne
-      // doit pas suffire à remplacer son document.
-      const missing = {};
-      if (!ownerPerson.email && values.responsableEmail) missing.email = values.responsableEmail;
-      if (!ownerPerson.idNumber && values.responsableIdNumber) {
-        missing.idNumber = values.responsableIdNumber;
-      }
-      if (!ownerPerson.idDocumentPath && storedDocument) {
-        Object.assign(missing, storedDocument);
+    let bailleur;
+    if (values.existingBailleur) {
+      bailleur = values.existingBailleur;
+      if (values.bailleurPriorite) await bailleur.update({ priorite: values.bailleurPriorite }, { transaction });
+      if (storedDocument && !bailleur.person.idDocumentPath) {
+        await bailleur.person.update(storedDocument, { transaction });
         documentAttached = true;
       }
-      if (Object.keys(missing).length) await ownerPerson.update(missing, { transaction });
-    }
-
-    let bailleur = await Bailleur.findOne({
-      where: { idPerson: ownerPerson.idPerson },
-      transaction,
-    });
-    const ownerConditions = {
-      type: req.body.responsableStatut,
-      disponibiliteVisite: req.body.responsableDisponibiliteVisite,
-      accepteCommission: req.body.responsableAccepteCommission,
-    };
-    if (!bailleur) {
-      bailleur = await Bailleur.create(
-        { idPerson: ownerPerson.idPerson, ...ownerConditions },
-        { transaction }
-      );
-      await bailleur.update(
-        {
-          dossierNumber: `BAI-${new Date().getFullYear()}-${String(bailleur.idBailleur).padStart(6, "0")}`,
-        },
-        { transaction }
-      );
     } else {
-      await bailleur.update(ownerConditions, { transaction });
+      let ownerPerson = await Person.findOne({
+        where: { phone: values.responsablePhone },
+        transaction,
+      });
+      if (!ownerPerson) {
+        ownerPerson = await Person.create(
+          {
+            fullName: values.responsableNom,
+            phone: values.responsablePhone,
+            email: values.responsableEmail,
+            idNumber: values.responsableIdNumber,
+            ...(storedDocument ?? {}),
+          },
+          { transaction }
+        );
+        documentAttached = Boolean(storedDocument);
+      } else {
+        // Complète une fiche existante sans jamais écraser ce que l'agence
+        // a déjà renseigné ou corrigé. Vaut aussi pour la pièce d'identité :
+        // cette route est publique, connaître le téléphone d'un bailleur ne
+        // doit pas suffire à remplacer son document.
+        const missing = {};
+        if (!ownerPerson.email && values.responsableEmail) missing.email = values.responsableEmail;
+        if (!ownerPerson.idNumber && values.responsableIdNumber) {
+          missing.idNumber = values.responsableIdNumber;
+        }
+        if (!ownerPerson.idDocumentPath && storedDocument) {
+          Object.assign(missing, storedDocument);
+          documentAttached = true;
+        }
+        if (Object.keys(missing).length) await ownerPerson.update(missing, { transaction });
+      }
+
+      bailleur = await Bailleur.findOne({
+        where: { idPerson: ownerPerson.idPerson },
+        transaction,
+      });
+      const ownerConditions = {
+        type: req.body.responsableStatut,
+        disponibiliteVisite: req.body.responsableDisponibiliteVisite,
+        accepteCommission: req.body.responsableAccepteCommission,
+      };
+      if (!bailleur) {
+        bailleur = await Bailleur.create(
+          { idPerson: ownerPerson.idPerson, ...ownerConditions },
+          { transaction }
+        );
+        await bailleur.update(
+          {
+            dossierNumber: `BAI-${new Date().getFullYear()}-${String(bailleur.idBailleur).padStart(6, "0")}`,
+          },
+          { transaction }
+        );
+      } else {
+        await bailleur.update(ownerConditions, { transaction });
+      }
+      if (values.bailleurPriorite) await bailleur.update({ priorite: values.bailleurPriorite }, { transaction });
     }
 
     // --- Bien ---
@@ -395,10 +456,9 @@ export const createPropertyCollection = async (req, res, next) => {
       await SaleProperty.create({ idProperty: property.idProperty }, { transaction });
     }
 
-    await PropertyPhone.create(
-      { idProperty: property.idProperty, phoneNumber: values.responsablePhone },
-      { transaction }
-    );
+    for (const phoneNumber of [values.responsablePhone, values.responsablePhone2].filter(Boolean)) {
+      await PropertyPhone.create({ idProperty: property.idProperty, phoneNumber }, { transaction });
+    }
 
     await recalculatePropertyMargin(property, {
       transaction,

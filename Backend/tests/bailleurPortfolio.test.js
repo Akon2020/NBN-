@@ -20,7 +20,7 @@ const createBailleur = async (key, fullName, priorite) => {
 
 beforeAll(async () => {
   const hashed = await bcrypt.hash("TestPass@123", await bcrypt.genSalt());
-  for (const role of ["operations", "marketing"]) {
+  for (const role of ["operations", "communication"]) {
     users[role] = await User.create({
       fullName: `${role} portfolio ${suffix}`,
       email: `${role}.portfolio.${suffix}@nbn.test`,
@@ -125,7 +125,7 @@ describe("Profil d'un bailleur", () => {
 
 describe("Confidentialité du lien bien ↔ bailleur", () => {
   it("un rôle sans bailleurs:read ne voit ni le bailleur ni les numéros du bien", async () => {
-    const res = await request(app).get(`/api/properties/${property.idProperty}`).set("Cookie", cookies.marketing);
+    const res = await request(app).get(`/api/properties/${property.idProperty}`).set("Cookie", cookies.communication);
     expect(res.status).toBe(200);
     expect(res.body).not.toHaveProperty("idBailleur");
     expect(res.body).not.toHaveProperty("phones");

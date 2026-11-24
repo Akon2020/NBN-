@@ -57,7 +57,7 @@ beforeAll(async () => {
     fullName: "Juridique Timeline Test",
     email: juridiqueEmail,
     password: hashed,
-    role: "juridique",
+    role: "tresorerie",
     status: "ACTIVE",
   });
   createdUserIds.push(juridique.idUser);

@@ -30,6 +30,7 @@ const cmrCode = `CMR-${agentNumber}`;
 const ctrCode = `CTR-${agentNumber}`;
 const suspendedCode = `CMR-${agentNumber + 1}`;
 const agents = {};
+const extraUserIds = [];
 
 const createdPropertyIds = [];
 const createdPersonIds = [];
@@ -133,6 +134,11 @@ afterAll(async () => {
       .filter((person) => person.idDocumentPath)
       .forEach((person) => fs.rmSync(path.resolve(person.idDocumentPath), { force: true }));
     await Person.destroy({ where: { idPerson: createdPersonIds } });
+  }
+  if (extraUserIds.length) {
+    await Alert.destroy({ where: { createdBy: extraUserIds } });
+    await TimelineEvent.destroy({ where: { actorUserId: extraUserIds } });
+    await User.destroy({ where: { idUser: extraUserIds } });
   }
 });
 
@@ -348,5 +354,92 @@ describe("Formulaire de collecte de bien", () => {
 
     const bailleur = await Bailleur.findByPk(property.idBailleur);
     expect(bailleur.type).toBe("PROPRIETAIRE");
+  });
+});
+
+describe("P1.4 - Version de l'agence : profil du bailleur", () => {
+  const staff = {};
+  const adminPayload = () => ({
+    ...basePayload,
+    remplisseur: "COLLECTEUR",
+    codeCollecteur: undefined,
+    parCommissionnaire: false,
+    codeCommissionnaire: undefined,
+  });
+
+  beforeAll(async () => {
+    const bcrypt = (await import("bcryptjs")).default;
+    staff.user = await User.create({
+      fullName: `Ops P14 ${suffix}`,
+      email: `ops.p14.${suffix}@nbn.test`,
+      password: await bcrypt.hash("TestPass@123", 4),
+      role: "operations",
+      status: "ACTIVE",
+    });
+    const login = await request(app).post("/api/auth/login").send({ email: staff.user.email, password: "TestPass@123" });
+    staff.cookies = login.headers["set-cookie"];
+  });
+
+  // Supprimé après les biens qu'il a créés (afterAll du fichier).
+  afterAll(async () => {
+    await Notification.destroy({ where: { idUser: staff.user.idUser } });
+    extraUserIds.push(staff.user.idUser);
+  });
+
+  it("refuse un nouveau bailleur sans pièce d'identité, et la catégorie pour un visiteur", async () => {
+    const res = await request(app)
+      .post("/api/property-collections")
+      .set("Cookie", staff.cookies)
+      .send({ ...adminPayload(), responsablePhone: `+24392${String(suffix).slice(-7)}` });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/pièce d'identité du bailleur/);
+
+    const anonymous = await request(app).post("/api/property-collections").send({ ...basePayload, bailleurPriorite: "VIP" });
+    expect(anonymous.status).toBe(403);
+  });
+
+  it("crée un nouveau bailleur VIP avec sa pièce et deux téléphones", async () => {
+    const piece = await sharp({ create: { width: 30, height: 20, channels: 3, background: "#14294a" } }).png().toBuffer();
+    const phone = `+24392${String(suffix).slice(-7)}`;
+    const res = await request(app)
+      .post("/api/property-collections")
+      .set("Cookie", staff.cookies)
+      .field(
+        "data",
+        JSON.stringify({ ...adminPayload(), responsablePhone: phone, responsablePhone2: "0997000111", bailleurPriorite: "VIP" })
+      )
+      .attach("pieceIdentite", piece, { filename: "cni.png", contentType: "image/png" });
+    expect(res.status).toBe(201);
+    const property = await trackProperty(res.body.data.idProperty);
+    const bailleur = await Bailleur.findByPk(property.idBailleur, { include: [{ model: Person, as: "person" }] });
+    expect(bailleur.priorite).toBe("VIP");
+    expect(bailleur.person.idDocumentPath).toBeTruthy();
+    const phones = await PropertyPhone.findAll({ where: { idProperty: property.idProperty } });
+    expect(phones.map((p) => p.phoneNumber).sort()).toEqual([phone, "+243997000111"].sort());
+    staff.bailleurId = bailleur.idBailleur;
+  });
+
+  it("rattache un second bien au même bailleur existant, sans ressaisir son identité", async () => {
+    const payload = adminPayload();
+    delete payload.responsableNom;
+    delete payload.responsablePhone;
+    delete payload.responsableEmail;
+    const res = await request(app)
+      .post("/api/property-collections")
+      .set("Cookie", staff.cookies)
+      .send({ ...payload, idBailleur: staff.bailleurId, bailleurPriorite: "PREMIUM", propertyType: "BUREAU" });
+    expect(res.status).toBe(201);
+    const property = await trackProperty(res.body.data.idProperty);
+    expect(property.idBailleur).toBe(staff.bailleurId);
+    expect(property.propertyType).toBe("BUREAU");
+    expect((await Bailleur.findByPk(staff.bailleurId)).priorite).toBe("PREMIUM");
+
+    const search = await request(app).get(`/api/bailleurs?q=${String(suffix).slice(-7)}`).set("Cookie", staff.cookies);
+    expect(search.body.data.map((b) => b.idBailleur)).toContain(staff.bailleurId);
+  });
+
+  it("un visiteur ne peut pas rattacher un bien à un bailleur existant", async () => {
+    const res = await request(app).post("/api/property-collections").send({ ...basePayload, idBailleur: staff.bailleurId });
+    expect(res.status).toBe(403);
   });
 });

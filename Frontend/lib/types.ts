@@ -1689,6 +1689,10 @@ export interface PropertyCollectionPayload {
   codeCollecteur?: string
   codeRemplisseur?: string
   parCommissionnaire?: boolean
+  // Version de l'agence (bailleurs:manage).
+  idBailleur?: number
+  bailleurPriorite?: string
+  responsablePhone2?: string
   typeMission: string
   typeOperation: string
   propertyType: string

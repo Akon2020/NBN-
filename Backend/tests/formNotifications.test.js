@@ -177,7 +177,14 @@ describe("Notifications des formulaires publics", () => {
     const login = await request(app)
       .post("/api/auth/login")
       .send({ email: users.operations.email, password: "TestPass@123" });
-    const res = await request(app).post("/api/property-collections").set("Cookie", login.headers["set-cookie"]).send({
+    // Version de l'agence : pièce d'identité du nouveau bailleur obligatoire.
+    const { default: sharp } = await import("sharp");
+    const piece = await sharp({ create: { width: 20, height: 20, channels: 3, background: "#245640" } }).png().toBuffer();
+    const res = await request(app)
+      .post("/api/property-collections")
+      .set("Cookie", login.headers["set-cookie"])
+      .attach("pieceIdentite", piece, { filename: "cni.png", contentType: "image/png" })
+      .field("data", JSON.stringify({
       remplisseur: "COLLECTEUR",
       parCommissionnaire: false,
       typeMission: "COLLECTE_BIEN",
@@ -198,7 +205,7 @@ describe("Notifications des formulaires publics", () => {
       responsableEmail: `proprietaire.notif.${suffix}@gmail.com`,
       responsableDisponibiliteVisite: "OUI",
       responsableAccepteCommission: "OUI",
-    });
+    }));
     expect(res.status).toBe(201);
     created.properties.push(res.body.data.idProperty);
 

@@ -108,6 +108,16 @@ export const getAllBailleurs = async (req, res, next) => {
       ? { dossierNumber: { [Op.like]: `%${req.query.dossierNumber}%` } }
       : {};
     if (BAILLEUR_PRIORITES.includes(req.query.priorite)) where.priorite = req.query.priorite;
+    // Recherche par nom ou par téléphone (rattachement d'un bien à un
+    // bailleur existant depuis le formulaire de collecte de l'agence).
+    const q = String(req.query.q ?? "").trim();
+    if (q) {
+      const digits = q.replace(/\D/g, "");
+      where[Op.or] = [
+        { "$person.fullName$": { [Op.like]: `%${q}%` } },
+        ...(digits.length >= 4 ? [{ "$person.phone$": { [Op.like]: `%${digits.slice(-9)}%` } }] : []),
+      ];
+    }
 
     const bailleurs = await Bailleur.findAll({
       where,
