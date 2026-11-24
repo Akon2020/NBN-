@@ -1,3 +1,4 @@
+import { CODE_PREFIXES, nextSequenceCode } from "../shared/codes.js";
 import { Op } from "sequelize";
 import db from "../database/db.js";
 import { RentalRequest, Client, Person } from "../models/index.model.js";
@@ -6,6 +7,7 @@ import { createAlert } from "../services/notification.service.js";
 import { resolveQuartier } from "../shared/bukavuLocations.js";
 import { MODALITES_PAIEMENT } from "../shared/paymentTerms.js";
 import { notifyRentalRequest } from "../services/formNotifications.service.js";
+import { findActiveFieldAgent } from "./propertyCollection.controller.js";
 import {
   checkEmail,
   normalizeCommissionnaireCode,
@@ -175,7 +177,7 @@ const validateRentalRequest = async (body) => {
   if (body.orienteParAgent) {
     codeCommissionnaire = normalizeCommissionnaireCode(body.codeCommissionnaire);
     if (!codeCommissionnaire) {
-      return fail("Le code commissionnaire est requis, au format CCM-042.");
+      return fail("Le code commissionnaire est requis, au format CMR-042.");
     }
   }
 
@@ -260,10 +262,11 @@ export const createRentalRequest = async (req, res, next) => {
     };
 
     if (isNewClient) {
-      client = await Client.create({ ...clientData, statutPipeline: "NOUVEAU" }, { transaction });
-      await client.update(
+      client = await Client.create(
         {
-          dossierNumber: `CLI-${new Date().getFullYear()}-${String(client.idClient).padStart(6, "0")}`,
+          ...clientData,
+          statutPipeline: "NOUVEAU",
+          dossierNumber: await nextSequenceCode(CODE_PREFIXES.CLIENT, transaction),
         },
         { transaction }
       );
@@ -311,7 +314,12 @@ export const createRentalRequest = async (req, res, next) => {
     // e-mail. Les e-mails sont mis en file : un souci à cette étape ne doit
     // jamais transformer une demande enregistrée en erreur pour le client.
     try {
-      await notifyRentalRequest({ rentalRequest, client });
+      // Le commissionnaire dont le client a saisi le code est prévenu s'il
+      // a un compte ; un code inconnu ne bloque jamais la demande.
+      const fieldAgent = values.codeCommissionnaire
+        ? await findActiveFieldAgent(values.codeCommissionnaire, "COMMISSIONNAIRE")
+        : null;
+      await notifyRentalRequest({ rentalRequest, client, fieldAgent });
     } catch (notifyError) {
       console.error("Notification de la demande de location :", notifyError.message);
     }

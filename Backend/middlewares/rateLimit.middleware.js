@@ -61,10 +61,26 @@ export const tokenLimiter = rateLimit({
 // route ouverte serve à inonder la base de faux dossiers.
 export const publicFormLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 heure
-  limit: 20,
+  limit: envNumber("PUBLIC_FORM_RATE_LIMIT", 20),
+  // Seules les soumissions acceptées comptent : un visiteur qui corrige une
+  // erreur de saisie n'est pas pénalisé. Un membre de l'équipe connecté
+  // (identifié par optionalAuth en amont) n'est pas limité : toute l'agence
+  // partage souvent une même adresse publique.
+  skipFailedRequests: true,
+  skip: (req) => Boolean(req.user),
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     message: "Trop de soumissions depuis cet appareil. Veuillez réessayer plus tard.",
   },
+});
+
+// Vérification d'un code commissionnaire ou collecteur depuis un formulaire
+// public : assez pour une saisie normale, trop peu pour parcourir les codes.
+export const agentLookupLimiter = rateLimit({
+  windowMs: minutes(15),
+  limit: envNumber("AGENT_LOOKUP_RATE_LIMIT", 30),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Trop de vérifications de code. Réessayez dans 15 minutes." },
 });

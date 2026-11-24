@@ -18,28 +18,35 @@ import { resolveQuartier } from "../shared/bukavuLocations.js";
 import { MODALITES_PAIEMENT } from "../shared/paymentTerms.js";
 import {
   checkEmail,
+  normalizeCollecteurCode,
   normalizeCommissionnaireCode,
   normalizePhone,
 } from "../utils/contactValidation.js";
+import { KIND_OF_TYPE } from "../shared/propertyKinds.js";
 import { deleteIdentityDocument, storeIdentityDocument } from "../utils/identityDocuments.js";
 import { notifyPropertyCollection } from "../services/formNotifications.service.js";
 
 const MISSION_TYPES = ["COLLECTE_BIEN", "APPORT_CLIENT", "SUIVI", "MISE_A_JOUR"];
-const PROPERTY_TYPES = [
-  "APPARTEMENT",
-  "MAISON",
-  "CONSTRUCTION_DURABLE",
-  "CONSTRUCTION_SEMI_DURABLE",
-  "TERRAIN_PLAT",
-  "TERRAIN_PENTE",
-  "PARCELLE",
-  "CHAMBRE",
-];
+// Liste unique de l'agence, plus les anciens types encore envoyés par
+// l'application mobile hors ligne (rattachés au même type affiché).
+const PROPERTY_TYPES = Object.keys(KIND_OF_TYPE);
 const COMMUNES = ["IBANDA", "KADUTU", "BAGIRA"];
 
-// Qui remplit le formulaire : le responsable du bien lui-même, ou un
-// collecteur (commissionnaire ou membre de l'équipe) qui le relève.
-const REMPLISSEURS = ["RESPONSABLE", "COLLECTEUR"];
+// Qui remplit le formulaire : le responsable du bien lui-même, un
+// collecteur (code CTR) ou un commissionnaire (code CMR).
+const REMPLISSEURS = ["RESPONSABLE", "COLLECTEUR", "COMMISSIONNAIRE"];
+// Un code suspendu ou exclu n'est plus accepté.
+const ACTIVE_AGENT_STATUTS = ["ACTIF", "OBSERVATION"];
+
+// Fiche terrain active correspondant à un code CMR ou CTR.
+export const findActiveFieldAgent = async (code, profil) => {
+  if (!code) return null;
+  const agent = await Commissionnaire.findOne({
+    where: { code, profil },
+    include: [{ model: Person, as: "person" }],
+  });
+  return agent && ACTIVE_AGENT_STATUTS.includes(agent.statut) ? agent : null;
+};
 const RESPONSABLE_STATUTS = ["PROPRIETAIRE", "MANDATAIRE", "GERANT", "SOCIETE"];
 const DISPONIBILITES_VISITE = ["OUI", "NON", "SUR_PROGRAMME"];
 const ACCEPTATIONS_COMMISSION = ["OUI", "NON", "A_NEGOCIER"];
@@ -90,17 +97,53 @@ const parseCount = (raw) => {
 // Renvoie `{ error }` (premier manque, dans l'ordre du formulaire) ou
 // `{ values }` normalisées. Même règles que les étapes du formulaire web,
 // qui n'est qu'un client parmi d'autres de cette route.
-const validateCollection = async (body, file) => {
+// Fiche terrain liée au compte connecté (commissionnaire ou collecteur).
+const findAgentOfUser = async (user) => {
+  const person = await Person.findOne({ where: { idUser: user.idUser } });
+  return person ? Commissionnaire.findOne({ where: { idPerson: person.idPerson } }) : null;
+};
+
+const validateCollection = async (body, file, user = null) => {
   const fail = (error) => ({ error });
 
   if (!REMPLISSEURS.includes(body.remplisseur)) {
-    return fail("Indiquez qui remplit ce formulaire (le responsable du bien ou un collecteur).");
+    return fail("Indiquez qui remplit ce formulaire : le responsable du bien, un collecteur ou un commissionnaire.");
   }
   const parResponsable = body.remplisseur === "RESPONSABLE";
-  if (!parResponsable && typeof body.parCommissionnaire !== "boolean") {
-    return fail("Indiquez si le bien est collecté par un commissionnaire.");
+
+  // Code du collecteur (CTR) ou du commissionnaire (CMR) qui remplit,
+  // vérifié en base. Un membre de l'équipe connecté peut collecter sans
+  // code ; un commissionnaire connecté ne peut utiliser que le sien.
+  let remplisseurAgent = null;
+  const ownAgent = user ? await findAgentOfUser(user) : null;
+  if (body.remplisseur === "COLLECTEUR") {
+    const code = normalizeCollecteurCode(body.codeCollecteur);
+    if (code) {
+      remplisseurAgent = await findActiveFieldAgent(code, "COLLECTEUR");
+      if (!remplisseurAgent) return fail(`Le code collecteur ${code} n'existe pas ou n'est plus actif.`);
+    } else if (!user || ownAgent) {
+      return fail("Le code collecteur est requis, au format CTR-007.");
+    }
   }
-  const parCommissionnaire = !parResponsable && body.parCommissionnaire === true;
+  if (body.remplisseur === "COMMISSIONNAIRE") {
+    const code = ownAgent?.profil === "COMMISSIONNAIRE" ? ownAgent.code : normalizeCommissionnaireCode(body.codeRemplisseur ?? body.codeCommissionnaire);
+    if (!code) return fail("Votre code commissionnaire est requis, au format CMR-042.");
+    remplisseurAgent = await findActiveFieldAgent(code, "COMMISSIONNAIRE");
+    if (!remplisseurAgent) return fail(`Le code commissionnaire ${code} n'existe pas ou n'est plus actif.`);
+  }
+  if (ownAgent && remplisseurAgent && ownAgent.idCommissionnaire !== remplisseurAgent.idCommissionnaire) {
+    return fail("Utilisez votre propre code pour enregistrer un bien.");
+  }
+
+  // « Ce bien a-t-il été apporté par un commissionnaire ? » : implicite
+  // quand le commissionnaire remplit lui-même, demandé sinon.
+  let parCommissionnaire = body.remplisseur === "COMMISSIONNAIRE";
+  if (!parCommissionnaire) {
+    if (typeof body.parCommissionnaire !== "boolean") {
+      return fail("Indiquez si ce bien a été apporté par un commissionnaire.");
+    }
+    parCommissionnaire = body.parCommissionnaire;
+  }
 
   if (!MISSION_TYPES.includes(body.typeMission)) return fail("Le type de mission est requis.");
   if (!["RENT", "SALE"].includes(body.typeOperation)) {
@@ -159,16 +202,14 @@ const validateCollection = async (body, file) => {
   const responsablePhone = normalizePhone(body.responsablePhone);
   if (!responsablePhone) return fail("Le téléphone du responsable n'est pas valide.");
 
-  let responsableEmail = null;
-  if (text(body.responsableEmail)) {
-    const emailCheck = await checkEmail(body.responsableEmail);
-    if (!emailCheck.ok) return fail(emailCheck.reason);
-    responsableEmail = emailCheck.email;
-  } else if (parResponsable) {
-    // Le responsable qui remplit lui-même doit pouvoir être recontacté
-    // par écrit - c'est aussi là qu'il recevra la confirmation.
-    return fail("Votre adresse e-mail est requise.");
+  // E-mail du responsable toujours requis : c'est par là que l'agence le
+  // recontacte par écrit (et qu'il reçoit la confirmation s'il remplit).
+  if (!text(body.responsableEmail)) {
+    return fail(parResponsable ? "Votre adresse e-mail est requise." : "L'adresse e-mail du responsable est requise.");
   }
+  const emailCheck = await checkEmail(body.responsableEmail);
+  if (!emailCheck.ok) return fail(emailCheck.reason);
+  const responsableEmail = emailCheck.email;
 
   // Obligatoire quand le responsable remplit lui-même : c'est la seule
   // preuve d'identité d'une personne que l'agence n'a jamais rencontrée.
@@ -182,20 +223,19 @@ const validateCollection = async (body, file) => {
     return fail("Indiquez si le responsable accepte la commission de l'agence.");
   }
 
-  // --- Commissionnaire ---
-  let collecteurNom = text(body.collecteurNom) || null;
-  let collecteurPhone = null;
-  let codeCommissionnaire = null;
-  if (parCommissionnaire) {
-    if (!collecteurNom) return fail("Le nom du commissionnaire est requis.");
-    collecteurPhone = normalizePhone(body.collecteurPhone);
-    if (!collecteurPhone) return fail("Le téléphone du commissionnaire n'est pas valide.");
-    codeCommissionnaire = normalizeCommissionnaireCode(body.codeCommissionnaire);
-    if (!codeCommissionnaire) {
-      return fail("Le code commissionnaire est requis, au format CCM-042.");
-    }
+  // --- Commissionnaire qui a apporté le bien ---
+  // Nom et téléphone viennent toujours de sa fiche, jamais de la saisie.
+  let commissionnaireAgent = body.remplisseur === "COMMISSIONNAIRE" ? remplisseurAgent : null;
+  if (parCommissionnaire && !commissionnaireAgent) {
+    const code = normalizeCommissionnaireCode(body.codeCommissionnaire);
+    if (!code) return fail("Le code du commissionnaire est requis, au format CMR-042.");
+    commissionnaireAgent = await findActiveFieldAgent(code, "COMMISSIONNAIRE");
+    if (!commissionnaireAgent) return fail(`Le code commissionnaire ${code} n'existe pas ou n'est plus actif.`);
   }
-  if (parResponsable) collecteurNom = null;
+
+  const collecteurNom = parResponsable
+    ? null
+    : remplisseurAgent?.person?.fullName || text(body.collecteurNom) || user?.fullName || null;
 
   return {
     values: {
@@ -213,8 +253,11 @@ const validateCollection = async (body, file) => {
       responsableEmail,
       responsableIdNumber: text(body.responsableIdNumber) || null,
       collecteurNom,
-      collecteurPhone,
-      codeCommissionnaire,
+      collecteurPhone: remplisseurAgent?.person?.phone || null,
+      codeCollecteur: body.remplisseur === "COLLECTEUR" ? remplisseurAgent?.code ?? null : null,
+      codeCommissionnaire: commissionnaireAgent?.code ?? null,
+      remplisseurAgent,
+      commissionnaireAgent,
     },
   };
 };
@@ -227,7 +270,7 @@ const validateCollection = async (body, file) => {
 export const createPropertyCollection = async (req, res, next) => {
   // Validation (DNS de l'e-mail compris) hors transaction : aucune
   // connexion MySQL retenue pendant la vérification.
-  const { error: validationError, values } = await validateCollection(req.body, req.file);
+  const { error: validationError, values } = await validateCollection(req.body, req.file, req.user ?? null);
   if (validationError) {
     return res.status(400).json({ message: validationError });
   }
@@ -324,6 +367,7 @@ export const createPropertyCollection = async (req, res, next) => {
       ...values.counts,
       idBailleur: bailleur.idBailleur,
       codeCommissionnaire: values.codeCommissionnaire,
+      codeCollecteur: values.codeCollecteur,
       informateur: values.parResponsable
         ? `${values.responsableNom} (responsable du bien)`
         : collecteur,
@@ -367,14 +411,9 @@ export const createPropertyCollection = async (req, res, next) => {
     // est déjà en base). Les codes enregistrés avant la normalisation CCM
     // restent retrouvables par leur saisie d'origine.
     let mission = null;
-    const commissionnaire = values.codeCommissionnaire
-      ? await Commissionnaire.findOne({
-          where: {
-            code: { [Op.in]: [values.codeCommissionnaire, text(req.body.codeCommissionnaire)] },
-          },
-          transaction,
-        })
-      : null;
+    // La mission de traçabilité va au commissionnaire qui a apporté le
+    // bien, sinon au collecteur qui l'a relevé.
+    const commissionnaire = values.commissionnaireAgent || values.remplisseurAgent;
 
     if (commissionnaire) {
       mission = await Mission.create(
@@ -396,10 +435,12 @@ export const createPropertyCollection = async (req, res, next) => {
     }
 
     const source = values.parResponsable
-      ? `Soumis par le responsable (${values.responsableNom})`
+      ? `Soumis par le responsable (${values.responsableNom})${
+          values.codeCommissionnaire ? `, apporté par ${values.commissionnaireAgent.person?.fullName} (${values.codeCommissionnaire})` : ""
+        }`
       : `Collecté par ${collecteur || "un membre de l'équipe"}${
-          values.codeCommissionnaire ? ` (${values.codeCommissionnaire})` : ""
-        }`;
+          values.codeCollecteur ? ` (${values.codeCollecteur})` : ""
+        }${values.codeCommissionnaire ? `, commissionnaire ${values.codeCommissionnaire}` : ""}`;
 
     await recordTimelineEvent({
       entityType: "PROPERTY",
@@ -411,6 +452,7 @@ export const createPropertyCollection = async (req, res, next) => {
       metadata: {
         remplisseur: req.body.remplisseur,
         collecteurNom: values.collecteurNom,
+        codeCollecteur: values.codeCollecteur,
         codeCommissionnaire: values.codeCommissionnaire,
       },
     });
@@ -437,6 +479,9 @@ export const createPropertyCollection = async (req, res, next) => {
         },
         source,
         parResponsable: values.parResponsable,
+        // Le commissionnaire (ou collecteur) dont le code a été saisi est
+        // prévenu s'il a un compte.
+        fieldAgents: [values.commissionnaireAgent, values.remplisseurAgent].filter(Boolean),
       });
     } catch (notifyError) {
       console.error("Notification de la collecte de bien :", notifyError.message);
@@ -453,6 +498,35 @@ export const createPropertyCollection = async (req, res, next) => {
   } catch (error) {
     await transaction.rollback();
     if (storedDocument) await deleteIdentityDocument(storedDocument.idDocumentPath);
+    res.status(500).json({ message: "Erreur serveur" });
+    next(error);
+  }
+};
+
+const maskPhone = (phone) => (phone ? `${"*".repeat(Math.max(phone.length - 3, 0))}${phone.slice(-3)}` : null);
+
+// Vérification d'un code saisi dans le formulaire (CMR ou CTR), pour
+// afficher le nom et le téléphone de la fiche avant l'envoi.
+export const lookupFieldAgent = async (req, res, next) => {
+  try {
+    const raw = String(req.params.code ?? "");
+    const profil = /^ctr/i.test(raw.trim()) ? "COLLECTEUR" : "COMMISSIONNAIRE";
+    const code = profil === "COLLECTEUR" ? normalizeCollecteurCode(raw) : normalizeCommissionnaireCode(raw);
+    if (!code) return res.status(400).json({ message: "Format attendu : CMR-042 ou CTR-007." });
+
+    const agent = await findActiveFieldAgent(code, profil);
+    if (!agent) return res.status(404).json({ message: `Le code ${code} n'existe pas ou n'est plus actif.` });
+
+    const phone = agent.person?.phone ?? null;
+    return res.status(200).json({
+      data: {
+        code: agent.code,
+        profil: agent.profil,
+        fullName: agent.person?.fullName ?? null,
+        phone: req.user ? phone : maskPhone(phone),
+      },
+    });
+  } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);
   }

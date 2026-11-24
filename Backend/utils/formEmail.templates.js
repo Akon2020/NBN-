@@ -187,3 +187,11 @@ export const inboundEmailNotice = ({ mailboxAddress, sender, subject, snippet, l
     ${snippet ? `<p style="color:${MUTED};font-style:italic">${escapeHtml(snippet)}</p>` : ""}
     ${actionButton(link, "Lire et répondre")}`),
 });
+
+// Message à un commissionnaire ou un collecteur (espace personnel).
+export const fieldAgentEmail = ({ title, message, link }) => ({
+  subject: title,
+  html: layout(`
+    <p>${escapeHtml(message)}</p>
+    ${actionButton(link, "Ouvrir mon espace")}`),
+});

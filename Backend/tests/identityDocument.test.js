@@ -30,6 +30,7 @@ let pngBuffer;
 
 const payload = {
   remplisseur: "RESPONSABLE",
+  parCommissionnaire: false,
   typeMission: "COLLECTE_BIEN",
   typeOperation: "RENT",
   propertyType: "APPARTEMENT",

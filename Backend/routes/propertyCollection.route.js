@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { createPropertyCollection } from "../controllers/propertyCollection.controller.js";
+import { createPropertyCollection, lookupFieldAgent } from "../controllers/propertyCollection.controller.js";
 import { optionalAuth } from "../middlewares/auth.middleware.js";
-import { publicFormLimiter } from "../middlewares/rateLimit.middleware.js";
+import { agentLookupLimiter, publicFormLimiter } from "../middlewares/rateLimit.middleware.js";
 import { parseCollectionUpload } from "../middlewares/collectionUpload.middleware.js";
 
 const propertyCollectionRouter = Router();
@@ -41,14 +41,20 @@ const propertyCollectionRouter = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [remplisseur, typeMission, typeOperation, propertyType, commune, quartier, avenue, prix, bedrooms, toilets, livingRooms, kitchens, depots, responsableStatut, responsableNom, responsablePhone, responsableDisponibiliteVisite, responsableAccepteCommission]
+ *             required: [remplisseur, typeMission, typeOperation, propertyType, commune, quartier, avenue, prix, bedrooms, toilets, livingRooms, kitchens, depots, responsableStatut, responsableNom, responsablePhone, responsableEmail, responsableDisponibiliteVisite, responsableAccepteCommission]
  *             properties:
  *               remplisseur:
  *                 type: string
- *                 enum: [RESPONSABLE, COLLECTEUR]
+ *                 enum: [RESPONSABLE, COLLECTEUR, COMMISSIONNAIRE]
+ *               codeCollecteur:
+ *                 type: string
+ *                 description: Requis si remplisseur = COLLECTEUR (CTR-007), vérifié en base (fiche active). Facultatif pour un membre de l'équipe connecté.
+ *               codeRemplisseur:
+ *                 type: string
+ *                 description: Code CMR du commissionnaire qui remplit (remplisseur = COMMISSIONNAIRE). Un commissionnaire connecté utilise toujours le sien.
  *               parCommissionnaire:
  *                 type: boolean
- *                 description: Requis si remplisseur = COLLECTEUR.
+ *                 description: "« Ce bien a-t-il été apporté par un commissionnaire ? » Requis si remplisseur = RESPONSABLE ou COLLECTEUR."
  *               typeMission:
  *                 type: string
  *                 enum: [COLLECTE_BIEN, APPORT_CLIENT, SUIVI, MISE_A_JOUR]
@@ -57,6 +63,8 @@ const propertyCollectionRouter = Router();
  *                 enum: [RENT, SALE]
  *               propertyType:
  *                 type: string
+ *                 enum: [APPARTEMENT, MAISON, TERRAIN, CHAMBRETTE, BUREAU, LOCAL_COMMERCIAL]
+ *                 description: Liste unique de l'agence ; les anciens types restent acceptés (application mobile).
  *               commune:
  *                 type: string
  *                 enum: [IBANDA, KADUTU, BAGIRA]
@@ -89,7 +97,7 @@ const propertyCollectionRouter = Router();
  *                 type: string
  *               responsableEmail:
  *                 type: string
- *                 description: Requis si remplisseur = RESPONSABLE ; format et domaine vérifiés.
+ *                 description: Toujours requis ; format et domaine vérifiés.
  *               responsableIdNumber:
  *                 type: string
  *               responsableDisponibiliteVisite:
@@ -98,13 +106,9 @@ const propertyCollectionRouter = Router();
  *               responsableAccepteCommission:
  *                 type: string
  *                 enum: [OUI, NON, A_NEGOCIER]
- *               collecteurNom:
- *                 type: string
- *               collecteurPhone:
- *                 type: string
  *               codeCommissionnaire:
  *                 type: string
- *                 description: Requis si parCommissionnaire. Format CCM-042 ; un code inconnu n'empêche pas la collecte.
+ *                 description: Requis si parCommissionnaire. Format CMR-042 (ancien CCM accepté), vérifié en base ; nom et téléphone repris de la fiche.
  *     responses:
  *       201:
  *         description: Bien enregistré avec succès
@@ -115,10 +119,29 @@ const propertyCollectionRouter = Router();
  */
 propertyCollectionRouter.post(
   "/",
+  optionalAuth,
   publicFormLimiter,
   parseCollectionUpload,
-  optionalAuth,
   createPropertyCollection
 );
+
+/**
+ * @swagger
+ * /api/property-collections/agents/{code}:
+ *   get:
+ *     summary: Vérifie un code CMR ou CTR saisi dans le formulaire de collecte
+ *     description: >
+ *       Fiche active uniquement. Renvoie le nom, et le téléphone en clair
+ *       pour un utilisateur connecté, masqué sauf les 3 derniers chiffres
+ *       sinon. Limité à 30 vérifications par appareil et par quart d'heure.
+ *     tags: [Properties]
+ *     parameters:
+ *       - { in: path, name: code, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: "{ code, profil, fullName, phone }" }
+ *       400: { description: Format de code invalide }
+ *       404: { description: Code inconnu ou fiche inactive }
+ */
+propertyCollectionRouter.get("/agents/:code", agentLookupLimiter, optionalAuth, lookupFieldAgent);
 
 export default propertyCollectionRouter;

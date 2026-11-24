@@ -149,10 +149,11 @@ describe("Notifications des formulaires publics", () => {
         where: { idUser: users[role].idUser, type: "rental_request:new" },
       });
       expect(notification?.relatedEntityId).toBe(client.idClient);
-      // Les copies d'e-mails reçus sur contact@ (autres fichiers de test en
-      // parallèle, audience par rôle) ne concernent pas ce formulaire.
-      const formEmails = (await emailEventsTo(users[role].email)).filter(
-        ({ payload }) => !String(payload.subject).startsWith("Nouveau message sur")
+      // Les autres fichiers de test tournent en parallèle et prévienent les
+      // mêmes rôles (e-mails reçus sur contact@, collectes de biens) : seuls
+      // les e-mails de cette demande sont comptés.
+      const formEmails = (await emailEventsTo(users[role].email)).filter(({ payload }) =>
+        String(payload.subject).includes(`Client Notif ${suffix}`)
       );
       expect(formEmails).toHaveLength(1);
     }
@@ -163,7 +164,11 @@ describe("Notifications des formulaires publics", () => {
   });
 
   it("une collecte de bien prévient les opérations, avec un lien vers la bonne fiche", async () => {
-    const res = await request(app).post("/api/property-collections").send({
+    // Membre de l'équipe connecté : collecte sans code collecteur.
+    const login = await request(app)
+      .post("/api/auth/login")
+      .send({ email: users.operations.email, password: "TestPass@123" });
+    const res = await request(app).post("/api/property-collections").set("Cookie", login.headers["set-cookie"]).send({
       remplisseur: "COLLECTEUR",
       parCommissionnaire: false,
       typeMission: "COLLECTE_BIEN",
@@ -181,6 +186,7 @@ describe("Notifications des formulaires publics", () => {
       responsableStatut: "PROPRIETAIRE",
       responsableNom: `Proprietaire Notif ${suffix}`,
       responsablePhone: ownerPhone,
+      responsableEmail: `proprietaire.notif.${suffix}@gmail.com`,
       responsableDisponibiliteVisite: "OUI",
       responsableAccepteCommission: "OUI",
     });

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, afterAll, beforeAll } from "vitest";
 import fs from "fs";
 import path from "path";
 import request from "supertest";
@@ -14,6 +14,9 @@ import {
   Mission,
   Alert,
   TimelineEvent,
+  Commissionnaire,
+  Notification,
+  User,
 } from "../models/index.model.js";
 import { serializeProperty } from "../utils/serializers/property.serializer.js";
 
@@ -21,13 +24,22 @@ const suffix = Date.now();
 const ownerPhone = `+24390${String(suffix).slice(-7)}`;
 const selfOwnerPhone = `+24391${String(suffix).slice(-7)}`;
 
+// Fiches terrain réelles : les codes saisis sont vérifiés en base.
+const agentNumber = 900000 + (suffix % 90000);
+const cmrCode = `CMR-${agentNumber}`;
+const ctrCode = `CTR-${agentNumber}`;
+const suspendedCode = `CMR-${agentNumber + 1}`;
+const agents = {};
+
 const createdPropertyIds = [];
 const createdPersonIds = [];
 const createdBailleurIds = [];
 
-// Collecte par un commissionnaire, le cas le plus complet.
+// Collecte par un collecteur, bien apporté par un commissionnaire : le cas
+// le plus complet.
 const basePayload = {
   remplisseur: "COLLECTEUR",
+  codeCollecteur: ctrCode.toLowerCase(),
   parCommissionnaire: true,
   typeMission: "COLLECTE_BIEN",
   typeOperation: "RENT",
@@ -56,11 +68,34 @@ const basePayload = {
   responsableEmail: `responsable.${suffix}@gmail.com`,
   responsableDisponibiliteVisite: "SUR_PROGRAMME",
   responsableAccepteCommission: "A_NEGOCIER",
-  collecteurNom: `Collecteur Test ${suffix}`,
-  collecteurPhone: "+243900000000",
-  // Code au bon format mais attribué à personne.
-  codeCommissionnaire: `ccm ${String(suffix).slice(-4)}`,
+  // Saisie approximative : normalisée puis vérifiée en base.
+  codeCommissionnaire: cmrCode.replace("-", " "),
 };
+
+beforeAll(async () => {
+  const agentUser = await User.create({
+    fullName: `Commissionnaire Collecte ${suffix}`,
+    email: `cmr.collecte.${suffix}@nbn.test`,
+    password: "x",
+    role: "commissionnaire",
+    status: "ACTIVE",
+  });
+  agents.user = agentUser;
+  const persons = await Person.bulkCreate([
+    { fullName: `Commissionnaire Collecte ${suffix}`, phone: "+243970000123", idUser: agentUser.idUser },
+    { fullName: `Collecteur Collecte ${suffix}`, phone: "+243970000456" },
+    { fullName: `Suspendu Collecte ${suffix}`, phone: "+243970000789" },
+  ]);
+  agents.persons = persons;
+  agents.cmr = await Commissionnaire.create({ idPerson: persons[0].idPerson, code: cmrCode, profil: "COMMISSIONNAIRE" });
+  agents.ctr = await Commissionnaire.create({ idPerson: persons[1].idPerson, code: ctrCode, profil: "COLLECTEUR" });
+  agents.suspended = await Commissionnaire.create({
+    idPerson: persons[2].idPerson,
+    code: suspendedCode,
+    profil: "COMMISSIONNAIRE",
+    statut: "SUSPENDU",
+  });
+});
 
 const trackProperty = async (idProperty) => {
   createdPropertyIds.push(idProperty);
@@ -88,6 +123,10 @@ afterAll(async () => {
   if (createdBailleurIds.length) {
     await Bailleur.destroy({ where: { idBailleur: createdBailleurIds } });
   }
+  await Notification.destroy({ where: { idUser: agents.user.idUser } });
+  await Commissionnaire.destroy({ where: { idCommissionnaire: [agents.cmr, agents.ctr, agents.suspended].map((a) => a.idCommissionnaire) } });
+  await Person.destroy({ where: { idPerson: agents.persons.map((p) => p.idPerson) } });
+  await User.destroy({ where: { idUser: agents.user.idUser } });
   if (createdPersonIds.length) {
     const persons = await Person.findAll({ where: { idPerson: createdPersonIds } });
     persons
@@ -122,7 +161,13 @@ describe("Formulaire de collecte de bien", () => {
     ["une location sans modalité de paiement", { modalitePaiement: undefined }, /modalité/],
     ["un prix minimum supérieur au prix fixé", { prixMinimum: "300" }, /minimum/],
     ["un responsable sans statut", { responsableStatut: undefined }, /statut/],
-    ["un commissionnaire sans code CCM (code client CCL)", { codeCommissionnaire: "CCL-042" }, /CCM-042/],
+    ["un commissionnaire sans code CMR (code client CCL)", { codeCommissionnaire: "CCL-042" }, /CMR-042/],
+    ["un code commissionnaire inconnu", { codeCommissionnaire: "CMR-000001" }, /n'existe pas/],
+    ["un commissionnaire suspendu", { codeCommissionnaire: suspendedCode }, /plus actif/],
+    ["un collecteur sans code CTR", { codeCollecteur: "" }, /CTR-007/],
+    ["un code collecteur inconnu", { codeCollecteur: "CTR-000001" }, /n'existe pas/],
+    ["un collecteur qui ne dit pas si un commissionnaire a apporté le bien", { parCommissionnaire: undefined }, /apporté par un commissionnaire/],
+    ["un responsable sans e-mail", { responsableEmail: "" }, /e-mail du responsable/],
     [
       "un responsable qui remplit sans e-mail",
       { remplisseur: "RESPONSABLE", responsableEmail: "" },
@@ -157,7 +202,10 @@ describe("Formulaire de collecte de bien", () => {
     expect(property.bedrooms).toBe(3);
     expect(property.hasElectricity).toBe(true);
     expect(property.accessibilite).toBe("ROUTE_PRINCIPALE");
-    expect(property.codeCommissionnaire).toMatch(/^CCM-\d{3,4}$/);
+    expect(property.codeCommissionnaire).toBe(cmrCode);
+    expect(property.codeCollecteur).toBe(ctrCode);
+    // Nom du collecteur repris de sa fiche, pas de la saisie.
+    expect(property.informateur).toBe(`Collecteur Collecte ${suffix}`);
     // La marge reste dérivée, jamais saisie (10 % longue durée sur PARCELLE).
     expect(Number(property.margin)).toBe(25);
 
@@ -171,9 +219,16 @@ describe("Formulaire de collecte de bien", () => {
     expect(bailleur.accepteCommission).toBe("A_NEGOCIER");
     expect(bailleur.dossierNumber).toMatch(/^BAI-\d{4}-\d{6}$/);
 
-    // Code au bon format mais inconnu : le bien existe, la mission reste
-    // simplement non rattachée.
-    expect(res.body.data.idMission).toBeNull();
+    // Mission de traçabilité rattachée au commissionnaire qui a apporté le bien.
+    const mission = await Mission.findByPk(res.body.data.idMission);
+    expect(mission.idCommissionnaire).toBe(agents.cmr.idCommissionnaire);
+
+    // Le commissionnaire (compte actif) est prévenu, sans l'identité du responsable.
+    const notification = await Notification.findOne({
+      where: { idUser: agents.user.idUser, type: "field_agent:property_collection" },
+    });
+    expect(notification).not.toBeNull();
+    expect(notification.message).not.toContain(basePayload.responsableNom);
 
     const rental = await RentalProperty.findOne({ where: { idProperty: property.idProperty } });
     expect(rental.unit).toBe("MONTH");
@@ -222,20 +277,43 @@ describe("Formulaire de collecte de bien", () => {
     expect(sale).not.toBeNull();
   });
 
-  it("un membre de l'équipe (sans commissionnaire) n'a aucune identité à fournir", async () => {
+  it("un collecteur sans commissionnaire : aucun code CMR retenu", async () => {
     const res = await request(app)
       .post("/api/property-collections")
-      .send({
-        ...basePayload,
-        parCommissionnaire: false,
-        collecteurNom: "",
-        collecteurPhone: "",
-        codeCommissionnaire: "",
-      });
+      .send({ ...basePayload, parCommissionnaire: false, codeCommissionnaire: "" });
 
     expect(res.status).toBe(201);
     const property = await trackProperty(res.body.data.idProperty);
     expect(property.codeCommissionnaire).toBeNull();
+    expect(property.codeCollecteur).toBe(ctrCode);
+  });
+
+  it("un commissionnaire qui remplit lui-même : son code est vérifié et retenu", async () => {
+    const res = await request(app)
+      .post("/api/property-collections")
+      .send({
+        ...basePayload,
+        remplisseur: "COMMISSIONNAIRE",
+        codeRemplisseur: cmrCode,
+        codeCollecteur: undefined,
+        parCommissionnaire: undefined,
+        codeCommissionnaire: undefined,
+      });
+
+    expect(res.status).toBe(201);
+    const property = await trackProperty(res.body.data.idProperty);
+    expect(property.codeCommissionnaire).toBe(cmrCode);
+    expect(property.codeCollecteur).toBeNull();
+  });
+
+  it("vérifie un code saisi : nom de la fiche, téléphone masqué pour un visiteur", async () => {
+    const ok = await request(app).get(`/api/property-collections/agents/${cmrCode.toLowerCase()}`);
+    expect(ok.status).toBe(200);
+    expect(ok.body.data).toMatchObject({ code: cmrCode, profil: "COMMISSIONNAIRE", fullName: `Commissionnaire Collecte ${suffix}` });
+    expect(ok.body.data.phone).toBe("**********123");
+    expect((await request(app).get(`/api/property-collections/agents/${ctrCode}`)).body.data.profil).toBe("COLLECTEUR");
+    expect((await request(app).get(`/api/property-collections/agents/${suspendedCode}`)).status).toBe(404);
+    expect((await request(app).get("/api/property-collections/agents/CCL-001")).status).toBe(400);
   });
 
   it("le responsable qui remplit lui-même est enregistré comme source", async () => {
@@ -253,7 +331,8 @@ describe("Formulaire de collecte de bien", () => {
         JSON.stringify({
           ...basePayload,
           remplisseur: "RESPONSABLE",
-          parCommissionnaire: undefined,
+          parCommissionnaire: false,
+          codeCollecteur: undefined,
           responsableStatut: "PROPRIETAIRE",
           responsablePhone: selfOwnerPhone,
           responsableEmail: `proprietaire.${suffix}@gmail.com`,

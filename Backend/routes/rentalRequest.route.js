@@ -9,7 +9,7 @@ import {
   assignRentalRequest,
   getRentalRequestPdf,
 } from "../controllers/rentalRequestAssignment.controller.js";
-import { authMiddlware } from "../middlewares/auth.middleware.js";
+import { authMiddlware, optionalAuth } from "../middlewares/auth.middleware.js";
 import { requirePermission } from "../utils/rbac.js";
 import { publicFormLimiter } from "../middlewares/rateLimit.middleware.js";
 
@@ -93,7 +93,7 @@ const rentalRequestRouter = Router();
  *       429:
  *         description: Trop de soumissions depuis cet appareil
  */
-rentalRequestRouter.post("/", publicFormLimiter, createRentalRequest);
+rentalRequestRouter.post("/", optionalAuth, publicFormLimiter, createRentalRequest);
 
 /**
  * @swagger

@@ -1,3 +1,4 @@
+import { propertyKindLabel } from "../shared/propertyKinds.js";
 import { Op } from "sequelize";
 import { User } from "../models/index.model.js";
 import { createNotification } from "./notification.service.js";
@@ -10,6 +11,7 @@ import {
 import {
   propertyCollectionConfirmation,
   propertyCollectionTeamEmail,
+  fieldAgentEmail,
   rentalRequestAcknowledgement,
   rentalRequestTeamEmail,
 } from "../utils/formEmail.templates.js";
@@ -50,7 +52,30 @@ const notifyTeam = async (roles, { notification, email }) => {
   return team.length;
 };
 
-export const notifyRentalRequest = async ({ rentalRequest, client }) => {
+// Commissionnaire ou collecteur dont le code a été saisi dans un formulaire
+// (P1.2) : prévenu sur le site et par e-mail s'il a un compte. Le message
+// ne révèle jamais l'identité du responsable du bien ni celle du client.
+export const notifyFieldAgent = async (agent, { type, title, message }) => {
+  const idUser = agent?.person?.idUser;
+  if (!idUser) return false;
+  const user = await User.findByPk(idUser, { attributes: ["idUser", "email", "status"] });
+  if (!user || user.status !== "ACTIVE") return false;
+  await createNotification({
+    idUser: user.idUser,
+    type,
+    title,
+    message,
+    relatedEntityType: "FieldAgentSpace",
+    relatedEntityId: agent.idCommissionnaire,
+  });
+  await queueEmail({
+    to: user.email,
+    ...fieldAgentEmail({ title, message, link: dashboardLink("/dashboard/espace") }),
+  });
+  return true;
+};
+
+export const notifyRentalRequest = async ({ rentalRequest, client, fieldAgent = null }) => {
   const orderNumber = client.dossierNumber;
   const localisation = [rentalRequest.commune, rentalRequest.quartier, rentalRequest.avenues]
     .filter(Boolean)
@@ -72,6 +97,14 @@ export const notifyRentalRequest = async ({ rentalRequest, client }) => {
     }),
   });
 
+  if (fieldAgent) {
+    await notifyFieldAgent(fieldAgent, {
+      type: "field_agent:rental_request",
+      title: "Un client a indiqué votre code",
+      message: `Une demande de location (${client.dossierNumber}) mentionne votre code ${fieldAgent.code}. L'agence la traite.`,
+    });
+  }
+
   return notifyTeam(RENTAL_REQUEST_ROLES, {
     notification: {
       type: "rental_request:new",
@@ -92,11 +125,23 @@ export const notifyRentalRequest = async ({ rentalRequest, client }) => {
   });
 };
 
-export const notifyPropertyCollection = async ({ property, responsable, source, parResponsable }) => {
-  const localisation = [property.propertyType, property.commune, property.quartier, property.avenue]
+export const notifyPropertyCollection = async ({ property, responsable, source, parResponsable, fieldAgents = [] }) => {
+  const typeLabel = propertyKindLabel(property.propertyType);
+  const localisation = [typeLabel, property.commune, property.quartier, property.avenue]
     .filter(Boolean)
     .join(" - ");
-  const title = `Nouveau bien collecté - ${property.propertyType} à ${property.quartier || property.commune}`;
+  const title = `Nouveau bien collecté - ${typeLabel} à ${property.quartier || property.commune}`;
+
+  const seen = new Set();
+  for (const agent of fieldAgents) {
+    if (seen.has(agent.idCommissionnaire)) continue;
+    seen.add(agent.idCommissionnaire);
+    await notifyFieldAgent(agent, {
+      type: "field_agent:property_collection",
+      title: "Votre code a été saisi dans une collecte de bien",
+      message: `${typeLabel} à ${[property.quartier, property.commune].filter(Boolean).join(", ")} (bien NBN-${property.idProperty}), code ${agent.code}.`,
+    });
+  }
   const detailPath = property.category === "SALE" ? "sales" : "rentals";
 
   if (parResponsable && responsable.email) {

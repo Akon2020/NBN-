@@ -19,11 +19,13 @@ const Property = db.define("properties", {
       "CONSTRUCTION_SEMI_DURABLE",
       "TERRAIN_PLAT",
       "TERRAIN_PENTE",
-      // Ajoutés avec le formulaire de collecte terrain - chaque type a sa
-      // ligne correspondante dans `marginSettings` (les deux ENUM restent
-      // alignés, sans quoi le bien n'aurait aucun pourcentage effectif).
       "PARCELLE",
-      "CHAMBRE"
+      "CHAMBRE",
+      // Liste unique de l'agence (shared/propertyKinds.js).
+      "TERRAIN",
+      "CHAMBRETTE",
+      "BUREAU",
+      "LOCAL_COMMERCIAL"
     ),
     allowNull: false,
   },
@@ -110,6 +112,11 @@ const Property = db.define("properties", {
   // Source terrain (CDC §4) : code du commissionnaire ayant apporté le
   // bien, ou nom de l'informateur - les deux optionnels et exclusifs en
   // pratique, jamais combinés à un contrôle strict au niveau schéma.
+  // Code CTR du collecteur qui a relevé le bien (formulaire de collecte).
+  codeCollecteur: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+  },
   codeCommissionnaire: {
     type: DataTypes.STRING(50),
     allowNull: true,
