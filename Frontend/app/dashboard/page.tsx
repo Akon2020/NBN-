@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { getAuthUser } from "@/lib/auth";
 import { getDashboardStats } from "@/actions/dashboard";
 import { DashboardCharts } from "@/components/dashboard-charts";
+import { DashboardOverview } from "@/components/dashboard-overview";
 import type { DashboardStats, RecentActivityEntry, RecentActivityType } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -203,6 +204,8 @@ export default function DashboardPage() {
           Voici un aperçu réel de votre activité sur Nyumbani Express
         </p>
       </div>
+
+      <DashboardOverview />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
