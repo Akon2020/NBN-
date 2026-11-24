@@ -1,4 +1,5 @@
 import { propertyKindLabel } from "../shared/propertyKinds.js";
+import { getSettingValue } from "../shared/appSettings.js";
 import { Op } from "sequelize";
 import { User } from "../models/index.model.js";
 import { createNotification } from "./notification.service.js";
@@ -13,6 +14,7 @@ import {
   propertyCollectionTeamEmail,
   fieldAgentEmail,
   rentalRequestAcknowledgement,
+  DEFAULT_ACKNOWLEDGEMENT_TEMPLATE,
   rentalRequestTeamEmail,
 } from "../utils/formEmail.templates.js";
 
@@ -94,6 +96,7 @@ export const notifyRentalRequest = async ({ rentalRequest, client, fieldAgent = 
       sexe: rentalRequest.sexe,
       orderNumber,
       requestedAt: rentalRequest.createdAt ?? new Date(),
+      template: await getSettingValue("emails.rentalRequestAcknowledgement", DEFAULT_ACKNOWLEDGEMENT_TEMPLATE),
     }),
   });
 

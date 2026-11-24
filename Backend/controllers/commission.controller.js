@@ -1,3 +1,6 @@
+import { notifyFieldAgent } from "../services/formNotifications.service.js";
+import { getSettingValue } from "../shared/appSettings.js";
+import { propertyKindOf } from "../shared/propertyKinds.js";
 import {
   Commission,
   Client,
@@ -49,10 +52,23 @@ export const createCommission = async (req, res, next) => {
         message: "idClient, beneficiaireType, montantTransaction et currencyCode sont requis.",
       });
     }
-    if (!tauxCommission && !montantCommission) {
-      return res
-        .status(400)
-        .json({ message: "tauxCommission ou montantCommission est requis." });
+    // Commission d'un commissionnaire sans montant saisi : règle réglée
+    // dans Paramètres (commissions.commissionnaireRule), si l'agence en a
+    // choisi une. Sinon, montant ou taux restent à saisir.
+    let ruleRate = null;
+    let ruleAmount = null;
+    if (!tauxCommission && !montantCommission && beneficiaireType === "COMMISSIONNAIRE") {
+      const rule = await getSettingValue("commissions.commissionnaireRule", { mode: "MANUEL" });
+      const property = idProperty ? await Property.findByPk(idProperty, { attributes: ["propertyType"] }) : null;
+      const kind = property ? propertyKindOf(property.propertyType) : null;
+      const value = (kind && rule?.parType?.[kind]) ?? rule?.valeur;
+      if (rule?.mode === "POURCENTAGE" && value != null) ruleRate = Number(value);
+      if (rule?.mode === "MONTANT_FIXE" && value != null) ruleAmount = Number(value);
+    }
+    if (!tauxCommission && !montantCommission && ruleRate === null && ruleAmount === null) {
+      return res.status(400).json({
+        message: "tauxCommission ou montantCommission est requis (aucune règle de calcul n'est définie dans Paramètres).",
+      });
     }
     if (!["AGENCE", "AGENT", "COMMISSIONNAIRE"].includes(beneficiaireType)) {
       return res
@@ -91,9 +107,12 @@ export const createCommission = async (req, res, next) => {
         .json({ message: "beneficiaireUserId est requis pour une commission AGENT." });
     }
 
+    const effectiveRate = tauxCommission || ruleRate;
     const finalMontantCommission = montantCommission
       ? Number(montantCommission)
-      : Number(montantTransaction) * (Number(tauxCommission) / 100);
+      : ruleAmount !== null
+        ? ruleAmount
+        : Math.round(Number(montantTransaction) * (Number(effectiveRate) / 100) * 100) / 100;
 
     const commission = await Commission.create({
       idClient,
@@ -103,7 +122,7 @@ export const createCommission = async (req, res, next) => {
       idCommissionnaire,
       montantTransaction,
       currencyCode: currencyCode.toUpperCase(),
-      tauxCommission: tauxCommission || null,
+      tauxCommission: effectiveRate || null,
       montantCommission: finalMontantCommission,
       createdBy: req.user.idUser,
     });
@@ -172,6 +191,18 @@ export const markCommissionDue = async (req, res, next) => {
     }
 
     await commission.update({ statut: "DUE", idCaisse });
+
+    // « Votre paiement est prêt » au commissionnaire bénéficiaire (P1.2).
+    if (commission.idCommissionnaire) {
+      const agent = await Commissionnaire.findByPk(commission.idCommissionnaire, {
+        include: [{ model: Person, as: "person" }],
+      });
+      await notifyFieldAgent(agent, {
+        type: "field_agent:commission_ready",
+        title: "Votre commission est prête",
+        message: `${Number(commission.montantCommission).toLocaleString("fr-FR")} ${commission.currencyCode} : présentez-vous à la caisse.`,
+      }).catch((error) => console.error("Notification de commission :", error.message));
+    }
 
     const updated = await Commission.findByPk(commission.idCommission, {
       include: COMMISSION_INCLUDES,

@@ -124,6 +124,26 @@ describe("GOAL 13 - Centre de configuration", () => {
     expect(res.status).toBe(403);
   });
 
+  it("refuse un modèle d'accusé de réception ou une règle de commission mal formés (400)", async () => {
+    const login = await loginAs(technologiqueEmail);
+    const auth = `Bearer ${login.body.data.token}`;
+    const badTemplate = await request(app)
+      .patch("/api/settings/emails.rentalRequestAcknowledgement")
+      .set("Authorization", auth)
+      .send({ value: { subject: "", body: "x" } });
+    expect(badTemplate.status).toBe(400);
+    const badRule = await request(app)
+      .patch("/api/settings/commissions.commissionnaireRule")
+      .set("Authorization", auth)
+      .send({ value: { mode: "POURCENTAGE", valeur: 140 } });
+    expect(badRule.status).toBe(400);
+    const okRule = await request(app)
+      .patch("/api/settings/commissions.commissionnaireRule")
+      .set("Authorization", auth)
+      .send({ value: { mode: "MANUEL", valeur: null, parType: {} } });
+    expect(okRule.status).toBe(200);
+  });
+
   it("404 sur une clé de paramètre inexistante (jamais créée à la volée)", async () => {
     const login = await loginAs(technologiqueEmail);
     const res = await request(app)

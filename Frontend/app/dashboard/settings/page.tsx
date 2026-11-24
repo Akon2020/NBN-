@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Save, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { MarginSettingsPanel } from "@/components/margin-settings-panel"
+import { SettingsTemplatePanels } from "@/components/settings-template-panels"
 import { MailboxAudiencePanel } from "@/components/mailbox-audience-panel"
 import { getAppSettings, updateAppSetting, type CompanyInfo } from "@/actions/appSettings"
 
@@ -193,6 +194,8 @@ export default function SettingsPage() {
               </Button>
             </div>
           )}
+
+          <SettingsTemplatePanels />
 
           {/* Indépendant de settings:read : visible par les membres d'une boîte. */}
           <MailboxAudiencePanel />

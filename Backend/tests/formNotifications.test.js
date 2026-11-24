@@ -84,17 +84,26 @@ describe("Avis de réception", () => {
     const { subject, html, text } = rentalRequestAcknowledgement({
       fullName: "Jeanne Mukendi",
       sexe: "FEMININ",
-      orderNumber: "CLI-2026-000042",
+      orderNumber: "CCL-042",
       requestedAt: new Date("2026-09-15T10:30:00Z"),
     });
 
-    expect(subject).toBe("Avis de réception de votre demande");
+    expect(subject).toBe("Avis de réception de votre demande CCL-042");
     expect(text).toContain("Bonjour Madame Jeanne Mukendi,");
-    expect(text).toContain("votre commande a bien été reçue par NBN Express");
-    expect(text).toContain("N° de commande : CLI-2026-000042");
     // Heure de Bukavu (UTC+2), pas celle du serveur.
-    expect(text).toContain("15 septembre 2026 à 12:30");
+    expect(text).toContain("votre demande a bien été reçue par NBN Express le 15 septembre 2026 à 12:30");
     expect(html).toContain("La crédibilité au service de votre projet immobilier");
+  });
+
+  it("sans civilité connue : « Bonjour Prénom », et suit le modèle réglé par l'admin", () => {
+    const { subject, text } = rentalRequestAcknowledgement({
+      fullName: "Amani",
+      orderNumber: "CCL-007",
+      requestedAt: new Date("2026-09-15T10:30:00Z"),
+      template: { subject: "Dossier [N° de demande]", body: "Bonjour [Civilité] [Prénom du client],\nMerci." },
+    });
+    expect(subject).toBe("Dossier CCL-007");
+    expect(text).toBe("Bonjour Amani,\nMerci.");
   });
 
   it("échappe le nom saisi par le visiteur", () => {
@@ -138,10 +147,10 @@ describe("Notifications des formulaires publics", () => {
     created.persons.push(client.idPerson);
 
     const [acknowledgement] = await emailEventsTo(clientEmail);
-    expect(acknowledgement.payload.subject).toBe("Avis de réception de votre demande");
+    expect(acknowledgement.payload.subject).toBe(`Avis de réception de votre demande ${client.dossierNumber}`);
     expect(acknowledgement.payload.mailboxKey).toBe("contact");
     expect(acknowledgement.payload.text).toContain(`Bonjour Monsieur Client Notif ${suffix}`);
-    expect(acknowledgement.payload.text).toContain(client.dossierNumber);
+    expect(acknowledgement.payload.text).toContain("votre demande a bien été reçue par NBN Express le");
 
     // Communication et opérations : cloche du site ET e-mail. Trésorerie : rien.
     for (const role of ["communication", "operations"]) {

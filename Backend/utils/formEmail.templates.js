@@ -25,8 +25,8 @@ export const formatRequestDate = (date) =>
     timeZone: "Africa/Lubumbashi",
   }).format(date);
 
-const civilityOf = (sexe) =>
-  sexe === "MASCULIN" ? "Monsieur" : sexe === "FEMININ" ? "Madame" : "Madame, Monsieur";
+// Civilité seulement quand le sexe est connu : sinon « Bonjour Prénom ».
+const civilityOf = (sexe) => (sexe === "MASCULIN" ? "Monsieur" : sexe === "FEMININ" ? "Madame" : "");
 
 export const layout = (content) => `
 <div style="font-family:Arial,Helvetica,sans-serif;background:${SURFACE};padding:24px">
@@ -60,45 +60,65 @@ export const actionButton = (href, label) => `
     <a href="${escapeHtml(href)}" style="background:${BUTTON};color:#ffffff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:bold">${escapeHtml(label)}</a>
   </p>`;
 
-/**
- * Avis de réception envoyé au client juste après « Envoyer ma demande ».
- * Texte fourni par l'agence ; [Prénom du client], [N° de commande] et
- * [Date de la demande] sont les variables dynamiques.
- */
-export const rentalRequestAcknowledgement = ({ fullName, sexe, orderNumber, requestedAt }) => {
-  const subject = "Avis de réception de votre demande";
-  const civility = civilityOf(sexe);
-  const date = formatRequestDate(requestedAt);
-
-  const text = [
-    `Bonjour ${civility} ${fullName},`,
+// Modèle par défaut de l'accusé de réception (texte de l'agence). Il est
+// modifiable dans Paramètres (clé emails.rentalRequestAcknowledgement).
+export const DEFAULT_ACKNOWLEDGEMENT_TEMPLATE = {
+  subject: "Avis de réception de votre demande [N° de demande]",
+  body: [
+    "Bonjour [Civilité] [Prénom du client],",
     "",
-    "Nous vous confirmons que votre commande a bien été reçue par NBN Express.",
+    "Nous vous confirmons que votre demande a bien été reçue par NBN Express le [Date de la demande].",
     "",
     "Les informations concernant votre recherche de bien immobilier ont été enregistrées avec succès. Notre équipe va examiner votre demande et un agent NBN Express vous contactera bientôt pour la suite de votre recherche.",
     "",
-    orderNumber ? `N° de commande : ${orderNumber}` : null,
-    `Date de la demande : ${date}`,
-    "",
-    "Merci d'avoir choisi NBN Express – La crédibilité au service de votre projet immobilier.",
+    "Merci d'avoir choisi NBN Express",
+    "– La crédibilité au service de votre projet immobilier.",
     "",
     "L'équipe NBN Express",
-  ]
-    .filter((line) => line !== null)
+  ].join("\n"),
+};
+
+export const ACKNOWLEDGEMENT_VARIABLES = ["[N° de demande]", "[Civilité]", "[Prénom du client]", "[Date de la demande]"];
+
+// Variables remplacées, puis espaces doublés retirés : sans civilité,
+// « Bonjour [Civilité] [Prénom] » devient « Bonjour Prénom ».
+const fillTemplate = (template, values) =>
+  Object.entries(values)
+    .reduce((text, [variable, value]) => text.split(variable).join(value ?? ""), String(template ?? ""))
+    .split("\n")
+    .map((line) => line.replace(/[ \t]{2,}/g, " ").replace(/ ,/g, ",").trimEnd())
     .join("\n");
 
-  const html = layout(`
-    <p>Bonjour ${escapeHtml(civility)} <strong>${escapeHtml(fullName)}</strong>,</p>
-    <p>Nous vous confirmons que votre commande a bien été reçue par NBN Express.</p>
-    <p>Les informations concernant votre recherche de bien immobilier ont été enregistrées avec succès.
-    Notre équipe va examiner votre demande et un agent NBN Express vous contactera bientôt pour la suite
-    de votre recherche.</p>
-    ${detailRows([
-      ["N° de commande", orderNumber],
-      ["Date de la demande", date],
-    ])}
-    <p>Merci d'avoir choisi NBN Express &ndash; <em>La crédibilité au service de votre projet immobilier.</em></p>
-    <p style="margin-top:24px">L'équipe NBN Express</p>`);
+/**
+ * Avis de réception envoyé au client juste après « Envoyer ma demande ».
+ * Variables : [N° de demande] (code client CCL), [Civilité] (Monsieur ou
+ * Madame selon le sexe renseigné, vide sinon), [Prénom du client] (nom
+ * saisi par le client : l'ordre nom / prénom n'étant pas fiable, le nom
+ * complet est repris), [Date de la demande] (heure de Bukavu).
+ */
+export const rentalRequestAcknowledgement = ({
+  fullName,
+  sexe,
+  orderNumber,
+  requestedAt,
+  template = DEFAULT_ACKNOWLEDGEMENT_TEMPLATE,
+}) => {
+  const values = {
+    "[N° de demande]": orderNumber || "",
+    "[Civilité]": civilityOf(sexe),
+    "[Prénom du client]": fullName || "",
+    "[Date de la demande]": formatRequestDate(requestedAt),
+  };
+  const subject = fillTemplate(template.subject || DEFAULT_ACKNOWLEDGEMENT_TEMPLATE.subject, values).trim();
+  const text = fillTemplate(template.body || DEFAULT_ACKNOWLEDGEMENT_TEMPLATE.body, values);
+
+  // HTML construit depuis le texte final échappé : un paragraphe par bloc.
+  const html = layout(
+    text
+      .split(/\n{2,}/)
+      .map((block) => `<p>${escapeHtml(block).replace(/\n/g, "<br>")}</p>`)
+      .join("\n")
+  );
 
   return { subject, html, text };
 };
