@@ -21,7 +21,7 @@ import {
   updatePropertyStatut,
 } from "../controllers/property.controller.js";
 import { authMiddlware } from "../middlewares/auth.middleware.js";
-import { requirePermission } from "../utils/rbac.js";
+import { requireAnyPermission, requirePermission } from "../utils/rbac.js";
 import upload, { uploadVideo } from "../middlewares/upload.middleware.js";
 import { normalizeUploadPaths } from "../utils/normalizeUploadPaths.js";
 
@@ -277,7 +277,7 @@ propertyRouter.patch(
 propertyRouter.post(
   "/:id/images",
   authMiddlware,
-  requirePermission("property:manage"),
+  requireAnyPermission("property:manage", "property:media:manage"),
   upload.array("image", 10),
   normalizeUploadPaths,
   addPropertyImages
@@ -298,7 +298,7 @@ propertyRouter.post(
 propertyRouter.delete(
   "/:id/images/:imageId",
   authMiddlware,
-  requirePermission("property:manage"),
+  requireAnyPermission("property:manage", "property:media:manage"),
   deletePropertyImage
 );
 
@@ -327,7 +327,7 @@ propertyRouter.delete(
 propertyRouter.patch(
   "/:id/images/reorder",
   authMiddlware,
-  requirePermission("property:manage"),
+  requireAnyPermission("property:manage", "property:media:manage"),
   reorderPropertyImages
 );
 
@@ -355,7 +355,7 @@ propertyRouter.patch(
 propertyRouter.post(
   "/:id/videos",
   authMiddlware,
-  requirePermission("property:manage"),
+  requireAnyPermission("property:manage", "property:media:manage"),
   uploadVideo.array("video", 5),
   normalizeUploadPaths,
   addPropertyVideos
@@ -376,7 +376,7 @@ propertyRouter.post(
 propertyRouter.delete(
   "/:id/videos/:videoId",
   authMiddlware,
-  requirePermission("property:manage"),
+  requireAnyPermission("property:manage", "property:media:manage"),
   deletePropertyVideo
 );
 
@@ -405,7 +405,7 @@ propertyRouter.delete(
 propertyRouter.patch(
   "/:id/videos/reorder",
   authMiddlware,
-  requirePermission("property:manage"),
+  requireAnyPermission("property:manage", "property:media:manage"),
   reorderPropertyVideos
 );
 

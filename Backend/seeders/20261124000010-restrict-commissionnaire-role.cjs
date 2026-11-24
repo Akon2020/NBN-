@@ -27,8 +27,8 @@ module.exports = {
     const now = new Date();
     for (const permission of permissions) {
       await queryInterface.sequelize.query(
-        "INSERT IGNORE INTO rolePermissions (idRole, idPermission, createdAt, updatedAt) VALUES (?, ?, ?, ?)",
-        { replacements: [role.idRole, permission.idPermission, now, now] }
+        "INSERT IGNORE INTO rolePermissions (idRole, idPermission, createdAt) VALUES (?, ?, ?)",
+        { replacements: [role.idRole, permission.idPermission, now] }
       );
     }
   },

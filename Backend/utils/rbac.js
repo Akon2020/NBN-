@@ -68,3 +68,23 @@ export const requirePermission = (permissionKey) => {
     }
   };
 };
+
+/**
+ * Accès si l'une des permissions est présente (ex. gestion complète d'un
+ * bien, ou seulement de ses photos et vidéos).
+ */
+export const requireAnyPermission = (...permissionKeys) => {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentification requise." });
+    }
+    try {
+      for (const key of permissionKeys) {
+        if (await hasPermission(req.user, key)) return next();
+      }
+      return res.status(403).json({ message: "Accès refusé : permissions insuffisantes." });
+    } catch (error) {
+      return next(error);
+    }
+  };
+};
