@@ -14,6 +14,7 @@ import db from "../database/db.js";
 import {
   serializeProperties,
   serializeProperty,
+  serializePublicProperty,
 } from "../utils/serializers/property.serializer.js";
 import { createArchiveHandlers } from "../utils/archivable.js";
 import { recordTimelineEvent } from "../shared/timeline.js";
@@ -32,6 +33,14 @@ export const PROPERTY_INCLUDES = [
   { model: PropertyScore, as: "scores" },
 ];
 
+// Lecture publique : ni numéros du responsable ni scores internes.
+const PUBLIC_PROPERTY_INCLUDES = [
+  { model: RentalProperty, as: "rentalDetails" },
+  { model: SaleProperty, as: "saleDetails" },
+  { model: PropertyImage, as: "images", separate: true, order: [["order", "ASC"]] },
+  { model: PropertyVideo, as: "videos", separate: true, order: [["order", "ASC"]] },
+];
+
 // MOBILE-G03 — le "client final" du CDC n'a pas de compte User (une Person
 // devient Client/Bailleur, jamais un User, CLAUDE.md §4) : lecture publique
 // volontairement restreinte aux biens DISPONIBLE, avec le même filtrage
@@ -39,11 +48,21 @@ export const PROPERTY_INCLUDES = [
 // masque toujours `margin`, jamais de contournement possible ici).
 export const getPublicProperties = async (req, res, next) => {
   try {
+    // Landing page : quelques biens récents suffisent (connexion faible),
+    // `limit` borné à 50. Sans `limit`, comportement historique (Mobile).
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 0, 0), 50);
+    const where = { statut: "DISPONIBLE", archivedAt: null };
+    if (["RENT", "SALE"].includes(req.query.category)) {
+      where.category = req.query.category;
+    }
     const properties = await Property.findAll({
-      where: { statut: "DISPONIBLE" },
-      include: PROPERTY_INCLUDES,
+      where,
+      include: PUBLIC_PROPERTY_INCLUDES,
+      order: [["createdAt", "DESC"]],
+      ...(limit ? { limit } : {}),
     });
-    const propertiesInfo = await serializeProperties(properties, null);
+    const propertiesInfo = properties.map(serializePublicProperty);
+    res.set("Cache-Control", "public, max-age=60");
     return res.status(200).json({
       nombre: propertiesInfo.length,
       propertiesInfo,
@@ -58,14 +77,13 @@ export const getPublicProperty = async (req, res, next) => {
   try {
     const { id } = req.params;
     const property = await Property.findOne({
-      where: { idProperty: id, statut: "DISPONIBLE" },
-      include: PROPERTY_INCLUDES,
+      where: { idProperty: id, statut: "DISPONIBLE", archivedAt: null },
+      include: PUBLIC_PROPERTY_INCLUDES,
     });
     if (!property) {
       return res.status(404).json({ message: "Propriété non trouvée" });
     }
-    const serialized = await serializeProperty(property, null);
-    return res.status(200).json(serialized);
+    return res.status(200).json(serializePublicProperty(property));
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
     next(error);

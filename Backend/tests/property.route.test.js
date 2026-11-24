@@ -152,6 +152,27 @@ describe("MOBILE-G03 - Lecture publique des biens (client final sans compte)", (
     expect(res.status).toBe(200);
     expect(res.body.idProperty).toBe(idProperty);
     expect(res.body.margin).toBeUndefined();
+    // Liste blanche : aucun champ interne pour un visiteur anonyme.
+    for (const field of [
+      "informateur",
+      "codeCommissionnaire",
+      "observations",
+      "latitude",
+      "fullAddress",
+      "createdBy",
+      "idBailleur",
+      "prixMinimum",
+      "phones",
+      "scores",
+    ]) {
+      expect(res.body[field]).toBeUndefined();
+    }
+  });
+
+  it("limite la liste publique quand la landing page le demande", async () => {
+    const res = await request(app).get("/api/properties/public?limit=1");
+    expect(res.status).toBe(200);
+    expect(res.body.propertiesInfo.length).toBeLessThanOrEqual(1);
   });
 
   it("refuse un bien qui n'est pas DISPONIBLE", async () => {

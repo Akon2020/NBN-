@@ -52,3 +52,56 @@ export const serializeProperties = async (properties, user) => {
   const access = await resolveFieldAccess(user);
   return properties.map((property) => applyFieldAccess(property, access));
 };
+
+// Lecture publique (landing page, application mobile sans compte) : liste
+// blanche stricte. Un visiteur anonyme ne voit jamais l'informateur, le
+// code commissionnaire, les observations internes, les coordonnées GPS,
+// l'adresse complète, les scores ni l'auteur de la fiche.
+const PUBLIC_FIELDS = [
+  "idProperty",
+  "category",
+  "propertyType",
+  "commune",
+  "quartier",
+  "avenue",
+  "floors",
+  "bedrooms",
+  "livingRooms",
+  "toilets",
+  "kitchens",
+  "hasElectricity",
+  "hasWater",
+  "price",
+  "modalitePaiement",
+  "description",
+  "statut",
+  "createdAt",
+];
+
+export const serializePublicProperty = (property) => {
+  const plain =
+    property && typeof property.toJSON === "function"
+      ? property.toJSON()
+      : { ...property };
+  const result = {};
+  for (const field of PUBLIC_FIELDS) {
+    if (plain[field] !== undefined) result[field] = plain[field];
+  }
+  if (plain.rentalDetails) {
+    result.rentalDetails = {
+      guarantee: plain.rentalDetails.guarantee,
+      unit: plain.rentalDetails.unit,
+    };
+  }
+  result.images = (plain.images || []).map((image) => ({
+    idPropertyImage: image.idPropertyImage,
+    image: image.image,
+    order: image.order,
+  }));
+  result.videos = (plain.videos || []).map((video) => ({
+    idPropertyVideo: video.idPropertyVideo,
+    video: video.video,
+    order: video.order,
+  }));
+  return result;
+};
