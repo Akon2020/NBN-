@@ -1,3 +1,5 @@
+import { PROPERTY_KINDS } from "./propertyKinds"
+
 export type PropertyCategory = "RENT" | "SALE"
 
 export type PropertyType =
@@ -1394,13 +1396,9 @@ export const CANAL_CONTACT_CHOICES = [
   { value: "AUTRE", label: "Autre" },
 ]
 
-export const TYPE_BIEN_SOUHAITE_CHOICES = [
-  { value: "APPARTEMENT", label: "Appartement" },
-  { value: "MAISON", label: "Maison" },
-  { value: "STUDIO", label: "Studio" },
-  { value: "CHAMBRE", label: "Chambre" },
-  { value: "BUREAU", label: "Bureau" },
-  { value: "LOCAL_COMMERCIAL", label: "Local commercial" },
+// Liste unique des types de biens (lib/propertyKinds.ts), plus « Autre ».
+export const TYPE_BIEN_SOUHAITE_CHOICES: { value: string; label: string }[] = [
+  ...PROPERTY_KINDS.map((kind) => ({ value: kind.value as string, label: kind.label as string })),
   { value: "AUTRE", label: "Autre" },
 ]
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Manrope, Inter } from "next/font/google"
@@ -154,6 +154,34 @@ export default function DemandeLocationPage() {
     setForm((prev) => ({ ...prev, [key]: value }))
 
   const inBukavu = form.ville === "BUKAVU"
+
+  // Recherche lancée depuis la page d'accueil (type, commune, quartier,
+  // budget) : reprise une seule fois, après la restauration du brouillon,
+  // sans écraser ce que le visiteur avait déjà saisi.
+  const prefilled = useRef(false)
+  useEffect(() => {
+    if (!restored || prefilled.current) return
+    prefilled.current = true
+    const params = new URLSearchParams(window.location.search)
+    const type = params.get("type")
+    const commune = params.get("commune")
+    const quartier = params.get("quartier")
+    const budgetMax = params.get("budgetMax")
+    if (!type && !commune && !budgetMax) return
+    setForm((prev) => ({
+      ...prev,
+      typesBien:
+        prev.typesBien.length === 0 && type && TYPE_BIEN_SOUHAITE_CHOICES.some((c) => c.value === type)
+          ? [type]
+          : prev.typesBien,
+      ville: !prev.ville && commune ? "BUKAVU" : prev.ville,
+      location:
+        !prev.location.commune && commune && ["IBANDA", "KADUTU", "BAGIRA"].includes(commune)
+          ? { ...EMPTY_LOCATION, commune, quartier: quartier ?? "" }
+          : prev.location,
+      budgetMax: !prev.budgetMax && budgetMax && /^\d+$/.test(budgetMax) ? budgetMax : prev.budgetMax,
+    }))
+  }, [restored, setForm])
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
