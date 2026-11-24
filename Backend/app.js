@@ -78,7 +78,6 @@ const DEFAULT_PROD_ORIGINS = [
   "https://nbnexpress.org",
   "https://www.nbnexpress.org",
   "https://api.nbnexpress.org",
-  "https://nbn-plus.vercel.app",
 ];
 
 const PROD_ORIGINS = (CORS_ORIGINS || "")
@@ -102,19 +101,34 @@ const isDevOrigin = (origin) =>
     origin,
   );
 
+const isAllowedOrigin = (origin) =>
+  !origin ||
+  ALLOWED_ORIGINS.includes(origin) ||
+  (NODE_ENV !== "production" && isDevOrigin(origin));
+
+// Origine refusée : réponse 403 explicite et journalisée, au lieu d'une
+// erreur 500 sans en-tête CORS que le navigateur présente comme un réseau
+// coupé (« Serveur injoignable »). Cas réel : le site ouvert en
+// http://nbnexpress.org sur iPhone (Safari ne force pas HTTPS), dont
+// l'origine `http://` n'est pas autorisée.
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin)) return next();
+  console.warn(`[cors] origine refusée : ${origin} (${req.method} ${req.originalUrl})`);
+  return res.status(403).json({
+    message: origin?.startsWith("http://")
+      ? "Connexion non sécurisée : ouvrez le site en https://"
+      : "Origine non autorisée.",
+    code: "CORS_ORIGIN_REFUSED",
+  });
+});
+
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin))
-        return callback(null, true);
-      if (NODE_ENV !== "production" && isDevOrigin(origin))
-        return callback(null, true);
-      return callback(
-        new Error("Origine non autorisée par la politique CORS."),
-      );
-    },
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
+    maxAge: 600,
   }),
 );
 

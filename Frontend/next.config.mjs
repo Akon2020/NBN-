@@ -1,5 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // HSTS : une fois venu en HTTPS, le navigateur (Safari iOS compris)
+  // n'essaie plus jamais la version http:// du site. Sans includeSubDomains
+  // pour ne pas contraindre les autres services du domaine (webmail).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "Strict-Transport-Security", value: "max-age=31536000" }],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
